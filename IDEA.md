@@ -222,18 +222,18 @@ Decided 2026-09-25, replacing the first draft's scittle route.
 
 ## 7. Plan, in phases, each with a deliverable
 
-**Phase 1, the port and the live page** (begun and largely delivered
-2026-09-25). Done: cromulent as `.cljc` behind `cromulent.platform`
-(section 8); the third runtime as a command; orrery's pure namespaces
-and their tests on both runtimes; lesson 7 live, with the scrubber,
-the diff, the class list, the counters, alternatives, a typed term,
-and the end-to-end check. Next, one lesson at a time: the REPL panel;
-lesson 3 (a script run: the dirty badge, the congruence merge at the
-rebuild step); lessons 1 and 2 with the tree as nested HTML annotated
-with class ids; lesson 4 with `ematch` highlighting; lesson 5 and the
-stats panel, which needs the runner as start/step/finish so that a
-stepped run equals one run under backoff; lesson 6 and the cost
-picker; lesson 10 and the fork; learner-typed rules.
+**Phase 1, the port and the live page** (delivered 2026-09-25).
+cromulent as `.cljc` behind `cromulent.platform` (section 8) and its
+runner as start/step/finish; the third runtime as a command; orrery's
+pure namespaces and their tests on both runtimes; every cromulent
+lesson live: 1 and 2 with the tree, 3 with the dirty badge and the
+congruence merge at the rebuild step, 4 with the matches highlighted,
+5 with the stats table and backoff's bans, 6 with the cost picker, 7
+with the counters climbing, 10 with the original beside the copy;
+learner-typed terms, patterns and rules with readable errors; the
+REPL panel; the end-to-end check. What remains of the phase is
+polish as the lessons get used: prose, the picture at scale, the
+"surprise me" bank once bendix is live.
 
 **Phase 2, bendix live.** `bendix.num`, the numeric layer (section 8);
 lessons 8, 9 and 11 live; the generator and scorer live.
@@ -325,33 +325,33 @@ vivarium.
 4. **The picture at scale.** Decided: the class list is primary; the
    visualizer comes later, with the exporter.
 5. **Lay display in phase 1.** Decided yes: `orrery.lay`.
-6. **The runner as start/step/finish.** A stepped run equals one run
-   under the simple scheduler, which every lesson uses today; under
-   backoff the scheduler's bans and the iteration counter are local to
-   one `embiggen` call. Lesson 5 wants the refactor in cromulent.
+6. **The runner as start/step/finish.** Done 2026-09-25:
+   `cromulent.rewrite/start`, `step` and `finish`, with `embiggen` as
+   the loop over them, so a run stepped by the page from a timer is
+   exactly the run one call makes, bans and all (lesson 5).
 
 ## Status
 
-Phase 1 begun and largely delivered, 2026-09-25 (the Captain's "make
-it so", with the port first and the compiled page as the end state):
+Phase 1 delivered, 2026-09-25 (the Captain's "make it so", with the
+port first and the compiled page as the end state):
 
-- cromulent ported (../cromulent/IDEA.md status); `npm run smoke`
-  runs its 28 facts on node, all green, zero compiler warnings.
+- cromulent ported (../cromulent/IDEA.md status), its runner split
+  into start/step/finish; `npm run smoke` runs its 28 facts on node,
+  all green, zero compiler warnings.
 - orrery: `deps.edn`, `shadow-cljs.edn`, `package.json` (shadow-cljs
   only; no React); `orrery.lay`, `orrery.diff`, `orrery.costs`,
   `orrery.input`, `orrery.run`, `orrery.lessons`, `orrery.expect` and
-  their tests, green on the JVM and Jolt (10 tests, 72 assertions);
-  `orrery.state`, `orrery.views.{common,scrubber,classes,lesson}`,
+  their tests, green on the JVM and Jolt (12 tests, 151 assertions:
+  every live lesson and every alternative against the expectation
+  table); `orrery.state`, `orrery.repl` (SCI as a library),
+  `orrery.views.{common,scrubber,classes,tree,matches,stats,repl,lesson}`,
   `orrery.selftest`, `orrery.app`, `public/index.html`,
   `public/style.css` (light and dark).
-- Lesson 7 live: the run steps one iteration per tick and the
-  counters climb 19, 45, 98, 162, 187, 185, 185 nodes; the scrubber
-  and the diff (ten nodes added and four classes absorbed in the first
-  iteration); the class list with nodes in lay and native, the best
-  term per class and the parents; alternatives (four atoms, six, six
-  under a node limit of 500); a typed term with readable errors;
-  `bin/e2e.sh` green.
-- Lessons 1 to 6 and 10 are listed as coming; 8, 9 and 11 wait for
-  bendix.
+- Lessons 1 to 7 and 10 live, each with a curated example, two or
+  three alternatives, editable inputs (terms, a pattern, rules as
+  `[name lhs rhs]` data) and prose with inline widgets; 8, 9 and 11
+  wait for bendix. The self-test tile runs the 28 engine facts and
+  every lesson's expectation in the browser on load, in about 60 ms;
+  `bin/e2e.sh` drives lessons 2, 3, 6, 7 and the REPL through the DOM.
 
-Next: the REPL panel, then the lessons in the order of section 7.
+Next: phase 2, `bendix.num` and lessons 8, 9 and 11.

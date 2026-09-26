@@ -10,7 +10,7 @@
   [:span.ref {:on {:click #(on-select id)}} (lay/class-ref id)])
 
 (defn class-list
-  [{:keys [g diff best mode root selected on-select]}]
+  [{:keys [g diff best mode root selected hovered matches on-select]}]
   (let [added (:added diff)
         absorbing (:absorbing diff)
         new-classes (:new-classes diff)
@@ -20,7 +20,8 @@
       [:span [:span.swatch {:style {:background "var(--added)"}}] "node added this step"]
       [:span [:span.swatch {:style {:background "var(--merged-ink)"}}] "class absorbed a merge"]
       [:span [:span.swatch {:style {:background "var(--added-ink)"}}] "new class"]
-      [:span [:span.swatch {:style {:background "var(--root)"}}] "the input's class"]]
+      [:span [:span.swatch {:style {:background "var(--root)"}}] "the input's class"]
+      (when (seq matches) [:span [:span.swatch {:style {:background "var(--match)"}}] "a rule matches here"])]
      [:table.classes
       [:thead [:tr [:th "class"] [:th "nodes"] [:th "best"] [:th "parents"]]]
       (into [:tbody]
@@ -31,6 +32,8 @@
                     :class (cond-> []
                              (= id root) (conj "root")
                              (= id selected) (conj "selected")
+                             (= id hovered) (conj "hovered")
+                             (contains? matches id) (conj "match")
                              (contains? absorbing id) (conj "absorbing")
                              (contains? new-classes id) (conj "new-class")
                              dirty? (conj "dirty"))}

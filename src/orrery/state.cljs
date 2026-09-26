@@ -1,30 +1,34 @@
 (ns orrery.state
   "One atom holds the page: the lesson, the learner's input, the run
   (a timeline of e-graph values), the scrub position, the cost in
-  force, and a few UI flags. Actions swap it; a watch in orrery.app
-  re-renders. Derived values are plain functions of the state,
-  memoized per run in a cache that `run!` clears.
+  force, the REPL, and a few UI flags. Actions swap it; a watch in
+  orrery.app re-renders. Derived values are plain functions of the
+  state, memoized per run in a cache that a new run clears.
 
   A saturation is stepped one iteration per timer tick, so the page
   repaints between iterations, the counters climb, and a stop button
   works between iterations. Per-lesson limits bound the worst tick."
-  (:require [cromulent.core :as eg]
+  (:require [clojure.string :as str]
+            [cromulent.core :as eg]
             [cromulent.extract :as ex]
+            [cromulent.pattern :as pat]
             [orrery.costs :as costs]
             [orrery.diff :as diff]
             [orrery.input :as input]
             [orrery.lessons :as lessons]
+            [orrery.repl :as repl]
             [orrery.run :as run]))
 
 (defonce app-state
   (atom {:lesson :blowup
-         :input {:text "" :term nil :error nil :alternative nil :opts {}}
+         :input {:fields {} :values {} :error nil :alternative nil :opts {}}
          :run nil
          :run-id 0
          :step 0
          :follow? true
          :cost :ast-size
-         :ui {:print :lay :playing nil :selected nil}}))
+         :repl {:input "" :history []}
+         :ui {:print :lay :playing nil :selected nil :hover nil}}))
 
 (defonce ^:private cache (atom {}))
 
@@ -38,7 +42,11 @@
 
 (defn lesson [s] (lessons/by-key (:lesson s)))
 
-(defn egraph-at [s k] (some-> (:run s) (run/egraph-at k)))
+(defn egraph-at
+  "The e-graph at step k of the run, clamped to the timeline."
+  [s k]
+  (when-let [run (:run s)]
+    (run/egraph-at run (max 0 (min k (run/last-step run))))))
 
 (defn current-egraph [s] (egraph-at s (:step s)))
 
@@ -60,10 +68,26 @@
               #(ex/extractor (run/egraph-at run step) (costs/cost-fn cost))))))
 
 (defn root-at
-  "The input term's class in the current e-graph."
+  "The input term's class in the current e-graph, when the run has one."
   [s]
   (when-let [g (current-egraph s)]
-    (eg/find g (:root (:run s)))))
+    (when-let [root (:root (:run s))]
+      (eg/find g root))))
+
+(defn matches-at
+  "For a lesson that shows matches: each pattern rule's matches in the
+  current e-graph, [{:name :lhs :matches [...]}]."
+  [s]
+  (let [{:keys [run run-id step]} s
+        l (lesson s)]
+    (when (and run (= :embiggen (:kind run)) (contains? (:panels l) :matches))
+      (cached [run-id step :matches]
+              #(let [g (run/egraph-at run step)]
+                 (vec (for [r (:rules run) :when (not (fn? (:lhs r)))]
+                        {:name (:name r) :lhs (:lhs r) :matches (pat/ematch g (:lhs r))})))))))
+
+(defn matched-classes [matches]
+  (into #{} (mapcat (fn [m] (map :class (:matches m)))) matches))
 
 (defn snapshot
   "Plain data about where the page is, for the end-to-end check."
@@ -71,12 +95,14 @@
   (let [g (current-egraph s) run (:run s)]
     {:lesson (name (:lesson s))
      :step (:step s)
+     :steps (when run (count (:timeline run)))
      :status (some-> run :status name)
      :iterations (:iterations run)
      :stopReason (some-> run :stop-reason name)
      :classes (when g (eg/class-count g))
      :nodes (when g (eg/node-count g))
-     :bestCost (when g (:cost ((best-at s) (root-at s))))}))
+     :dirty (when g (boolean (:dirty? g)))
+     :bestCost (when-let [root (root-at s)] (:cost ((best-at s) root)))}))
 
 ;; ---------------------------------------------------------------------------
 ;; the run loop
@@ -93,60 +119,96 @@
         (when (= :running (:status run'))
           (js/setTimeout #(tick! id) 0))))))
 
+(defn- install-run!
+  "run becomes the run on show, in one swap, with the scrub position
+  at the start of a running run and at the end of a finished one: the
+  watch renders after every swap, so the step must never point past
+  the timeline."
+  [run]
+  (swap! tick-id inc)
+  (reset! cache {})
+  (swap! app-state (fn [s]
+                     (-> s
+                         (assoc :run run)
+                         (update :run-id inc)
+                         (assoc :step (if (= :running (:status run)) 0 (run/last-step run)))
+                         (assoc :follow? true)
+                         (assoc-in [:ui :selected] nil)
+                         (assoc-in [:ui :hover] nil))))
+  run)
+
 (defn start-run!
-  "Start the lesson's run over the current input."
+  "Start the lesson's run over the current input values."
   []
   (let [s @app-state
         l (lesson s)
-        {:keys [term opts]} (:input s)
-        term (or term (:term l))
-        id (swap! tick-id inc)]
-    (reset! cache {})
-    (swap! app-state (fn [s]
-                       (-> s
-                           (assoc :run (lessons/make-run l term (or opts {})))
-                           (update :run-id inc)
-                           (assoc :step 0 :follow? true)
-                           (assoc-in [:ui :selected] nil))))
-    (js/setTimeout #(tick! id) 0)))
+        {:keys [values opts]} (:input s)
+        run (install-run! (lessons/make-run l values (or opts {})))
+        id @tick-id]
+    (when (= :running (:status run))
+      (js/setTimeout #(tick! id) 0))))
 
 (defn stop! []
   (swap! tick-id inc)
   (swap! app-state update :run run/stop))
 
 ;; ---------------------------------------------------------------------------
-;; actions
+;; input
+
+(defn- field-text [type v]
+  (case type
+    :rules (str "[" (str/join "\n " (map pr-str v)) "]")
+    (pr-str v)))
+
+(defn- input-for [l values opts alternative]
+  {:fields (into {} (for [{:keys [key type]} (:inputs l)] [key (field-text type (get values key))]))
+   :values values :error nil :alternative alternative :opts opts})
 
 (defn load-lesson! [k]
   (when-let [l (lessons/by-key k)]
     (when (lessons/live? l)
       (swap! app-state assoc
              :lesson k
-             :input {:text (pr-str (:term l)) :term (:term l) :error nil :alternative nil :opts {}}
+             :input (input-for l (:values l) {} nil)
              :cost (or (first (:costs l)) :ast-size))
       (start-run!))))
 
 (defn choose-alternative! [alt]
-  (swap! app-state assoc :input {:text (pr-str (:term alt)) :term (:term alt) :error nil
-                                 :alternative (:label alt) :opts (or (:opts alt) {})})
-  (start-run!))
+  (let [l (lesson @app-state)
+        values (merge (:values l) (:values alt))]
+    (swap! app-state assoc :input (input-for l values (or (:opts alt) {}) (:label alt)))
+    (start-run!)))
 
-(defn set-input-text! [text]
-  (swap! app-state assoc-in [:input :text] text))
+(defn set-field! [k text]
+  (swap! app-state assoc-in [:input :fields k] text))
 
 (defn submit-input!
-  "Read the text area; run on success, show the problem otherwise."
+  "Read every field; run on success, show the first problem otherwise."
   []
   (let [s @app-state
-        {:keys [term error]} (input/read-term (get-in s [:input :text]))
+        l (lesson s)
+        fields (get-in s [:input :fields])
+        results (for [{:keys [key type label]} (:inputs l)]
+                  (let [text (get fields key "")
+                        r (case type
+                            :term (input/read-term text)
+                            :pattern (input/read-pattern text)
+                            :rules (input/read-rules text))]
+                    [key (or (:term r) (:pattern r) (:rules r)) (when (:error r) (str label ": " (:error r)))]))
+        error (some (fn [[_ _ e]] e) results)
+        values (into {} (map (fn [[k v _]] [k v])) results)
+        term (:term values)
         limit 10]
     (cond
       error (swap! app-state assoc-in [:input :error] error)
-      (> (input/leaf-count term) limit)
+      (and term (= :embiggen (:kind l)) (> (input/leaf-count term) limit))
       (swap! app-state assoc-in [:input :error]
              (str "that has " (input/leaf-count term) " leaves; under these rules the page stops at " limit))
-      :else (do (swap! app-state update :input assoc :term term :error nil :alternative nil :opts {})
+      :else (do (swap! app-state update :input assoc :values values :error nil :alternative nil :opts {})
                 (start-run!)))))
+
+;; ---------------------------------------------------------------------------
+;; scrubbing and the rest of the UI
 
 (defn set-step! [k]
   (swap! app-state (fn [s]
@@ -175,3 +237,37 @@
 (defn set-print! [mode] (swap! app-state assoc-in [:ui :print] mode))
 
 (defn select-class! [id] (swap! app-state assoc-in [:ui :selected] id))
+
+(defn hover! [id] (swap! app-state assoc-in [:ui :hover] id))
+
+;; ---------------------------------------------------------------------------
+;; the REPL
+
+(defn set-repl-input! [text] (swap! app-state assoc-in [:repl :input] text))
+
+(defn clear-repl! [] (swap! app-state assoc :repl {:input "" :history []}))
+
+(defn eval-repl!
+  "Evaluate the prompt with g bound to the e-graph on show."
+  []
+  (let [s @app-state
+        text (get-in s [:repl :input])]
+    (when (seq (str/trim text))
+      (repl/bind! (current-egraph s) (:timeline (:run s)))
+      (let [r (repl/eval-string text)]
+        (swap! app-state (fn [s]
+                           (-> s
+                               (update-in [:repl :history] conj (assoc r :in text))
+                               (assoc-in [:repl :input] ""))))))))
+
+(defn adopt!
+  "Make a REPL value the run on show: an e-graph becomes a one-entry
+  timeline, a runner result its timeline (or its final e-graph)."
+  [v]
+  (let [steps (cond
+                (diff/egraph? v) [["from the REPL" v]]
+                (:timeline v) (map-indexed (fn [i g] [(if (zero? i) "the input" (str "iteration " i)) g]) (:timeline v))
+                :else [["from the REPL" (:egraph v)]])
+        run (assoc (run/script steps) :stats (or (:stats v) []) :iterations (or (:iterations v) 0)
+                   :stop-reason (or (:stop-reason v) :done))]
+    (install-run! run)))

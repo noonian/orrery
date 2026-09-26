@@ -14,8 +14,9 @@
 (deftest rules
   (let [{:keys [rules error]} (input/read-rules "[[\"comm\" [:+ ?a ?b] [:+ ?b ?a]]]")]
     (is (nil? error))
-    (is (= 1 (count rules)))
-    (is (= "comm" (:name (first rules)))))
+    (is (= '[["comm" [:+ ?a ?b] [:+ ?b ?a]]] rules) "rules come back as data"))
+  (is (= {:pattern '[:/ ?x 2]} (input/read-pattern "[:/ ?x 2]")))
+  (is (:error (input/read-pattern "[:/ x 2]")) "a bare symbol is not a variable")
   (is (:error (input/read-rules "[]")))
   (is (:error (input/read-rules "[[\"x\" [:+ ?a ?b]]]")))
   (is (:error (input/read-rules "[[\"x\" [:+ ?a ?b] [:+ ?a ?c]]]")) "an unbound variable on the right")

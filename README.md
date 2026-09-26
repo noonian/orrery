@@ -44,18 +44,21 @@ The page's self-test tile runs them on load.
 4. A rule
 5. Saturation
 6. Extraction is taste
-7. The blowup — live
-8. The fix
-9. A rule over the polynomial
+7. The blowup
+8. The fix (waits for bendix)
+9. A rule over the polynomial (waits for bendix)
 10. What if
-11. Differentiation is simplification
+11. Differentiation is simplification (waits for bendix)
 
-Each has a curated example and a "try another" over alternatives;
-lessons 8, 9 and 11 wait for bendix.
+Each live lesson has a curated example, a "try another" over
+alternatives, and inputs you can edit: terms, a pattern, rules as
+`[name lhs rhs]` data. Every panel shows the engine's real values,
+scrubbed forwards and backwards, and a REPL underneath has `g` bound
+to the e-graph you are looking at.
 
 ## Two modes
 
-Native: the tagged-vector format, typed into the page and, soon, at a
+Native: the tagged-vector format, typed into the page or at the
 Clojure REPL with the engine loaded.
 
 ```clojure

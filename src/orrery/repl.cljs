@@ -1,0 +1,59 @@
+(ns orrery.repl
+  "The REPL: SCI embedded as a library, with the compiled engine
+  namespaces copied into its context, so `(eg/add g [:+ :x 1])` at
+  the prompt calls the same function the scrubber called. This is the
+  one namespace that knows SCI exists; the page hands it a string and
+  gets a value or an error back."
+  (:require [cromulent.check]
+            [cromulent.core]
+            [cromulent.extract]
+            [cromulent.pattern]
+            [cromulent.rewrite]
+            [cromulent.term]
+            [orrery.diff]
+            [orrery.lay]
+            [orrery.lessons]
+            [orrery.run]
+            [sci.core :as sci]))
+
+(def ^:private namespaces
+  {'cromulent.core    (sci/copy-ns cromulent.core (sci/create-ns 'cromulent.core))
+   'cromulent.pattern (sci/copy-ns cromulent.pattern (sci/create-ns 'cromulent.pattern))
+   'cromulent.rewrite (sci/copy-ns cromulent.rewrite (sci/create-ns 'cromulent.rewrite))
+   'cromulent.extract (sci/copy-ns cromulent.extract (sci/create-ns 'cromulent.extract))
+   'cromulent.term    (sci/copy-ns cromulent.term (sci/create-ns 'cromulent.term))
+   'cromulent.check   (sci/copy-ns cromulent.check (sci/create-ns 'cromulent.check))
+   'orrery.lay        (sci/copy-ns orrery.lay (sci/create-ns 'orrery.lay))
+   'orrery.run        (sci/copy-ns orrery.run (sci/create-ns 'orrery.run))
+   'orrery.lessons    (sci/copy-ns orrery.lessons (sci/create-ns 'orrery.lessons))
+   'orrery.diff       (sci/copy-ns orrery.diff (sci/create-ns 'orrery.diff))})
+
+(def prelude
+  "The user namespace with the engine's aliases."
+  "(ns user (:require [cromulent.core :as eg] [cromulent.pattern :as pat]
+                     [cromulent.rewrite :as rw] [cromulent.extract :as ex]
+                     [cromulent.term :as term] [cromulent.check :as check]
+                     [orrery.lay :as lay] [orrery.run :as run]
+                     [orrery.lessons :as lessons] [orrery.diff :as diff]))")
+
+(defonce ^:private ctx
+  (let [c (sci/init {:namespaces namespaces
+                     :classes {'js js/globalThis :allow :all}})]
+    (sci/eval-string* c prelude)
+    c))
+
+(defn bind!
+  "g and timeline in the user namespace: the e-graph the page shows
+  and the whole run."
+  [g timeline]
+  (sci/intern ctx 'user 'g g)
+  (sci/intern ctx 'user 'timeline timeline))
+
+(defn eval-string
+  "{:ok value} or {:error message}."
+  [s]
+  (try {:ok (sci/eval-string* ctx s)}
+       (catch :default e
+         {:error (str (ex-message e)
+                      (when-let [{:keys [line column]} (ex-data e)]
+                        (when line (str " (line " line ", column " column ")"))))})))

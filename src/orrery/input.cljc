@@ -44,8 +44,17 @@
     (or (keyword? p) (number? p) (pat/variable? p)) nil
     :else (str (pr-str p) " is not a pattern variable (?x), a keyword or a number")))
 
+(defn read-pattern
+  "{:pattern p} or {:error message}: a term that may hold ?variables."
+  [text]
+  (let [{:keys [value error]} (read-edn text)]
+    (cond error {:error error}
+          (nil? value) {:error "type a pattern, such as [:/ ?x 2]"}
+          :else (if-let [p (pattern-problem value)] {:error p} {:pattern value}))))
+
 (defn read-rules
-  "Rules as [[\"name\" lhs rhs] ...]: {:rules [...]} of rule maps, or
+  "Rules as [[\"name\" lhs rhs] ...]: {:rules data} with the same
+  shape, validated (every right-hand variable bound on the left), or
   {:error message}."
   [text]
   (let [{:keys [value error]} (read-edn text)]
@@ -63,7 +72,8 @@
                            value)]
         (if (seq problems)
           {:error (first problems)}
-          (try {:rules (mapv (fn [[n lhs rhs]] (rw/rule n lhs rhs)) value)}
+          (try (doseq [[n lhs rhs] value] (rw/rule n lhs rhs))
+               {:rules value}
                (catch #?(:clj Exception :default :default) e
                  {:error (str (ex-message e)
                               (when-let [u (:unbound (ex-data e))] (str ": " (pr-str u))))})))))))
