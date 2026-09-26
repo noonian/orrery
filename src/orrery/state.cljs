@@ -1,18 +1,15 @@
 (ns orrery.state
   "One atom holds the page: the lesson, the learner's input, the run
   (a timeline of e-graph values), the scrub position, the cost in
-  force, the REPL, and a few UI flags. Actions swap it; a watch in
-  orrery.app re-renders. Derived values are plain functions of the
-  state, memoized per run in a cache that a new run clears.
+  force, the REPL, and a few UI flags. The actions here swap it, from
+  orrery.dispatch, and a watch in orrery.app re-renders; what the
+  page shows is derived from the value by orrery.derived.
 
   A saturation is stepped one iteration per timer tick, so the page
   repaints between iterations, the counters climb, and a stop button
   works between iterations. Per-lesson limits bound the worst tick."
   (:require [clojure.string :as str]
-            [cromulent.core :as eg]
-            [cromulent.extract :as ex]
-            [cromulent.pattern :as pat]
-            [orrery.costs :as costs]
+            [orrery.derived :as derived]
             [orrery.diff :as diff]
             [orrery.eclass :as eclass]
             [orrery.input :as input]
@@ -33,122 +30,7 @@
          :repl {:input "" :history []}
          :ui {:print :notation :playing nil :selected nil :hover nil :drawing? false}}))
 
-(defonce ^:private cache (atom {}))
-
-(defn- cached [k f]
-  (if (contains? @cache k)
-    (get @cache k)
-    (let [v (f)] (swap! cache assoc k v) v)))
-
-;; ---------------------------------------------------------------------------
-;; derived
-
-(defn lesson [s] (lessons/by-key (:lesson s)))
-
-(defn egraph-at
-  "The e-graph at step k of the run, clamped to the timeline."
-  [s k]
-  (when-let [run (:run s)]
-    (run/egraph-at run (max 0 (min k (run/last-step run))))))
-
-(defn current-egraph [s] (egraph-at s (:step s)))
-
-(defn diff-for
-  "What step k of the run changed, or nil at step 0."
-  [s k]
-  (let [{:keys [run run-id]} s]
-    (when (and run (pos? k))
-      (cached [run-id k :diff]
-              #(diff/between (run/egraph-at run (dec k)) (run/egraph-at run k))))))
-
-(defn diff-at
-  "What the current step changed, or nil at step 0."
-  [s]
-  (diff-for s (:step s)))
-
-(defn best-at
-  "An extractor over the current e-graph under the cost in force:
-  (fn [id] {:cost :term}). One cost table per step and cost."
-  [s]
-  (let [{:keys [run run-id step cost]} s]
-    (when run
-      (cached [run-id step cost]
-              #(let [g (run/egraph-at run step)]
-                 (ex/extractor g (costs/cost-fn cost g)))))))
-
-(defn cheapest-at
-  "The few cheapest terms of every class of the e-graph at step k,
-  under the cost in force (orrery.eclass/cheapest). One table per
-  step and cost, computed when a class is first opened there."
-  [s k]
-  (let [{:keys [run run-id cost]} s]
-    (when run
-      (cached [run-id k cost :cheapest]
-              #(let [g (run/egraph-at run k)]
-                 (eclass/cheapest g (costs/cost-fn cost g) eclass/few))))))
-
-(defn detail-at
-  "What the class panel says about the selected class in the e-graph
-  at step k, or nil when nothing is selected or that e-graph does not
-  have the class yet: its root there, its nodes with their costs, its
-  cheapest terms and how many it stands for, the classes it points at
-  and the nodes that point at it, and its history along the run."
-  [s k]
-  (let [{:keys [run run-id cost]} s
-        id (get-in s [:ui :selected])]
-    (when (and run id)
-      (let [g (run/egraph-at run k)]
-        (when (< id (:next-id g))
-          (cached [run-id k cost id (run/last-step run) :detail]
-                  #(let [root (eg/find g id)
-                         cf (costs/cost-fn cost g)
-                         table (cheapest-at s k)]
-                     {:id id
-                      :root root
-                      :nodes (eclass/node-costs g table cf root)
-                      :cheapest (nth table root)
-                      :count (eclass/term-count g root)
-                      :children (eclass/children g root)
-                      :parents (eclass/parents g root)
-                      :history (when (> (count (:timeline run)) 1)
-                                 (eclass/history (:timeline run) k root))})))))))
-
-(defn root-at
-  "The input term's class in the current e-graph, when the run has one."
-  [s]
-  (when-let [g (current-egraph s)]
-    (when-let [root (:root (:run s))]
-      (eg/find g root))))
-
-(defn matches-at
-  "For a lesson that shows matches: each pattern rule's matches in the
-  current e-graph, [{:name :lhs :matches [...]}]."
-  [s]
-  (let [{:keys [run run-id step]} s
-        l (lesson s)]
-    (when (and run (= :embiggen (:kind run)) (contains? (:panels l) :matches))
-      (cached [run-id step :matches]
-              #(let [g (run/egraph-at run step)]
-                 (vec (for [r (:rules run) :when (not (fn? (:lhs r)))]
-                        {:name (:name r) :lhs (:lhs r) :matches (pat/ematch g (:lhs r))})))))))
-
-(defn matched-classes [matches]
-  (into #{} (mapcat (fn [m] (map :class (:matches m)))) matches))
-
-(defn snapshot
-  "Plain data about where the page is, for the end-to-end check."
-  [s]
-  (let [g (current-egraph s) run (:run s)]
-    {:lesson (name (:lesson s))
-     :step (:step s)
-     :steps (when run (count (:timeline run)))
-     :status (some-> run :status name)
-     :iterations (:iterations run)
-     :stopReason (some-> run :stop-reason name)
-     :classes (when g (eg/class-count g))
-     :nodes (when g (eg/node-count g))
-     :dirty (when g (boolean (:dirty? g)))
-     :bestCost (when-let [root (root-at s)] (:cost ((best-at s) root)))}))
+(def lesson derived/lesson)
 
 ;; ---------------------------------------------------------------------------
 ;; the run loop
@@ -172,7 +54,7 @@
   the timeline."
   [run]
   (swap! tick-id inc)
-  (reset! cache {})
+  (derived/clear-cache!)
   (swap! app-state (fn [s]
                      (-> s
                          (assoc :run run)
@@ -346,7 +228,7 @@
   [t k]
   (when k (set-step! k))
   (let [s @app-state]
-    (when-let [id (eclass/class-of (current-egraph s) t)]
+    (when-let [id (eclass/class-of (derived/current-egraph s) t)]
       (swap! app-state assoc-in [:ui :selected] id))))
 
 (defn hover! [id] (swap! app-state assoc-in [:ui :hover] id))
@@ -364,7 +246,7 @@
   (let [s @app-state
         text (get-in s [:repl :input])]
     (when (seq (str/trim text))
-      (repl/bind! (current-egraph s) (:timeline (:run s)))
+      (repl/bind! (derived/current-egraph s) (:timeline (:run s)))
       (let [r (repl/eval-string text)]
         (swap! app-state (fn [s]
                            (-> s
@@ -373,12 +255,20 @@
 
 (defn adopt!
   "Make a REPL value the run on show: an e-graph becomes a one-entry
-  timeline, a runner result its timeline (or its final e-graph)."
+  timeline, a [g id] pair its e-graph, a runner result its timeline
+  (or its final e-graph)."
   [v]
-  (let [steps (cond
+  (let [v (if (and (vector? v) (diff/egraph? (first v))) (first v) v)
+        steps (cond
                 (diff/egraph? v) [["from the REPL" v]]
                 (:timeline v) (map-indexed (fn [i g] [(if (zero? i) "the input" (str "iteration " i)) g]) (:timeline v))
                 :else [["from the REPL" (:egraph v)]])
         run (assoc (run/script steps) :stats (or (:stats v) []) :iterations (or (:iterations v) 0)
                    :stop-reason (or (:stop-reason v) :done))]
     (install-run! run)))
+
+(defn adopt-entry!
+  "Make the value of REPL history entry i the run on show."
+  [i]
+  (when-let [v (:ok (get-in @app-state [:repl :history i]))]
+    (adopt! v)))

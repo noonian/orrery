@@ -113,7 +113,12 @@ The panels, each mapped to what exists:
   37; opening the six-atom root takes 180 ms in Chromium.
 - **The scrubber.** Iteration k of the timeline, forwards and
   backwards; the diff to k−1 highlighted: nodes added, classes
-  merged. The diff is a set difference on `memo-entries`.
+  merged. The diff is a set difference on `memo-entries`. The
+  transport is a bar directly above the class list (2026-09-26, the
+  Captain: it landed too low on the screen under a tall input area),
+  stuck to the top of the viewport while the list scrolls under it,
+  with the label of the entry on show and its counts; the tiles stay
+  in the run panel.
 - **Best so far.** The extracted term at every iteration, under the
   cost in force. Watching it change is lineage-lite, and it is honest:
   the chain of rewrites from input to output is *explanations*, which
@@ -243,7 +248,21 @@ Decided 2026-09-25, replacing the first draft's scittle route.
 - **No React.** The page is Replicant: one hiccup tree computed from
   one atom (`orrery.state`), rendered on every change. Views are
   functions of values (`orrery.views.*`); only `orrery.views.lesson`
-  reads the state, so the same class list serves the fork.
+  reads the state, so the same class list serves the fork. **Every
+  handler is data** (2026-09-26, the Captain's find): `{:on {:click
+  [:select id]}}` over the vocabulary of `orrery.actions`, routed by
+  one dispatch function (`orrery.dispatch`, registered with
+  `replicant.dom/set-dispatch!`), which is the only place a DOM event
+  is read. Replicant compares handlers by value and leaves an
+  unchanged one alone, where a closure was re-registered on every
+  render; and a view with no functions in it builds anywhere, so the
+  views are `.cljc`, what they show is computed by `orrery.derived`
+  (`.cljc`, the memoized derived values; `orrery.state` keeps the
+  atom and the actions), and `orrery.page-test` builds the whole page
+  on the JVM and Jolt for every lesson at every step, in both print
+  modes, with the input's class opened and a REPL history, checking
+  every handler against the table and that no function is in the
+  tree.
 - **The run is the data model.** `orrery.run`: `{:timeline [g0 g1 …]
   :labels :stats :stop-reason :status :root}`, produced by a script of
   engine calls (lessons 1, 2, 3, 10) or by stepping `rw/embiggen` one
@@ -255,7 +274,8 @@ Decided 2026-09-25, replacing the first draft's scittle route.
   same value. There is no trace format and no exporter; a recorded
   trace is needed only when the visualizer's `egraph-serialize` JSON
   or a golden file is.
-- **Pure namespaces on three runtimes.** `orrery.notation` (the printer),
+- **Pure namespaces on three runtimes.** `orrery.derived`, `orrery.actions`,
+  the views (above), `orrery.notation` (the printer),
   `orrery.diff`, `orrery.costs`, `orrery.input` (the EDN reader),
   `orrery.run`, `orrery.lessons` (prose as hiccup data, decided over
   markdown: no renderer to ship, inline widgets that are the prose's
@@ -533,7 +553,11 @@ list, `eclass_test` pinning the counts (1680, 120, 37, 16, the
 infinite class), the costs under each of lesson 6's costs, the
 parents across lesson 3's steps and the histories; `selection.spec.js`
 driving the panel and the prose links in the browser; lesson 5's
-backoff run pinned at fourteen iterations. The suites are 47 tests
+backoff run pinned at fourteen iterations; the transport moved into
+a sticky replay bar above the class list (section 3). Then every
+handler made data and the views made `.cljc` (section 6), with
+`orrery.page-test` building the page for every lesson at every step
+on the JVM and Jolt: 50 tests and 3073 assertions there. The suites are 47 tests
 and 2416 assertions on the JVM and Jolt, 64 facts on node, 107 in
 the tile, 59 specs in the browser.
 

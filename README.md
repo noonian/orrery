@@ -9,7 +9,9 @@ backwards, with a REPL underneath.
 
 [IDEA.md](IDEA.md) is the design and status. The engine runs live in
 the page: cromulent's own `.cljc` compiled by shadow-cljs, no React
-(the page is Replicant), SCI embedded only for the REPL.
+(the page is Replicant, every event handler in it data routed
+through one dispatch table, so the views are `.cljc` and the JVM
+suite builds the whole page), SCI embedded only for the REPL.
 
 ## Running it
 

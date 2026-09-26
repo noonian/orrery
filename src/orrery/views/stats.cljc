@@ -1,9 +1,10 @@
 (ns orrery.views.stats
   "Per-iteration statistics of a saturation: matches and applications
   per rule, the counts, the bans, the time."
-  (:require [clojure.string :as str]))
+  (:require [clojure.string :as str]
+            [orrery.views.common :as common]))
 
-(defn stats-table [{:keys [stats rules step on-step]}]
+(defn stats-table [{:keys [stats rules step]}]
   (let [names (mapv :name rules)]
     [:div
      [:div.legend [:span "per rule: applied / matched"] [:span "click a row to scrub to it"]]
@@ -16,7 +17,7 @@
             (for [s stats]
               (-> [:tr {:replicant/key (:iter s)
                         :class (when (= (:iter s) step) "current")
-                        :on {:click #(on-step (:iter s))}}
+                        :on {:click [:step (:iter s)]}}
                    [:td (str (:iter s))]]
                   (into (for [n names]
                           [:td {:class (when (pos? (get-in s [:applied n] 0)) "applied")}
@@ -24,4 +25,4 @@
                   (into [[:td (str (:nodes s))]
                          [:td (str (:classes s))]
                          [:td (str/join ", " (sort (:banned s)))]
-                         [:td (str (js/Math.round (+ (:search-ms s) (:apply-ms s) (:rebuild-ms s))))]]))))]]))
+                         [:td (str (common/round (+ (:search-ms s) (:apply-ms s) (:rebuild-ms s))))]]))))]]))

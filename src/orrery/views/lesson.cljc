@@ -1,14 +1,17 @@
 (ns orrery.views.lesson
   "The page for one lesson: navigation, prose, the inputs, and the
-  panels the lesson asks for. This is the one namespace that reads
-  the state; the other views take values."
+  panels the lesson asks for. This is the one view that reads the
+  state value (through orrery.derived); the other views take values.
+  Every handler is data over orrery.actions, so the page builds on
+  the JVM and Jolt too, which orrery.page-test does for every lesson
+  at every step."
   (:require [cromulent.core :as eg]
             [orrery.costs :as costs]
+            [orrery.derived :as derived]
             [orrery.eclass :as eclass]
             [orrery.lessons :as lessons]
             [orrery.run :as run]
             [orrery.score :as score]
-            [orrery.state :as state]
             [orrery.views.classes :as classes]
             [orrery.views.common :as common]
             [orrery.views.matches :as matches]
@@ -27,8 +30,8 @@
 
 (defn- act
   "A link in the prose that does something to the page."
-  [kind f label]
-  [:a.act {:data-act (name kind) :on {:click f}} label])
+  [kind handler label]
+  [:a.act {:data-act (name kind) :on {:click handler}} label])
 
 (defn- prose
   "Lesson prose with its widgets resolved (orrery.lessons/widget-kinds):
@@ -45,13 +48,13 @@
       (case kind
         :notation (common/term-view a :notation)
         :native (common/term-view a :native)
-        :step (act :step #(state/set-step! a) b)
-        :select (if (some-> (if c (state/egraph-at s c) (state/current-egraph s)) (eclass/class-of a))
-                  (act :select #(state/select-term! a c) b)
+        :step (act :step [:step a] b)
+        :select (if (some-> (if c (derived/egraph-at s c) (derived/current-egraph s)) (eclass/class-of a))
+                  (act :select [:select-term a c] b)
                   b)
-        :cost (act :cost #(state/set-cost! a) b)
-        :alternative (act :alternative #(state/choose-alternative-by-label! a) b)
-        :print (act :print #(state/set-print! a) b)
+        :cost (act :cost [:cost a] b)
+        :alternative (act :alternative [:alternative a] b)
+        :print (act :print [:print a] b)
         :cite (into [:sup.cite] (interpose ", " (for [k (rest x)] (work-link k (:short (get lessons/reading k))))))))
     (vector? x) (into [(first x)] (map #(prose s %) (rest x)))
     :else x))
@@ -85,9 +88,9 @@
         [:h3 (lessons/input-label input mode)]
         [:textarea {:id (str "input-" (name key)) :rows (if (= :rules type) 4 2)
                     :value (get fields key "")
-                    :on {:input (fn [e] (state/set-field! key (.. e -target -value)))}}]])
+                    :on {:input [:field key]}}]])
      [:div.row
-      [:button.primary {:id "run" :on {:click #(state/submit-input!)}} "run"]
+      [:button.primary {:id "run" :on {:click [:run]}} "run"]
       [:span.status {:id "input-help"}
        (if (= :notation mode)
          "notation as the page prints it: 2·x + y, x^2 or x², sin x, 1/2 exact, ?x in a pattern; native [:+ [:* 2 :x] :y] reads too"
@@ -100,18 +103,21 @@
               (for [alt (:alternatives l)]
                 [:button {:replicant/key (:label alt)
                           :class (when (= alternative (:label alt)) "current")
-                          :on {:click #(state/choose-alternative! alt)}}
+                          :on {:click [:alternative (:label alt)]}}
                  (:label alt)]))])
      (when (:surprise l)
        [:div
         [:div.row
-         [:button {:id "surprise" :disabled drawing? :on {:click #(state/surprise!)}}
+         [:button {:id "surprise" :disabled drawing? :on {:click [:surprise]}}
           (if drawing? "drawing…" "surprise me")]
          [:span.status "a dozen random terms, run and scored; one picked, weighted by score"]]
         (when drawn
           [:div.drawn {:id "drawn"} (score/explain drawn (get-in l [:surprise :wants]))])])]))
 
-(defn- run-panel [s r g]
+(defn- run-panel
+  "The counters and how the run ended; the transport is the replay
+  bar over the class list."
+  [s r g]
   [:div.panel {:style {:margin-top "16px"}}
    [:h3 "the run"]
    (common/tiles {:classes (eg/class-count g) :nodes (eg/node-count g)
@@ -121,15 +127,21 @@
           :data-stop-reason (some-> (:stop-reason r) name)
           :data-dirty (str (boolean (:dirty? g)))}]
    (when (:dirty? g)
-     [:div.status [:span.badge.dirty "rebuild pending: the invariants are not restored yet"]])
+     [:div.status [:span.badge.dirty "rebuild pending: the invariants are not restored yet"]])])
+
+(defn- replay-bar
+  "The transport, directly above the class list and stuck to the top
+  of the viewport while the list scrolls under it, so the classes
+  change in view as you scrub."
+  [s r g]
+  [:div.replay {:id "replay"}
    (scrubber/scrubber {:step (:step s) :n (run/last-step r) :labels (:labels r)
                        :playing? (some? (get-in s [:ui :playing])) :status (:status r)
-                       :on-step state/set-step! :on-play state/play!
-                       :on-pause state/pause! :on-stop state/stop!})])
+                       :summary (str (eg/class-count g) " classes · " (eg/node-count g) " nodes")})])
 
 (defn- best-panel [s l]
-  (let [best (state/best-at s)
-        root (state/root-at s)
+  (let [best (derived/best-at s)
+        root (derived/root-at s)
         {:keys [cost term]} (best root)
         picker (filter (comp (set (:costs l)) :key) costs/all)]
     [:div.panel.best {:style {:margin-top "16px"}}
@@ -142,7 +154,7 @@
              (for [c picker]
                [:label {:replicant/key (:key c) :title (:blurb c)}
                 [:input {:type "radio" :name "cost" :value (name (:key c)) :checked (= (:key c) (:cost s))
-                         :on {:change #(state/set-cost! (:key c))}}]
+                         :on {:change [:cost (:key c)]}}]
                 " " (:label c)])))]))
 
 (defn- class-panel
@@ -153,27 +165,24 @@
    (classes/class-list (merge {:g g :mode (get-in s [:ui :print])
                                :selected (get-in s [:ui :selected])
                                :hovered (get-in s [:ui :hover])
-                               :detail (state/detail-at s k)
+                               :detail (derived/detail-at s k)
                                :labels (:labels (:run s))
-                               :cost-label (costs/label (:cost s))
-                               :on-select state/select-class!
-                               :on-step state/set-step!
-                               :on-close state/deselect!}
+                               :cost-label (costs/label (:cost s))}
                               opts))])
 
 (defn page [s]
-  (let [l (state/lesson s)
+  (let [l (derived/lesson s)
         r (:run s)
-        g (state/current-egraph s)
+        g (derived/current-egraph s)
         mode (get-in s [:ui :print])
         panels (or (:panels l) #{})
-        matches (state/matches-at s)]
+        matches (derived/matches-at s)]
     [:main.page
      [:header.masthead
       [:h1 "orrery"]
       [:span.tagline "an e-graph explorer, for understanding"]
       [:span.spacer]
-      (common/print-toggle mode state/set-print!)]
+      (common/print-toggle mode)]
      (nav (:key l))
      (when l
        [:section.lesson
@@ -185,36 +194,31 @@
            [:div
             (input-area s l)
             (run-panel s r g)
-            (when (state/root-at s) (best-panel s l))
+            (when (derived/root-at s) (best-panel s l))
             (when (contains? panels :matches)
               [:div {:style {:margin-top "16px"}}
-               (matches/matches-panel {:matches matches :on-select state/select-class!})])
+               (matches/matches-panel {:matches matches})])
             (when (contains? panels :stats)
               [:div.panel {:style {:margin-top "16px"}}
                [:h3 "the iterations"]
-               (stats/stats-table {:stats (:stats r) :rules (:rules r) :step (:step s) :on-step state/set-step!})])]
+               (stats/stats-table {:stats (:stats r) :rules (:rules r) :step (:step s)})])]
            [:div
             (when (contains? panels :tree)
               [:div.panel {:style {:margin-bottom "16px"}}
                [:h3 "the tree"]
                (tree/tree-view {:g g :term (get-in s [:input :values :term])
-                                :hovered (or (get-in s [:ui :hover]) (get-in s [:ui :selected]))
-                                :on-hover state/hover! :on-select state/select-class!})])
+                                :hovered (or (get-in s [:ui :hover]) (get-in s [:ui :selected]))})])
+            (replay-bar s r g)
             (if (contains? panels :fork)
               [:div.fork
-               (class-panel "the original, step 0" (state/egraph-at s 0) s 0 {:root (:root r)})
+               (class-panel "the original, step 0" (derived/egraph-at s 0) s 0 {:root (:root r)})
                (class-panel (str "this step: " (nth (:labels r) (:step s) "")) g s (:step s)
-                            {:diff (state/diff-at s) :best (state/best-at s) :root (state/root-at s)})]
+                            {:diff (derived/diff-at s) :best (derived/best-at s) :root (derived/root-at s)})]
               (class-panel "the classes" g s (:step s)
-                           {:diff (state/diff-at s) :best (state/best-at s) :root (state/root-at s)
-                            :matches (state/matched-classes matches)}))]])
+                           {:diff (derived/diff-at s) :best (derived/best-at s) :root (derived/root-at s)
+                            :matches (derived/matched-classes matches)}))]])
         (when r
           [:div {:style {:margin-top "16px"}}
            (repl/repl-panel {:input (get-in s [:repl :input])
                              :history (get-in s [:repl :history])
-                             :mode mode
-                             :on-input state/set-repl-input!
-                             :on-eval state/eval-repl!
-                             :on-clear state/clear-repl!
-                             :on-adopt state/adopt!
-                             :on-select state/select-class!})])])]))
+                             :mode mode})])])]))

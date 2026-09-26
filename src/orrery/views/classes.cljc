@@ -23,8 +23,8 @@
       :conflict [:span.status "a contradiction"]
       nil)))
 
-(defn- ref-chip [id on-select]
-  [:span.ref {:on {:click #(on-select id)}} (notation/class-ref id)])
+(defn- ref-chip [id]
+  [:span.ref {:on {:click [:select id]}} (notation/class-ref id)])
 
 (defn- count-text [n]
   (cond (= :infinite n) "infinitely many terms, since the class reaches itself"
@@ -32,25 +32,25 @@
         (= 1 n) "one term"
         :else (str n " terms")))
 
-(defn- step-links [labels ks on-step]
-  (interpose ", " (for [k ks] [:a.step {:title (nth labels k "") :on {:click #(on-step k)}} (str "step " k)])))
+(defn- step-links [labels ks]
+  (interpose ", " (for [k ks] [:a.step {:title (nth labels k "") :on {:click [:step k]}} (str "step " k)])))
 
 (defn detail-view
   "The opened class, above the list."
   [{:keys [id root nodes cheapest count children parents history]}
-   {:keys [mode cost-label labels root-id on-select on-step on-close]}]
+   {:keys [mode cost-label labels root-id]}]
   [:div.class-detail
    [:div.detail-title
     [:span.class-id (notation/class-ref root)]
     (when (not= id root) [:span.status (str (notation/class-ref id) " is part of it now")])
     (when (= root root-id) [:span.status "the input's class"])
     [:span.spacer]
-    [:button.close {:title "close" :on {:click #(on-close)}} "×"]]
+    [:button.close {:title "close" :on {:click [:deselect]}} "×"]]
    [:div.detail-row.nodes
     [:span.label "nodes"]
     (for [{:keys [node cost best?]} nodes]
       [:span.dnode {:class (when best? "best") :title (when best? (str "the cheapest under " cost-label))}
-       (common/enode-view node mode on-select)
+       (common/enode-view node mode)
        [:span.cost (costs/cost-str cost)]])]
    [:div.detail-row.terms
     [:span.label "stands for"]
@@ -64,25 +64,24 @@
    [:div.detail-row.children
     [:span.label "points at"]
     (if (seq children)
-      (interpose ", " (for [c children] (ref-chip c on-select)))
+      (interpose ", " (for [c children] (ref-chip c)))
       "nothing: a leaf")]
    [:div.detail-row.parents
     [:span.label "pointed at by"]
     (if (seq parents)
       (for [{:keys [node class]} parents]
-        [:span.dnode (common/enode-view node mode on-select) [:span.cost "in " (ref-chip class on-select)]])
+        [:span.dnode (common/enode-view node mode) [:span.cost "in " (ref-chip class)]])
       "nothing")]
    (when history
      (let [{:keys [born grew merged]} history]
        [:div.detail-row.history
         [:span.label "along the run"]
-        "first at " (step-links labels [born] on-step)
-        (when (seq grew) (list "; gained nodes at " (step-links labels grew on-step)))
-        (when (seq merged) (list "; classes became one at " (step-links labels merged on-step)))]))])
+        "first at " (step-links labels [born])
+        (when (seq grew) (list "; gained nodes at " (step-links labels grew)))
+        (when (seq merged) (list "; classes became one at " (step-links labels merged)))]))])
 
 (defn class-list
-  [{:keys [g diff best mode root selected hovered matches detail labels cost-label
-           on-select on-step on-close]}]
+  [{:keys [g diff best mode root selected hovered matches detail labels cost-label]}]
   (let [added (:added diff)
         absorbing (:absorbing diff)
         new-classes (:new-classes diff)
@@ -99,8 +98,7 @@
       (when (seq matches) [:span [:span.swatch {:style {:background "var(--match)"}}] "a rule matches here"])
       [:span "click a class, or a #id, to open it"]]
      (when detail
-       (detail-view detail {:mode mode :cost-label cost-label :labels labels :root-id root
-                            :on-select on-select :on-step on-step :on-close on-close}))
+       (detail-view detail {:mode mode :cost-label cost-label :labels labels :root-id root}))
      [:table.classes
       [:thead [:tr [:th "class"] [:th "nodes"] (when normal? [:th "polynomial"]) [:th "best"] [:th "parents"]]]
       (into [:tbody]
@@ -116,14 +114,14 @@
                              (contains? absorbing id) (conj "absorbing")
                              (contains? new-classes id) (conj "new-class")
                              dirty? (conj "dirty"))}
-               [:td [:span.class-id {:on {:click #(on-select id)}} (notation/class-ref id)]
+               [:td [:span.class-id {:on {:click [:select id]}} (notation/class-ref id)]
                 (when (and detail (not= id (:root detail)))
                   (cond (contains? child-set id) [:span.rel "child"]
                         (contains? parent-set id) [:span.rel "parent"]))]
                (into [:td]
                      (for [node (sort-by pr-str (:nodes c))]
                        [:span.node {:class (when (contains? added-here node) "added")}
-                        (common/enode-view node mode on-select)]))
+                        (common/enode-view node mode)]))
                (when normal? [:td.poly (form-view g id mode best)])
                [:td.best (when best (common/term-view (:term (best id)) mode))]
                [:td (str (count (:parents c)))]]))]]))

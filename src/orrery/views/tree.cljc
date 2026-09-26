@@ -2,7 +2,8 @@
   "A term as a tree, each node annotated with its class in the
   e-graph; hovering a node lights every node of the same class, in
   the tree and in the class list, which is how sharing shows without
-  drawing an edge; clicking one opens the class."
+  drawing an edge; clicking one opens the class. The tree handlers
+  stop propagation, since the nodes nest."
   (:require [cromulent.core :as eg]
             [orrery.notation :as notation]))
 
@@ -14,21 +15,21 @@
     {:term t :id id
      :children (when (vector? t) (mapv #(annotate g %) (rest t)))}))
 
-(defn- node-view [{:keys [term id children]} hovered on-hover on-select]
+(defn- node-view [{:keys [term id children]} hovered]
   [:div.tnode {:class (when (= id hovered) "hl")
-               :on {:mouseover (fn [e] (.stopPropagation e) (on-hover id))
-                    :mouseout (fn [e] (.stopPropagation e) (on-hover nil))
-                    :click (fn [e] (.stopPropagation e) (on-select id))}}
+               :on {:mouseover [:tree/hover id]
+                    :mouseout [:tree/hover nil]
+                    :click [:tree/open id]}}
    [:div.tlabel
     [:span.top (if (vector? term) (name (first term)) (notation/leaf-str term))]
     [:span.tid (notation/class-ref id)]]
    (when (seq children)
-     (into [:div.tchildren] (map #(node-view % hovered on-hover on-select) children)))])
+     (into [:div.tchildren] (map #(node-view % hovered) children)))])
 
-(defn tree-view [{:keys [g term hovered on-hover on-select]}]
+(defn tree-view [{:keys [g term hovered]}]
   (let [n (count (tree-seq vector? rest term))]
     [:div
      [:div.legend {:id "tree-counts"}
       [:span (str "tree nodes " n)] [:span (str "graph nodes " (eg/node-count g))]
       [:span "hover a node to see its class; click it to open the class"]]
-     [:div.tree (node-view (annotate g term) hovered on-hover on-select)]]))
+     [:div.tree (node-view (annotate g term) hovered)]]))

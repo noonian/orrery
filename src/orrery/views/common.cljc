@@ -1,6 +1,8 @@
 (ns orrery.views.common
-  "Small pieces every panel uses: terms in both modes, the counters,
-  the stop reason in words. Every view is a function of values."
+  "Small pieces every panel uses: terms in both modes, e-nodes with
+  their class ids as links, the counters, the stop reason in words.
+  Every view is a function of values, and every handler in it is
+  data over orrery.actions."
   (:require [orrery.notation :as notation]))
 
 (defn term-view
@@ -11,18 +13,30 @@
     [:code.native (pr-str t)]
     [:span.notation {:title (pr-str t)} (notation/term->str t)]))
 
+(def ^:private digits (zipmap "0123456789" (range 10)))
+
+(defn- ref-id
+  "The class id in a printed #id."
+  [tok]
+  (reduce (fn [n c] (+ (* 10 n) (digits c))) 0 (subs tok 1)))
+
 (defn enode-view
   "An e-node, its children as class ids; in the notation each id is a
-  link that opens its class when on-ref is given."
-  [node mode on-ref]
+  link that opens its class."
+  [node mode]
   (if (= :native mode)
     [:code.native (pr-str node)]
     (into [:span.notation]
           (map (fn [tok]
-                 (if (and on-ref (re-matches #"#\d+" tok))
-                   [:span.ref {:on {:click #(on-ref (js/parseInt (subs tok 1) 10))}} tok]
+                 (if (re-matches #"#\d+" tok)
+                   [:span.ref {:on {:click [:select (ref-id tok)]}} tok]
                    tok))
                (re-seq #"#\d+|[^#]+" (notation/enode->str node))))))
+
+(defn round
+  "A non-negative number of milliseconds to the nearest integer."
+  [x]
+  (long (+ (or x 0) 0.5)))
 
 (defn stop-reason-text [reason]
   (case reason
@@ -50,10 +64,10 @@
       [:div.tile-value (str step " / " n)]
       [:div.tile-note (if running? "running…" (stop-reason-text stop-reason))]]
      [:div.tile {:id "tile-ms"}
-      [:div.tile-label "engine time"] [:div.tile-value (str (js/Math.round (or ms 0)) " ms")]]]))
+      [:div.tile-label "engine time"] [:div.tile-value (str (round ms) " ms")]]]))
 
-(defn print-toggle [mode on-change]
+(defn print-toggle [mode]
   [:span.print-toggle
-   [:button {:class (when (= :notation mode) "primary") :on {:click #(on-change :notation)}} "notation"]
+   [:button {:class (when (= :notation mode) "primary") :on {:click [:print :notation]}} "notation"]
    " "
-   [:button {:class (when (= :native mode) "primary") :on {:click #(on-change :native)}} "native"]])
+   [:button {:class (when (= :native mode) "primary") :on {:click [:print :native]}} "native"]])

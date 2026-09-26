@@ -3,7 +3,7 @@
   and the bindings, which the next iteration will apply."
   (:require [orrery.notation :as notation]))
 
-(defn matches-panel [{:keys [matches on-select]}]
+(defn matches-panel [{:keys [matches]}]
   [:div.panel.matches {:id "matches"}
    [:h3 "matches in this step"]
    (if (every? (comp empty? :matches) matches)
@@ -16,6 +16,6 @@
               (into [:ul]
                     (for [m matches]
                       [:li
-                       [:span.ref {:on {:click #(on-select (:class m))}} (notation/class-ref (:class m))]
+                       [:span.ref {:on {:click [:select (:class m)]}} (notation/class-ref (:class m))]
                        (for [[v id] (sort-by str (:bindings m))]
                          (str "  " v " = " (notation/class-ref id)))]))])))])

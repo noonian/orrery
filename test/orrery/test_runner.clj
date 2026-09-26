@@ -5,6 +5,7 @@
             [orrery.parse-test]
             [orrery.diff-test]
             [orrery.eclass-test]
+            [orrery.page-test]
             [orrery.input-test]
             [orrery.lessons-test]
             [orrery.normal-test]
@@ -17,6 +18,7 @@
                                           'orrery.parse-test
                                           'orrery.diff-test
                                           'orrery.eclass-test
+                                          'orrery.page-test
                                           'orrery.input-test
                                           'orrery.lessons-test
                                           'orrery.normal-test

@@ -2,7 +2,8 @@
   "The REPL panel: a prompt, the history, and results rendered by
   what they are: an e-graph as a class list, a [g id] pair with the
   class highlighted, a runner result as a summary with a button to
-  scrub it, anything else printed."
+  scrub it, anything else printed. A button names its history entry
+  by index; the value stays in the state."
   (:require [cromulent.core :as eg]
             [orrery.diff :as diff]
             [orrery.views.classes :as classes]
@@ -18,20 +19,22 @@
   (str (eg/class-count g) " classes, " (eg/node-count g) " nodes"
        (when (:dirty? g) ", dirty: rebuild pending")))
 
-(defn result-view [v {:keys [mode on-adopt on-select]}]
+(defn result-view
+  "Entry i's value."
+  [v i mode]
   (cond
     (diff/egraph? v)
     [:div.result-egraph
      [:div.row [:span.summary (summary v)]
-      [:button {:on {:click #(on-adopt v)}} "show it"]]
-     (classes/class-list {:g v :mode mode :on-select on-select})]
+      [:button {:on {:click [:adopt i]}} "show it"]]
+     (classes/class-list {:g v :mode mode})]
 
     (pair? v)
     (let [[g id] v]
       [:div.result-egraph
        [:div.row [:span.summary (str "[g " id "]: " (summary g))]
-        [:button {:on {:click #(on-adopt g)}} "show it"]]
-       (classes/class-list {:g g :mode mode :selected id :on-select on-select})])
+        [:button {:on {:click [:adopt i]}} "show it"]]
+       (classes/class-list {:g g :mode mode :selected id})])
 
     (run-result? v)
     (let [g (:egraph v)]
@@ -39,12 +42,12 @@
        [:div.row
         [:span.summary (str (:iterations v) " iterations, " (common/stop-reason-text (:stop-reason v)) "; " (summary g)
                             (when (:timeline v) (str "; timeline of " (count (:timeline v)))))]
-        [:button {:on {:click #(on-adopt v)}} "scrub it"]]])
+        [:button {:on {:click [:adopt i]}} "scrub it"]]])
 
     :else
     [:pre.result (pr-str v)]))
 
-(defn repl-panel [{:keys [input history mode on-input on-eval on-clear] :as opts}]
+(defn repl-panel [{:keys [input history mode]}]
   [:div.panel.repl {:id "repl"}
    [:h3 "the REPL"]
    [:p.hint
@@ -59,13 +62,10 @@
             [:pre.in (str "user=> " in)]
             (if (contains? entry :error)
               [:pre.error error]
-              (result-view (:ok entry) opts))]))
+              (result-view (:ok entry) i mode))]))
    [:textarea {:id "repl-input" :rows 3 :value input :placeholder "(eg/class-count g)"
-               :on {:input (fn [e] (on-input (.. e -target -value)))
-                    :keydown (fn [e]
-                               (when (and (= "Enter" (.-key e)) (or (.-ctrlKey e) (.-metaKey e)))
-                                 (.preventDefault e)
-                                 (on-eval)))}}]
+               :on {:input [:repl/input]
+                    :keydown [:repl/keydown]}}]
    [:div.row
-    [:button.primary {:id "repl-eval" :on {:click #(on-eval)}} "eval"]
-    [:button {:id "repl-clear" :on {:click #(on-clear)}} "clear"]]])
+    [:button.primary {:id "repl-eval" :on {:click [:repl/eval]}} "eval"]
+    [:button {:id "repl-clear" :on {:click [:repl/clear]}} "clear"]]])

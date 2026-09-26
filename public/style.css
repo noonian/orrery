@@ -116,9 +116,12 @@ sup.cite a:hover { text-decoration: underline; }
 .tile-note { font-size: 13px; color: var(--ink-2); }
 .tile.running .tile-value { color: var(--accent); }
 
-.scrubber { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
+.replay { position: sticky; top: 0; z-index: 3; background: var(--page); padding: 6px 0 8px; margin-bottom: 8px; border-bottom: 1px solid var(--hairline); }
+.scrubber { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
 .scrubber input[type=range] { flex: 1; min-width: 160px; }
-.scrubber-label { font-size: 14px; color: var(--ink-2); min-width: 120px; }
+.scrubber-label { font-size: 14px; color: var(--ink-2); }
+.scrubber-summary { font-size: 13px; color: var(--muted); }
+.scrubber .running { font-size: 13px; color: var(--accent); }
 .status { font-size: 14px; color: var(--ink-2); margin-top: 6px; }
 .status .running { color: var(--accent); }
 
