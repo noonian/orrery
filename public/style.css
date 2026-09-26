@@ -85,7 +85,7 @@ textarea, input[type=text] {
 .lesson h2 small { color: var(--muted); font-weight: normal; font-size: 15px; margin-left: 8px; }
 .prose { max-width: 720px; }
 .prose p { margin: 0 0 12px; }
-.lay { font-style: italic; white-space: nowrap; }
+.notation { font-style: italic; white-space: nowrap; }
 .native { font-size: 15px; background: var(--surface-2); padding: 1px 5px; border-radius: 4px; white-space: nowrap; }
 a.step { text-decoration: underline dotted; cursor: pointer; }
 

@@ -56,9 +56,9 @@ Consequences:
   is the entry.
 - Examples come to the user (section 4). Typing a term is optional.
 - There are two surface syntaxes over one canonical form (section 5):
-  the native tagged vectors, and a lay mathematical syntax. The
-  native mode comes first; lay *display* is early because a learner
-  needs it from the first lesson; lay *input* is a later addition.
+  the native tagged vectors, and a mathematical notation. The
+  native mode comes first; *display* in the notation is early because a learner
+  needs it from the first lesson; *input* in the notation is a later addition.
 
 ## 2. Lessons
 
@@ -108,7 +108,7 @@ The panels, each mapped to what exists:
 - **Per-rule stats.** Matches and applications per rule per iteration,
   phase times, and the backoff scheduler's bans, from `:stats`.
 - **The polynomial.** For bendix graphs, the normal form beside each
-  class, rendered by `poly/->term` and printed in the lay syntax.
+  class, rendered by `poly/->term` and printed in the notation.
   This is the view no existing e-graph visualizer has.
 - **The fork.** Assert an equality in a copy; the page holds both
   values and can show them side by side.
@@ -158,17 +158,17 @@ keyword variables, exact numbers (../bendix/IDEA.md section 1), read
 by the EDN reader, which every runtime has (`orrery.input`). The
 **native mode** is that format at a REPL and in every panel.
 
-The **lay mode** prints the same data as mathematics: `2·x + y`,
+The **notation mode** prints the same data as mathematics: `2·x + y`,
 `sin²x`, `x^(n+1)`, `d/dx`. bendix's design already lists infix
 printers and parsers as compilers to and from the canonical form,
 none on its critical path. Here the printer is on the critical path,
-because a learner meets lesson 1 in the lay syntax; it is small
-(precedence, parentheses, a few special forms: `orrery.lay`, built
+because a learner meets lesson 1 in the notation; it is small
+(precedence, parentheses, a few special forms: `orrery.notation`, built
 2026-09-25) and prints nesting faithfully, `a + (b + c)` against
 `a + b + c`, so an arrangement of a sum stays visible. The
-**parser**, lay input, is the future addition the Captain named; it
+**parser**, notation input, is the future addition the Captain named; it
 is a Pratt parser of similar size and comes after the lessons are
-live (phase 3). Until then the lay mode is display-only and input is
+live (phase 3). Until then the notation mode is display-only and input is
 native, or by choosing from the bank.
 
 ## 6. Architecture
@@ -203,10 +203,10 @@ Decided 2026-09-25, replacing the first draft's scittle route.
   same value. There is no trace format and no exporter; a recorded
   trace is needed only when the visualizer's `egraph-serialize` JSON
   or a golden file is.
-- **Pure namespaces on three runtimes.** `orrery.lay` (the printer),
+- **Pure namespaces on three runtimes.** `orrery.notation` (the printer),
   `orrery.diff`, `orrery.costs`, `orrery.input` (the EDN reader),
   `orrery.run`, `orrery.lessons` (prose as hiccup data, decided over
-  markdown: no renderer to ship, inline widgets `[:lay t]` and
+  markdown: no renderer to ship, inline widgets `[:notation t]` and
   `[:step k label]`, and the tests can walk it) and `orrery.expect`
   are `.cljc`, tested by `clojure -M:test` and `jolt -M:test`, and
   compiled into the page. Runner code (`orrery.state`, the views,
@@ -244,7 +244,7 @@ polynomial, bendix's two costs in the picker, and a run that ends
 with a materialization step so extraction can choose a normal form.
 Still to come from this phase: the generator and scorer.
 
-**Phase 3, lay input.** The parser; then a pass on the prose in the
+**Phase 3, notation input.** The parser; then a pass on the prose in the
 explorable-explanation voice, with the widgets as its figures.
 
 **Later.** The egraph-visualizer picture, which is when
@@ -319,6 +319,13 @@ motion, where these states are real), diorama (a scene, not a
 mechanism), terrarium (growth, not a mechanism), flipbook (generic),
 vivarium.
 
+**The notation, not "lay" (2026-09-25).** The mode that prints terms
+as mathematics was the *lay* mode, for the layperson; it is now the
+*notation*, `orrery.notation`, because a name should say what the
+view is and not who it is for, and the reader it was named for is
+the one the page most wants to welcome. The other mode stays
+*native*.
+
 ## 12. Open questions
 
 1. **The packed-key layout.** Decided 2026-09-25: one layout, under
@@ -330,7 +337,7 @@ vivarium.
    `orrery.lessons` (section 6).
 4. **The picture at scale.** Decided: the class list is primary; the
    visualizer comes later, with the exporter.
-5. **Lay display in phase 1.** Decided yes: `orrery.lay`.
+5. **Notation display in phase 1.** Decided yes: `orrery.notation`.
 6. **The runner as start/step/finish.** Done 2026-09-25:
    `cromulent.rewrite/start`, `step` and `finish`, with `embiggen` as
    the loop over them, so a run stepped by the page from a timer is
@@ -345,7 +352,7 @@ port first and the compiled page as the end state):
   into start/step/finish; `npm run smoke` runs its 28 facts on node,
   all green, zero compiler warnings.
 - orrery: `deps.edn`, `shadow-cljs.edn`, `package.json` (shadow-cljs
-  only; no React); `orrery.lay`, `orrery.diff`, `orrery.costs`,
+  only; no React); `orrery.notation`, `orrery.diff`, `orrery.costs`,
   `orrery.input`, `orrery.run`, `orrery.lessons`, `orrery.expect` and
   their tests, green on the JVM and Jolt (12 tests, 151 assertions:
   every live lesson and every alternative against the expectation
@@ -369,4 +376,4 @@ port first and the compiled page as the end state):
   a class new only when it holds nothing of the earlier graph.
 
 Next: the generator and scorer (the rest of phase 2), then phase 3,
-lay input.
+notation input.

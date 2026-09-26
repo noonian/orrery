@@ -4,7 +4,7 @@
   the tree and in the class list, which is how sharing shows without
   drawing an edge."
   (:require [cromulent.core :as eg]
-            [orrery.lay :as lay]))
+            [orrery.notation :as notation]))
 
 (defn annotate
   "The term with the class id of every subterm. `eg/add` on a term the
@@ -19,8 +19,8 @@
                :on {:mouseover (fn [e] (.stopPropagation e) (on-hover id))
                     :mouseout (fn [e] (.stopPropagation e) (on-hover nil))}}
    [:div.tlabel
-    [:span.top (if (vector? term) (name (first term)) (lay/leaf-str term))]
-    [:span.tid (lay/class-ref id)]]
+    [:span.top (if (vector? term) (name (first term)) (notation/leaf-str term))]
+    [:span.tid (notation/class-ref id)]]
    (when (seq children)
      (into [:div.tchildren] (map #(node-view % hovered on-hover) children)))])
 

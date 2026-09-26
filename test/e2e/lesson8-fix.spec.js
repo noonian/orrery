@@ -10,7 +10,7 @@ test.describe('8. The fix', () => {
     await expect(page.locator('#tile-iteration .tile-note')).toHaveText('saturated: the rules merge nothing more');
     await expect(page.locator('table.classes th')).toContainText(['class', 'nodes', 'polynomial', 'best', 'parents']);
     await expect(rootPoly(page)).toHaveText('a0 + a1 + a2 + a3 + a4');
-    await expect(page.locator('#best-lay')).toHaveText('a0 + a1 + a2 + a3 + a4');
+    await expect(page.locator('#best-notation')).toHaveText('a0 + a1 + a2 + a3 + a4');
     await expect(page.locator('table.stats tbody tr')).toHaveCount(1);
     await expect(page.locator('table.stats td.applied')).toHaveCount(0);
     await expect(page.locator('.scrubber-label')).toHaveText('the normal forms, written in as terms · 2 of 2');
@@ -29,7 +29,7 @@ test.describe('8. The fix', () => {
     await expect(rootPoly(page)).toHaveText('a0 + a1 + a2 + a3 + a4');
     await submit(page, { term: '[:+ [:+ :a0 :a4] [:+ :a1 [:+ :a2 :a3]]]' });
     await expectSnapshot(page, { status: 'done', iterations: 1 });
-    await expect(page.locator('#best-lay')).toHaveText('a0 + a1 + a2 + a3 + a4');
+    await expect(page.locator('#best-notation')).toHaveText('a0 + a1 + a2 + a3 + a4');
     const same = await evalRepl(page,
       '(= (second (eg/add g [:+ :a4 [:+ :a3 [:+ :a2 [:+ :a1 :a0]]]])) (second (eg/add g (lessons/sum-of 5))))');
     await expect(same.locator('pre.result')).toHaveText('true');
@@ -39,6 +39,6 @@ test.describe('8. The fix', () => {
     await openLesson(page, 8);
     await tryAnother(page, 'six atoms');
     await expectSnapshot(page, { status: 'done', iterations: 1, classes: 15, nodes: 28 });
-    await expect(page.locator('#best-lay')).toHaveText('a0 + a1 + a2 + a3 + a4 + a5');
+    await expect(page.locator('#best-notation')).toHaveText('a0 + a1 + a2 + a3 + a4 + a5');
   });
 });

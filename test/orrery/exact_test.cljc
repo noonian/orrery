@@ -5,13 +5,13 @@
             [bendix.num :as num]
             [orrery.costs :as costs]
             [orrery.input :as input]
-            [orrery.lay :as lay]))
+            [orrery.notation :as notation]))
 
 (deftest ratios-print-as-written
-  (is (= "1/2·x" (lay/term->str [:* (num/div 1 2) :x])))
-  (is (= "x^(1/2)" (lay/term->str [:expt :x (num/div 1 2)])))
-  (is (= "−1/2·x" (lay/term->str [:* (num/div -1 2) :x])))
-  (is (= "d/dx (x·(sin x))" (lay/term->str [:D [:* :x [:sin :x]] :x]))))
+  (is (= "1/2·x" (notation/term->str [:* (num/div 1 2) :x])))
+  (is (= "x^(1/2)" (notation/term->str [:expt :x (num/div 1 2)])))
+  (is (= "−1/2·x" (notation/term->str [:* (num/div -1 2) :x])))
+  (is (= "d/dx (x·(sin x))" (notation/term->str [:D [:* :x [:sin :x]] :x]))))
 
 (deftest ratios-read-exact
   (is (= {:term [:* (num/div 1 2) :x]} (input/read-term "[:* 1/2 :x]")))

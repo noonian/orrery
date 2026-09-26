@@ -5,7 +5,7 @@
   of each class. Diff highlighting marks what the current step added
   or merged."
   (:require [cromulent.core :as eg]
-            [orrery.lay :as lay]
+            [orrery.notation :as notation]
             [orrery.normal :as normal]
             [orrery.views.common :as common]))
 
@@ -13,13 +13,13 @@
   (let [{:keys [kind term] atom-id :id} (normal/form g id (when best #(:term (best %))))]
     (case kind
       :polynomial (common/term-view term mode)
-      :atom [:span.status (str "its own atom, " (lay/class-ref atom-id))]
+      :atom [:span.status (str "its own atom, " (notation/class-ref atom-id))]
       :too-big [:span.status "too big: the analysis gave up"]
       :conflict [:span.status "a contradiction"]
       nil)))
 
 (defn- ref-chip [id on-select]
-  [:span.ref {:on {:click #(on-select id)}} (lay/class-ref id)])
+  [:span.ref {:on {:click #(on-select id)}} (notation/class-ref id)])
 
 (defn class-list
   [{:keys [g diff best mode root selected hovered matches on-select]}]
@@ -50,7 +50,7 @@
                              (contains? absorbing id) (conj "absorbing")
                              (contains? new-classes id) (conj "new-class")
                              dirty? (conj "dirty"))}
-               [:td [:span.class-id {:on {:click #(on-select id)}} (lay/class-ref id)]]
+               [:td [:span.class-id {:on {:click #(on-select id)}} (notation/class-ref id)]]
                (into [:td]
                      (for [node (sort-by pr-str (:nodes c))]
                        [:span.node {:class (when (contains? added-here node) "added")}

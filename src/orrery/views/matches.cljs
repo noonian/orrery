@@ -1,7 +1,7 @@
 (ns orrery.views.matches
   "The matches of each pattern rule in the e-graph on show: the class
   and the bindings, which the next iteration will apply."
-  (:require [orrery.lay :as lay]))
+  (:require [orrery.notation :as notation]))
 
 (defn matches-panel [{:keys [matches on-select]}]
   [:div.panel.matches {:id "matches"}
@@ -16,6 +16,6 @@
               (into [:ul]
                     (for [m matches]
                       [:li
-                       [:span.ref {:on {:click #(on-select (:class m))}} (lay/class-ref (:class m))]
+                       [:span.ref {:on {:click #(on-select (:class m))}} (notation/class-ref (:class m))]
                        (for [[v id] (sort-by str (:bindings m))]
-                         (str "  " v " = " (lay/class-ref id)))]))])))])
+                         (str "  " v " = " (notation/class-ref id)))]))])))])

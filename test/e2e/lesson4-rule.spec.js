@@ -23,7 +23,7 @@ test.describe('4. A rule', () => {
     await expect(page.locator('.cost-picker input[type=radio]')).toHaveCount(2);
     await page.locator('input[type=radio][value=prefer-shift]').check();
     await expect(page.locator('#best-term')).toHaveText('[:+ [:<< :a 1] [:<< :b 1]]');
-    await expect(page.locator('#best-lay')).toHaveText('(a << 1) + (b << 1)');
+    await expect(page.locator('#best-notation')).toHaveText('(a << 1) + (b << 1)');
   });
 
   test('edited rules: commutativity on a + b', async ({ page }) => {

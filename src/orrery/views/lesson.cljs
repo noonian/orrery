@@ -16,11 +16,11 @@
             [orrery.views.tree :as tree]))
 
 (defn- prose
-  "Lesson prose with its widgets resolved: [:lay t], [:native t],
+  "Lesson prose with its widgets resolved: [:notation t], [:native t],
   [:step k label]."
   [x]
   (cond
-    (and (vector? x) (= :lay (first x))) (common/term-view (second x) :lay)
+    (and (vector? x) (= :notation (first x))) (common/term-view (second x) :notation)
     (and (vector? x) (= :native (first x))) (common/term-view (second x) :native)
     (and (vector? x) (= :step (first x)))
     (let [[_ k label] x] [:a.step {:on {:click #(state/set-step! k)}} label])
@@ -83,7 +83,7 @@
         picker (filter (comp (set (:costs l)) :key) costs/all)]
     [:div.panel.best {:style {:margin-top "16px"}}
      [:h3 "best so far"]
-     [:div.term {:id "best-lay"} (common/term-view term :lay)]
+     [:div.term {:id "best-notation"} (common/term-view term :notation)]
      [:div {:id "best-term"} (common/term-view term :native)]
      [:div.changed (str "cost " (costs/cost-str cost) " under " (costs/label (:cost s)))]
      (when (> (count picker) 1)

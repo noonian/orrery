@@ -11,16 +11,16 @@ test.describe('6. Extraction is taste', () => {
 
     await pick(page, 'prefer-add');
     await expect(page.locator('#best-term')).toHaveText('[:+ :a :a]');
-    await expect(page.locator('#best-lay')).toHaveText('a + a');
+    await expect(page.locator('#best-notation')).toHaveText('a + a');
     await expect(page.locator('.best .changed')).toHaveText('cost 3 under prefer additions');
 
     await pick(page, 'prefer-mul');
     await expect(page.locator('#best-term')).toHaveText('[:* :a 2]');
-    await expect(page.locator('#best-lay')).toHaveText('a·2');
+    await expect(page.locator('#best-notation')).toHaveText('a·2');
 
     await pick(page, 'prefer-shift');
     await expect(page.locator('#best-term')).toHaveText('[:<< :a 1]');
-    await expect(page.locator('#best-lay')).toHaveText('a << 1');
+    await expect(page.locator('#best-notation')).toHaveText('a << 1');
     await expect(page.locator('.best .changed')).toHaveText('cost 3 under prefer shifts');
   });
 

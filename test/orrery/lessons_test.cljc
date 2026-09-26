@@ -2,7 +2,7 @@
   (:require [clojure.test :refer [deftest is testing]]
             [cromulent.core :as eg]
             [orrery.expect :as expect]
-            [orrery.lay :as lay]
+            [orrery.notation :as notation]
             [orrery.lessons :as lessons]
             [orrery.run :as run]))
 
@@ -21,8 +21,8 @@
           :when (:prose lesson)
           p (:prose lesson)
           x (tree-seq vector? rest p)
-          :when (and (vector? x) (= :lay (first x)))]
-    (is (string? (lay/term->str (second x))))))
+          :when (and (vector? x) (= :notation (first x)))]
+    (is (string? (notation/term->str (second x))))))
 
 (deftest stepping-is-one-run
   (let [stepped (run/run-all (lessons/make-run lessons/blowup))

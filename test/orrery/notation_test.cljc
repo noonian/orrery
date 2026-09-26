@@ -1,0 +1,36 @@
+(ns orrery.notation-test
+  (:require [clojure.test :refer [deftest is]]
+            [orrery.notation :as notation]))
+
+(deftest terms
+  (is (= "2·x + y" (notation/term->str [:+ [:* 2 :x] :y])))
+  (is (= "a + (b + c)" (notation/term->str [:+ :a [:+ :b :c]])) "right nesting shows")
+  (is (= "a + b + c" (notation/term->str [:+ [:+ :a :b] :c])) "left nesting is the chain")
+  (is (= "a0 + a1 + a2 + a3 + a4" (notation/term->str [:+ [:+ [:+ [:+ :a0 :a1] :a2] :a3] :a4])))
+  (is (= "(x + 1)·(x + 1)" (notation/term->str [:* [:+ :x 1] [:+ :x 1]])))
+  (is (= "sin²x + cos²x" (notation/term->str [:+ [:expt [:sin :x] 2] [:expt [:cos :x] 2]])))
+  (is (= "sin²(x + 1)" (notation/term->str [:expt [:sin [:+ :x 1]] 2])))
+  (is (= "x^(n + 1)" (notation/term->str [:expt :x [:+ :n 1]])))
+  (is (= "x²" (notation/term->str [:expt :x 2])))
+  (is (= "(x + 1)³" (notation/term->str [:expt [:+ :x 1] 3])))
+  (is (= "d/dx sin(2·x)" (notation/term->str [:D [:sin [:* 2 :x]] :x])))
+  (is (= "d/dx (2·x)" (notation/term->str [:D [:* 2 :x] :x])))
+  (is (= "a << 1" (notation/term->str [:<< :a 1])))
+  (is (= "(a·2)/2" (notation/term->str [:/ [:* :a 2] 2])))
+  (is (= "a/(b·c)" (notation/term->str [:/ :a [:* :b :c]])))
+  (is (= "−x" (notation/term->str [:neg :x])))
+  (is (= "−(a + b)" (notation/term->str [:- [:+ :a :b]])))
+  (is (= "a − 1" (notation/term->str [:- :a 1])))
+  (is (= "(sin x)·y" (notation/term->str [:* [:sin :x] :y])))
+  (is (= "a + sin x" (notation/term->str [:+ :a [:sin :x]])))
+  (is (= "π" (notation/term->str [:pi])))
+  (is (= "−1" (notation/term->str -1)))
+  (is (= "f(a, b, c)" (notation/term->str [:f :a :b :c])) "unknown operators print as functions"))
+
+(deftest enodes
+  (is (= "#3 + #5" (notation/enode->str [:+ 3 5])))
+  (is (= "x" (notation/enode->str :x)))
+  (is (= "2" (notation/enode->str 2)))
+  (is (= "#2^#2" (notation/enode->str [:expt 2 2])) "an e-node's exponent is a class, never a number")
+  (is (= "sin #4" (notation/enode->str [:sin 4])))
+  (is (= "#7" (notation/class-ref 7))))

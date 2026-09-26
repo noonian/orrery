@@ -1,21 +1,21 @@
 (ns orrery.views.common
   "Small pieces every panel uses: terms in both modes, the counters,
   the stop reason in words. Every view is a function of values."
-  (:require [orrery.lay :as lay]))
+  (:require [orrery.notation :as notation]))
 
 (defn term-view
   "A term in the mode in force."
   [t mode]
   (if (= :native mode)
     [:code.native (pr-str t)]
-    [:span.lay (lay/term->str t)]))
+    [:span.notation (notation/term->str t)]))
 
 (defn enode-view
   "An e-node, its children as class ids."
   [node mode on-ref]
   (if (= :native mode)
     [:code.native (pr-str node)]
-    [:span.lay (lay/enode->str node)]))
+    [:span.notation (notation/enode->str node)]))
 
 (defn stop-reason-text [reason]
   (case reason
@@ -47,6 +47,6 @@
 
 (defn print-toggle [mode on-change]
   [:span.print-toggle
-   [:button {:class (when (= :lay mode) "primary") :on {:click #(on-change :lay)}} "lay"]
+   [:button {:class (when (= :notation mode) "primary") :on {:click #(on-change :notation)}} "notation"]
    " "
    [:button {:class (when (= :native mode) "primary") :on {:click #(on-change :native)}} "native"]])

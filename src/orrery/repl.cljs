@@ -17,7 +17,7 @@
             [cromulent.rewrite]
             [cromulent.term]
             [orrery.diff]
-            [orrery.lay]
+            [orrery.notation]
             [orrery.lessons]
             [orrery.run]
             [sci.core :as sci]))
@@ -29,7 +29,7 @@
    'cromulent.extract (sci/copy-ns cromulent.extract (sci/create-ns 'cromulent.extract))
    'cromulent.term    (sci/copy-ns cromulent.term (sci/create-ns 'cromulent.term))
    'cromulent.check   (sci/copy-ns cromulent.check (sci/create-ns 'cromulent.check))
-   'orrery.lay        (sci/copy-ns orrery.lay (sci/create-ns 'orrery.lay))
+   'orrery.notation        (sci/copy-ns orrery.notation (sci/create-ns 'orrery.notation))
    'orrery.run        (sci/copy-ns orrery.run (sci/create-ns 'orrery.run))
    'orrery.lessons    (sci/copy-ns orrery.lessons (sci/create-ns 'orrery.lessons))
    'orrery.diff       (sci/copy-ns orrery.diff (sci/create-ns 'orrery.diff))
@@ -45,7 +45,7 @@
   "(ns user (:require [cromulent.core :as eg] [cromulent.pattern :as pat]
                      [cromulent.rewrite :as rw] [cromulent.extract :as ex]
                      [cromulent.term :as term] [cromulent.check :as check]
-                     [orrery.lay :as lay] [orrery.run :as run]
+                     [orrery.notation :as notation] [orrery.run :as run]
                      [orrery.lessons :as lessons] [orrery.diff :as diff]
                      [bendix.core :as bx] [bendix.rules :as rules]
                      [bendix.analysis :as an] [bendix.poly :as poly]

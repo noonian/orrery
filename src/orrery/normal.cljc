@@ -9,7 +9,7 @@
             [bendix.poly :as poly]
             [bendix.term :as bt]
             [cromulent.core :as eg]
-            [orrery.lay :as lay]))
+            [orrery.notation :as notation]))
 
 (defn analysis?
   "Does g carry the polynomial analysis?"
@@ -21,7 +21,7 @@
   class by render (a term for its id, the class's best term say) or
   as #id, a placeholder likewise over its class references."
   [render a]
-  (let [class-term (fn [id] (or (when render (render id)) (symbol (lay/class-ref id))))]
+  (let [class-term (fn [id] (or (when render (render id)) (symbol (notation/class-ref id))))]
     (cond (keyword? a) a
           (bt/placeholder? a) (bt/map-class-ids class-term a)
           :else (class-term a))))

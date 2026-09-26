@@ -1,11 +1,11 @@
-(ns orrery.lay
-  "The lay printer: the canonical tagged vectors printed as
+(ns orrery.notation
+  "The notation printer: the canonical tagged vectors printed as
   mathematics, for display. [:+ [:* 2 :x] :y] prints as 2·x + y,
   [:expt [:sin :x] 2] as sin²x, [:D [:sin [:* 2 :x]] :x] as
   d/dx sin(2·x). Nesting is shown faithfully: [:+ :a [:+ :b :c]] is
   a + (b + c) while [:+ [:+ :a :b] :c] is a + b + c, so an arrangement
   of a sum stays visible. E-nodes, whose children are class ids, print
-  the ids as #7. Pure and the same on every runtime; lay input, the
+  the ids as #7. Pure and the same on every runtime; notation input, the
   parser, is a later addition."
   (:require [bendix.num :as num]
             [clojure.string :as str]))

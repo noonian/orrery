@@ -28,7 +28,7 @@
          :follow? true
          :cost :ast-size
          :repl {:input "" :history []}
-         :ui {:print :lay :playing nil :selected nil :hover nil}}))
+         :ui {:print :notation :playing nil :selected nil :hover nil}}))
 
 (defonce ^:private cache (atom {}))
 
