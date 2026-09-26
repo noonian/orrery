@@ -56,5 +56,5 @@
                        [:span.node {:class (when (contains? added-here node) "added")}
                         (common/enode-view node mode on-select)]))
                (when normal? [:td.poly (form-view g id mode best)])
-               [:td (when best (common/term-view (:term (best id)) mode))]
+               [:td.best (when best (common/term-view (:term (best id)) mode))]
                [:td (str (count (:parents c)))]]))]]))

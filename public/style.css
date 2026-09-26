@@ -91,7 +91,7 @@ a.step { text-decoration: underline dotted; cursor: pointer; }
 
 .workbench { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
 @media (min-width: 900px) { .workbench { grid-template-columns: 340px minmax(0, 1fr); } }
-.panel { background: var(--surface); border: 1px solid var(--hairline); border-radius: 10px; padding: 12px 14px; }
+.panel { background: var(--surface); border: 1px solid var(--hairline); border-radius: 10px; padding: 12px 14px; overflow-x: auto; } /* the background always holds its content: what is wider than the panel scrolls inside it */
 .panel h3 { margin: 0 0 8px; font-size: 14px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600; }
 
 .input-area .row { display: flex; gap: 8px; align-items: center; margin-top: 8px; flex-wrap: wrap; }
@@ -125,6 +125,8 @@ table.classes tr.new-class td:first-child { box-shadow: inset 3px 0 0 var(--adde
 table.classes tr.root { background: var(--root); }
 table.classes tr.selected { background: var(--selected); }
 table.classes tr.dirty { background: var(--dirty); }
+table.classes td.poly, table.classes td.best { min-width: 120px; }
+table.classes td.poly .notation, table.classes td.best .notation, table.classes td.poly .native, table.classes td.best .native { white-space: normal; } /* a polynomial or a best term wraps at its operators, so the table fits the panel; in prose a term stays on one line */
 .class-id { cursor: pointer; font-weight: 600; }
 .node { display: inline-block; margin: 1px 6px 1px 0; padding: 0 5px; border-radius: 4px; background: var(--surface-2); white-space: nowrap; }
 .node.added { background: var(--added); color: var(--added-ink); }
