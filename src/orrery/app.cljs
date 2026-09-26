@@ -21,9 +21,9 @@
 
 (defn init! []
   (add-watch state/app-state :render (fn [_ _ _ _] (render!)))
-  ;; a read-only hook for bin/e2e.sh. Not window.orrery: that global
-  ;; is the object every orrery.* namespace lives on, and assigning it
-  ;; erases them all.
+  ;; a read-only hook for the Playwright specs in test/e2e. Not
+  ;; window.orrery: that global is the object every orrery.* namespace
+  ;; lives on, and assigning it erases them all.
   (set! (.-orreryPage js/window)
         #js {:snapshot (fn [] (clj->js (state/snapshot @state/app-state)))})
   (js/window.addEventListener "hashchange" (fn [_] (state/load-lesson! (lesson-from-hash))))

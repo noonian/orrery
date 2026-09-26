@@ -216,9 +216,10 @@ Decided 2026-09-25, replacing the first draft's scittle route.
   and `orrery.expect` (the lessons' counts, iterations, stop reasons
   and costs) are asserted by the JVM and Jolt suites, by `npm run
   smoke` on node, by the page's self-test tile in the browser, and by
-  `bin/e2e.sh`, which builds a release, serves it, drives lesson 7
-  with playwright-cli and asserts the counters through the DOM. Never
-  ids, never a tied term (section 8).
+  the Playwright suite in `test/e2e` (`npm run e2e`), which builds a
+  release, serves it, and drives every live lesson, its alternatives
+  and inputs, the transport and the REPL through the DOM. Never ids,
+  never a tied term (section 8).
 
 ## 7. Plan, in phases, each with a deliverable
 
@@ -352,6 +353,10 @@ port first and the compiled page as the end state):
   `[name lhs rhs]` data) and prose with inline widgets; 8, 9 and 11
   wait for bendix. The self-test tile runs the 28 engine facts and
   every lesson's expectation in the browser on load, in about 60 ms;
-  `bin/e2e.sh` drives lessons 2, 3, 6, 7 and the REPL through the DOM.
+  the Playwright suite (`npm run e2e`, 34 specs) drives every live
+  lesson, its alternatives and inputs, the transport and the REPL
+  through the DOM. Writing it found one misreport: a class whose fresh
+  root absorbed an old class was shown as new; `orrery.diff` now calls
+  a class new only when it holds nothing of the earlier graph.
 
 Next: phase 2, `bendix.num` and lessons 8, 9 and 11.

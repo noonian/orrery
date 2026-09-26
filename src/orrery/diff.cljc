@@ -13,7 +13,8 @@
 (defn between
   "From g0 to g1, later in the same run:
 
-    :new-classes #{root}        roots of g1 that g0 did not have
+    :new-classes #{root}        roots of g1 that hold nothing of g0: neither an old
+                                root nor a class an old root merged into
     :merged      {old new}      roots of g0 that are roots no longer, and where they went
     :absorbing   #{root}        roots of g1 that received a merge
     :added       {root #{node}} nodes of g1 that g0 did not have, by class
@@ -25,7 +26,7 @@
         merged (into {} (keep (fn [r] (when-not (eg/root? g1 r) [r (eg/find g1 r)]))) roots0)
         absorbing (set (vals merged))
         next0 (:next-id g0)
-        new-classes (into #{} (filter #(>= % next0)) roots1)
+        new-classes (into #{} (filter #(and (>= % next0) (not (absorbing %)))) roots1)
         nodes0 (into [] (mapcat #(eg/nodes g0 %)) roots0)
         nodes0-in-1 (into #{} (map #(eg/canonicalize g1 %)) nodes0)
         added (into {} (keep (fn [r]

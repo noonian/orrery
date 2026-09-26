@@ -5,9 +5,11 @@
   "scripts": {
     "watch": "shadow-cljs watch app",
     "release": "shadow-cljs release app",
-    "smoke": "shadow-cljs compile smoke && node target/smoke.js"
+    "smoke": "shadow-cljs compile smoke && node target/smoke.js",
+    "e2e": "shadow-cljs release app && playwright test"
   },
   "devDependencies": {
+    "@playwright/test": "1.63.0",
     "shadow-cljs": "3.5.3"
   }
 }

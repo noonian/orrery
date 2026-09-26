@@ -29,8 +29,13 @@ npm run release && bin/serve.sh   # http://localhost:8379
 ```sh
 clojure -M:test     jolt -M:test     # the pure namespaces, either runtime
 npm run smoke                        # cromulent's cross-runtime facts on node
-bin/e2e.sh                           # build, serve, drive lesson 7 in a browser, assert
+npm run e2e                          # build the release, drive every lesson in a browser
 ```
+
+The browser suite is Playwright, in `test/e2e/`: one spec per live
+lesson, plus the REPL and the self-test tile. `npx playwright test`
+reruns it over the last build, and with `ORRERY_URL=http://localhost:8379`
+it drives the watcher's page instead of starting a server.
 
 The same facts must hold on the JVM, on Jolt, on node and in the
 browser: class counts, node counts, iterations, stop reasons, costs.
