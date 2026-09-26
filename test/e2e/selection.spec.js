@@ -1,10 +1,10 @@
 // The opened class: click a class, a #id, a tree node, or a link in
-// the prose, and the panel above the list says what the engine knows
-// about it. Counts and costs, never ids.
+// the prose, and the replay bar, stuck to the top of the viewport,
+// says what the engine knows about it. Counts and costs, never ids.
 import { test, expect } from '@playwright/test';
 import { openLesson, expectSnapshot } from './orrery.js';
 
-const detail = (page) => page.locator('.class-detail').first();
+const detail = (page) => page.locator('#replay .class-detail');
 const act = (page, kind, text) => page.locator(`.prose a.act[data-act=${kind}]`, { hasText: text });
 
 test.describe('the opened class', () => {
@@ -47,6 +47,21 @@ test.describe('the opened class', () => {
     await expect(detail(page).locator('.parents')).toContainText('nothing');
     await expect(page.locator('tbody tr.selected')).toHaveCount(1);
     await expect(page.locator('tbody tr .rel')).toHaveCount(30);
+    // the bar is sticky: scrolled to the foot of the list, the opened class is still in view
+    await page.locator('table.classes tbody tr').last().scrollIntoViewIfNeeded();
+    await expect(detail(page)).toBeInViewport();
+    await expect(page.locator('#scrubber-range')).toBeInViewport();
+  });
+
+  test('lesson 10: one opened class in the bar over the two panels of the fork', async ({ page }) => {
+    await openLesson(page, 10);
+    const panels = page.locator('.fork > .panel');
+    await panels.nth(1).locator('tbody tr.root .class-id').click();
+    await expect(page.locator('.class-detail')).toHaveCount(1);
+    await expect(detail(page)).toBeVisible();
+    await expect(detail(page).locator('.detail-title')).toContainText("the input's class");
+    await expect(panels.nth(1).locator('tbody tr.selected')).toHaveCount(1);
+    await expect(panels.locator('.class-detail')).toHaveCount(0);
   });
 
   test('lesson 3: the merged class has two parents that read the same until the rebuild, then one', async ({ page }) => {

@@ -14,6 +14,7 @@
             [orrery.score :as score]
             [orrery.views.classes :as classes]
             [orrery.views.common :as common]
+            [orrery.views.detail :as detail]
             [orrery.views.matches :as matches]
             [orrery.views.repl :as repl]
             [orrery.views.scrubber :as scrubber]
@@ -130,14 +131,20 @@
      [:div.status [:span.badge.dirty "rebuild pending: the invariants are not restored yet"]])])
 
 (defn- replay-bar
-  "The transport, directly above the class list and stuck to the top
-  of the viewport while the list scrolls under it, so the classes
-  change in view as you scrub."
+  "The transport and, under it, the opened class at the step on show,
+  directly above the class list and stuck to the top of the viewport
+  while the list scrolls under it, so the classes change in view as
+  you scrub and the opened class never scrolls away."
   [s r g]
   [:div.replay {:id "replay"}
    (scrubber/scrubber {:step (:step s) :n (run/last-step r) :labels (:labels r)
                        :playing? (some? (get-in s [:ui :playing])) :status (:status r)
-                       :summary (str (eg/class-count g) " classes · " (eg/node-count g) " nodes")})])
+                       :summary (str (eg/class-count g) " classes · " (eg/node-count g) " nodes")})
+   (when-let [d (derived/detail-at s (:step s))]
+     (detail/detail-view d {:mode (get-in s [:ui :print])
+                            :cost-label (costs/label (:cost s))
+                            :labels (:labels r)
+                            :root-id (derived/root-at s)}))])
 
 (defn- best-panel [s l]
   (let [best (derived/best-at s)
@@ -158,16 +165,15 @@
                 " " (:label c)])))]))
 
 (defn- class-panel
-  "The class list over the e-graph at step k, with the opened class."
+  "The class list over the e-graph at step k; the opened class there
+  marks its own row and its relatives' rows."
   [title g s k opts]
   [:div.panel
    [:h3 title]
    (classes/class-list (merge {:g g :mode (get-in s [:ui :print])
                                :selected (get-in s [:ui :selected])
                                :hovered (get-in s [:ui :hover])
-                               :detail (derived/detail-at s k)
-                               :labels (:labels (:run s))
-                               :cost-label (costs/label (:cost s))}
+                               :detail (derived/detail-at s k)}
                               opts))])
 
 (defn page [s]

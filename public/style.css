@@ -146,7 +146,8 @@ table.classes td.poly .notation, table.classes td.best .notation, table.classes 
 .node .ref, .dnode .ref { text-decoration: none; }
 .node .ref:hover, .dnode .ref:hover { text-decoration: underline dotted; }
 
-/* the opened class, above the list */
+/* the opened class, in the replay bar under the transport; capped so a class with many nodes (lesson 7's has thirty) scrolls inside the bar instead of taking the viewport from the list */
+.replay .class-detail { margin: 8px 0 0; max-height: 45vh; overflow: auto; }
 .class-detail { background: var(--surface-2); border-radius: 8px; padding: 8px 10px; margin: 0 0 10px; font-size: 14px; }
 .class-detail .detail-title { display: flex; align-items: baseline; gap: 10px; margin-bottom: 4px; }
 .class-detail .detail-title .class-id { font-size: 16px; }

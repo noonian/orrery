@@ -96,8 +96,13 @@ The panels, each mapped to what exists:
   data rendered. `eg/roots`, `eg/nodes`, `eg/eclass`, `eg/data`.
 - **The opened class** (2026-09-26). A click on a class id, on a
   `#id` inside any node, on a node of the tree, or on a link in the
-  prose opens the class above the list, with what the engine knows
-  about it (`orrery.eclass`): each node with the cost of the
+  prose opens the class in the replay bar, under the transport and
+  stuck with it to the top of the viewport (moved there the same
+  day, the Captain: above the list it scrolled out of view as soon
+  as you read down the classes; the list keeps the marks on its row
+  and on the rows of its children and parents, and past 45% of the
+  viewport the detail scrolls inside the bar), with what the engine
+  knows about it (`orrery.eclass`): each node with the cost of the
   cheapest term it heads under the cost in force, the cheapest
   marked; how many terms the class stands for and the few cheapest
   (a k-best extraction, the bottom-up fixpoint of `best-costs`
@@ -117,8 +122,8 @@ The panels, each mapped to what exists:
   transport is a bar directly above the class list (2026-09-26, the
   Captain: it landed too low on the screen under a tall input area),
   stuck to the top of the viewport while the list scrolls under it,
-  with the label of the entry on show and its counts; the tiles stay
-  in the run panel.
+  with the label of the entry on show and its counts, and the opened
+  class under it; the tiles stay in the run panel.
 - **Best so far.** The extracted term at every iteration, under the
   cost in force. Watching it change is lineage-lite, and it is honest:
   the chain of rewrites from input to output is *explanations*, which
@@ -560,6 +565,14 @@ handler made data and the views made `.cljc` (section 6), with
 on the JVM and Jolt: 50 tests and 3073 assertions there. The suites are 47 tests
 and 2416 assertions on the JVM and Jolt, 64 facts on node, 107 in
 the tile, 59 specs in the browser.
+
+The opened class moved into the replay bar, 2026-09-26 (section 3):
+`orrery.views.detail` renders it under the transport, so it stays in
+view while the list scrolls; `orrery.views.classes` keeps only the
+rows and their marks. `selection.spec.js` now finds the detail in
+`#replay`, checks it and the range are in the viewport at the foot
+of lesson 7's list, and one opened class over lesson 10's two
+panels: 60 specs in the browser.
 
 Next: the later items of section 7, the visualizer with the
 exporter first.
