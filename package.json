@@ -1,0 +1,13 @@
+{
+  "name": "orrery",
+  "private": true,
+  "description": "an e-graph explorer, for understanding",
+  "scripts": {
+    "watch": "shadow-cljs watch app",
+    "release": "shadow-cljs release app",
+    "smoke": "shadow-cljs compile smoke && node target/smoke.js"
+  },
+  "devDependencies": {
+    "shadow-cljs": "3.5.3"
+  }
+}

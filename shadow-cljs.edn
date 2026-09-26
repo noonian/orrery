@@ -1,0 +1,11 @@
+{:deps {:aliases [:cljs]}
+ :dev-http {8379 "public"}
+ :builds
+ {:app {:target :browser
+        :output-dir "public/js"
+        :asset-path "/js"
+        :modules {:main {:init-fn orrery.app/init!}}}
+  ;; the third runtime as a command: node target/smoke.js
+  :smoke {:target :node-script
+          :main orrery.smoke-cli/-main
+          :output-to "target/smoke.js"}}}

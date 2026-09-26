@@ -26,11 +26,12 @@ Two facts make this cheap and honest at once.
   fork. A mutable engine cannot export any of this without
   instrumentation. Ours exports it by returning values. The page is
   a scrubber over those values.
-- **The fleet already knows how to build this.** ../../time-and-space/webapp
-  loads the catalytic libraries' `.cljc` source verbatim through
-  scittle, with no build step, and its one architectural insight is
-  the one above: a widget is a scrubber over a real execution. orrery
-  is that page for symbolics.
+- **The fleet already knows the shape.** ../../time-and-space/webapp
+  had one architectural insight, the one above: a widget is a scrubber
+  over a real execution. It never got past its first example (the
+  Captain, 2026-09-25), so orrery keeps the insight and not the
+  construction: the engine is compiled, not interpreted, and the page
+  is built to carry eleven lessons, a REPL and forks (section 6).
 
 The thesis of bendix is *simplification is equality saturation plus
 taste*. orrery's job is to make a person see both halves: the graph
@@ -68,12 +69,12 @@ example, and a "try another" that draws from the example bank
 | # | lesson | what the learner sees | engine |
 |---|---|---|---|
 | 1 | A term is a tree | `2·x + y` as a tree; the same as `[:+ [:* 2 :x] :y]` | `eg/add`, classes and nodes one to one |
-| 2 | Sharing | `(x + 1)·(x + 1)`: the two `x + 1` are one node, the tree has 7 nodes and the graph 5 | `eg/add`, `eg/node-count` |
+| 2 | Sharing | `(x + 1)·(x + 1)`: the two `x + 1` are one node, the tree has 7 nodes and the graph 4 | `eg/add`, `eg/node-count` |
 | 3 | Equality and congruence | assert `a·2 = a<<1`; the classes merge; then `(a·2)/2` and `(a<<1)/2` merge on rebuild without being told (the egg README example) | `eg/union`, `eg/rebuild`, `:dirty?` before and after |
 | 4 | A rule | one rule, one iteration: matches highlighted, then the nodes it adds and the classes it joins | `pat/ematch`, `embiggen {:iter-limit 1}` |
 | 5 | Saturation | scrub the iterations; what each added, in colour; why it stopped | `:timeline? true`, `:stats`, `:stop-reason` |
 | 6 | Extraction is taste | the same saturated graph under three costs gives three answers | `ex/extract` with `ast-size`, a shift-preferring cost, bendix `default-cost`, `no-D` |
-| 7 | The blowup | a sum of five atoms under commutativity and associativity: 31 classes, 180 nodes, and a counter that climbs as 3ⁿ; six atoms hit the node limit | `embiggen`, `:node-limit` (../design/ac-problem.md section 1) |
+| 7 | The blowup | a sum of five atoms under commutativity and associativity: 31 classes, 180 compound nodes plus the five atoms, and a counter that climbs as 3ⁿ; six atoms reach 608 nodes, and under a node limit of 500 they stop at it | `embiggen`, `:node-limit` (../design/ac-problem.md section 1) |
 | 8 | The fix | the same sum under the polynomial analysis is one class; the polynomial sits beside it; every arrangement typed lands there | `bendix.core/saturate`, `eg/data g id :poly`, `poly/->term` (experiment 2) |
 | 9 | A rule over the polynomial | `sin²x + cos²x` buried anywhere in a sum collapses to 1, however the sum is arranged | `rules/trig`, `normal-form-rule` (experiment 4) |
 | 10 | What if | assert `x = 2` in a copy of the graph; watch what collapses; the original is untouched | persistence: the fork is a `let` |
@@ -112,9 +113,10 @@ The panels, each mapped to what exists:
   This is the view no existing e-graph visualizer has.
 - **The fork.** Assert an equality in a copy; the page holds both
   values and can show them side by side.
-- **The REPL.** A Clojure REPL with the engine loaded, which scittle
-  gives for free: `(eg/add g [:+ :x 1])` at a prompt, the page
-  rendering the value returned. This is what the native mode is.
+- **The REPL.** A Clojure REPL with the engine loaded, SCI embedded
+  as a library with the compiled engine namespaces copied into its
+  context: `(eg/add g [:+ :x 1])` at a prompt, the page rendering the
+  value returned. This is what the native mode is.
 
 ## 4. Proactive examples
 
@@ -146,91 +148,119 @@ A lesson names which features it wants high; a "surprise me" button
 draws from the bank at random, weighted by score; candidates are
 deduplicated by the shape of their result so the bank is not fifty
 spellings of one thing. Interestingness is our score and nothing
-deeper; it is tunable and it is small code. In phase 1 the bank is
-built offline on the JVM and shipped as EDN; from phase 3 it can be
-drawn live in the browser.
+deeper; it is tunable and it is small code. The bank is drawn live
+in the browser once bendix is ported (phase 2); until then "try
+another" is a short curated list per lesson.
 
 ## 5. Two modes over one canonical form
 
 The canonical data is bendix's: tagged vectors, keyword operators,
 keyword variables, exact numbers (../bendix/IDEA.md section 1), read
-by the Clojure reader, which scittle has. The **native mode** is that
-format at a REPL and in every panel.
+by the EDN reader, which every runtime has (`orrery.input`). The
+**native mode** is that format at a REPL and in every panel.
 
 The **lay mode** prints the same data as mathematics: `2·x + y`,
 `sin²x`, `x^(n+1)`, `d/dx`. bendix's design already lists infix
 printers and parsers as compilers to and from the canonical form,
 none on its critical path. Here the printer is on the critical path,
 because a learner meets lesson 1 in the lay syntax; it is small
-(precedence, parentheses, a few special forms) and belongs in phase
-1. The **parser**, lay input, is the future addition the Captain
-named; it is a Pratt parser of similar size and comes after the
-lessons are live (phase 4). Until then the lay mode is display-only
-and input is native, or by choosing from the bank.
+(precedence, parentheses, a few special forms: `orrery.lay`, built
+2026-09-25) and prints nesting faithfully, `a + (b + c)` against
+`a + b + c`, so an arrangement of a sum stays visible. The
+**parser**, lay input, is the future addition the Captain named; it
+is a Pratt parser of similar size and comes after the lessons are
+live (phase 3). Until then the lay mode is display-only and input is
+native, or by choosing from the bank.
 
 ## 6. Architecture
 
-- The shape of ../../time-and-space/webapp: one `index.html`, scittle
-  and reagent from a CDN, sources loaded as `.cljc` with no build
-  step, served from the workspace root so sibling sources are
-  reachable. Graduation to shadow-cljs when a bundle is wanted;
-  nothing may assume the interpreter.
-- **The trace** is the data model. A lesson or a bank entry is
-  `{:term :rules :opts :timeline [g0 g1 …] :stats :extractions {cost [term …]}
-  :stop-reason}`, produced by an exporter and consumed by the page.
-  An e-graph value holds functions (analyses, the scheduler's state,
-  rules' guards), so export is a `->data` that keeps the union-find,
-  the classes with their nodes and parents, the memo entries, the
-  operator table and every analysis's data *rendered* (`poly/->term`
-  for bendix), and drops the rest. The same function emits the
-  `egraph-serialize` JSON for the visualizer. It belongs in cromulent
-  (`cromulent.export`) with a bendix counterpart for its analysis
-  data, since orrery is real code that uses it; orrery is a consumer.
-- **The page** is reagent components over a trace: graph, class
-  list, scrubber, best-so-far, cost picker, stats, polynomial panel,
-  fork, REPL, and the lesson prose around them.
-- **Verification** as the fleet does it: playwright drives the page
-  end to end after every phase, and the cross-runtime standard applies
-  to traces: the same lesson produces identical class counts, node
-  counts and extracted terms on the JVM, on Jolt and in the browser.
+Decided 2026-09-25, replacing the first draft's scittle route.
+
+- **Compiled ClojureScript.** shadow-cljs compiles cromulent's `.cljc`
+  (unchanged: the files the JVM and Jolt suites test, on the classpath
+  through `:local/root`) and orrery's own namespaces into one bundle
+  that `public/index.html` loads. The first draft loaded the source
+  through scittle with no build step; the Captain named the compiled
+  page as the end state, and the port is the same either way, so the
+  plan went there directly. An interpreter is two orders of magnitude
+  off the JVM where the compiler is a small multiple: the self-test's
+  29 facts run in about 40 ms in Chromium and 54 ms on node.
+- **SCI as a library, for the REPL only.** The one thing an
+  interpreter is needed for. `orrery.repl` will hold the SCI context
+  with the engine namespaces copied in; nothing else may know it is
+  there.
+- **No React.** The page is Replicant: one hiccup tree computed from
+  one atom (`orrery.state`), rendered on every change. Views are
+  functions of values (`orrery.views.*`); only `orrery.views.lesson`
+  reads the state, so the same class list serves the fork.
+- **The run is the data model.** `orrery.run`: `{:timeline [g0 g1 …]
+  :labels :stats :stop-reason :status :root}`, produced by a script of
+  engine calls (lessons 1, 2, 3, 10) or by stepping `rw/embiggen` one
+  iteration per timer tick (lessons 4 to 7), so the page repaints
+  between iterations, the counters climb, and a stop button works
+  between iterations. The e-graph values are live: the scrubber
+  indexes the timeline, `orrery.diff` is a set difference between two
+  entries, and extraction under another cost is another call on the
+  same value. There is no trace format and no exporter; a recorded
+  trace is needed only when the visualizer's `egraph-serialize` JSON
+  or a golden file is.
+- **Pure namespaces on three runtimes.** `orrery.lay` (the printer),
+  `orrery.diff`, `orrery.costs`, `orrery.input` (the EDN reader),
+  `orrery.run`, `orrery.lessons` (prose as hiccup data, decided over
+  markdown: no renderer to ship, inline widgets `[:lay t]` and
+  `[:step k label]`, and the tests can walk it) and `orrery.expect`
+  are `.cljc`, tested by `clojure -M:test` and `jolt -M:test`, and
+  compiled into the page. Runner code (`orrery.state`, the views,
+  `orrery.app`) is `.cljs`.
+- **Verification, one table four ways.** `cromulent.smoke` (28 facts)
+  and `orrery.expect` (the lessons' counts, iterations, stop reasons
+  and costs) are asserted by the JVM and Jolt suites, by `npm run
+  smoke` on node, by the page's self-test tile in the browser, and by
+  `bin/e2e.sh`, which builds a release, serves it, drives lesson 7
+  with playwright-cli and asserts the counters through the DOM. Never
+  ids, never a tied term (section 8).
 
 ## 7. Plan, in phases, each with a deliverable
 
-**Phase 1, no port.** The exporter on the JVM; lesson traces and the
-example bank as EDN; the page renders all eleven lessons from traces
-with the scrubber, the diff, the cost picker (extractions recorded per
-cost), the polynomial panel, the stats and the bank; the visualizer
-for the picture; the lay printer. First deliverable inside the phase:
-**lesson 7 beside lesson 8**, the blowup and the fix, because it is
-the whole argument of the workspace in one picture and needs nothing
-ported. Nothing in cromulent or bendix changes but the exporter.
+**Phase 1, the port and the live page** (begun and largely delivered
+2026-09-25). Done: cromulent as `.cljc` behind `cromulent.platform`
+(section 8); the third runtime as a command; orrery's pure namespaces
+and their tests on both runtimes; lesson 7 live, with the scrubber,
+the diff, the class list, the counters, alternatives, a typed term,
+and the end-to-end check. Next, one lesson at a time: the REPL panel;
+lesson 3 (a script run: the dirty badge, the congruence merge at the
+rebuild step); lessons 1 and 2 with the tree as nested HTML annotated
+with class ids; lesson 4 with `ematch` highlighting; lesson 5 and the
+stats panel, which needs the runner as start/step/finish so that a
+stepped run equals one run under backoff; lesson 6 and the cost
+picker; lesson 10 and the fork; learner-typed rules.
 
-**Phase 2, cromulent live.** cromulent as `.cljc` behind one
-conditional file (section 8), a live REPL, and lessons 1 to 7 and 10
-interactive over the learner's own terms and rules.
-
-**Phase 3, bendix live.** `bendix.num`, the numeric layer (section 8);
+**Phase 2, bendix live.** `bendix.num`, the numeric layer (section 8);
 lessons 8, 9 and 11 live; the generator and scorer live.
 
-**Phase 4, lay input.** The parser; then a pass on the prose in the
+**Phase 3, lay input.** The parser; then a pass on the prose in the
 explorable-explanation voice, with the widgets as its figures.
+
+**Later.** The egraph-visualizer picture, which is when
+`cromulent.export` and the `egraph-serialize` JSON are needed;
+per-rule timings at scale; static deployment.
 
 ## 8. Portability ledger
 
-Verified against the source on 2026-09-25, not against the design
-documents. ClojureScript, not WebAssembly: there is no mature path
-from Chez or the JVM to wasm, and the fleet has proven the `.cljc`
-route.
+Verified against the source on the JVM, on Jolt v0.8.12 and under the
+ClojureScript compiler, 2026-09-25. The port was four edits and a
+rename, and cost nothing measurable on the primary runtimes.
 
-| item | in the source | on ClojureScript |
-|---|---|---|
-| packed hashcons keys | `op·2^48 + a·2^24 + b`, under 2^60 (`cromulent.core`, `op-scale`, `id-scale`) | exceeds the 2^53 exact range of a JS number; a narrower layout (`2^40`, `2^20`: ids below about a million, operators below 4096, keys under 2^52) or a per-platform one; **decided by measurement on Jolt and the JVM**, since a change there is a change to the engine's hot path (open question 1) |
-| register and match arrays | `long-array`, `aset`, `aget`, `long`, `^longs` hints in `cromulent.pattern` and `cromulent.rewrite` | all four functions exist in ClojureScript 1.12 core (verified in the jar); hints are ignored; whether scittle's SCI exposes them is the first smoke test of phase 2, with shadow-cljs as the fallback |
-| the clock | `now-ms` over `System/nanoTime`, one function in the runner | one line behind the conditional |
-| backoff arithmetic | `bit-shift-left` of the match limit and ban length by the times banned | 32-bit in JS; multiply by a power of two instead, on all runtimes |
-| bendix numerics | exact ratios and bignums throughout `bendix.poly` (`+'`, `*'`, `ratio?`, `numerator`, `denominator`) and the predicates of `bendix.term` | no ratio or bignum type exists; `bendix.num` (`.cljc`, the library's one conditional, as `catalytic.defaults` is catalytic-buffer's) is Clojure's numbers on the JVM and Jolt and a rational over JS `BigInt` in the browser; the exact surface is the first task of phase 3 and is about eight functions and the predicates |
-| determinism | `compare-nodes` is a total order the same on both runtimes | must hold on JS too (compare over keywords, numbers, vectors); the cross-runtime trace test of section 6 is the check |
-| performance | Jolt is the primary runtime for the engine | scittle interprets, two orders of magnitude off the JVM; a twenty-node term under a few rules is well under a second, which is a lesson; the AC-10 yardstick is not a browser workload and the page does not pretend it is |
+| item | decision |
+|---|---|
+| packed hashcons keys | one layout for all three runtimes, `op·2^42 + a·2^21 + b`, under 2^53: 2 048 operators and 2 097 150 class ids per e-graph, both overflows throwing; bench medians unchanged within noise on both runtimes (../cromulent/IDEA.md section 5, decision 2). Retiring the key altogether is a separate, benchmarked question (../cromulent/IDEA.md section 12) |
+| register and match arrays | `long-array`, `aset`, `aget`, `long` compile unchanged under ClojureScript; the hints are ignored |
+| the clock | `cromulent.platform/now-ms`, the library's one conditional file |
+| backoff arithmetic | doubling by multiplication, on all runtimes |
+| exceptions | `(catch #?(:clj Exception :default :default) e …)`, twice in `cromulent.rewrite` |
+| determinism | class and node counts, iterations, stop reasons, per-rule counts and costs are identical on the three runtimes (`cromulent.smoke`). Root ids and tied extractions are stable per runtime only: hash iteration order differs, and the tie falls to child ids. Every arrangement of the five-atom sum costs 9, so lesson 7 asserts the cost, not the spelling |
+| bendix numerics | unchanged: `bendix.num` is the first task of phase 2. The EDN reader turns `1/2` into `0.5` in ClojureScript, so a ratio needs its own reader there |
+| performance | compiled: 29 self-test facts in about 40 ms in Chromium; the sum of six atoms (608 nodes, 8 iterations) well under a second; the AC-10 yardstick is still not a browser workload |
 
 ## 9. Relationship to existing tools
 
@@ -285,25 +315,43 @@ vivarium.
 
 ## 12. Open questions
 
-1. **The packed-key layout.** One layout for all three runtimes,
-   `2^40`/`2^20`, caps class ids at about a million where the AC-10
-   run allocates about sixty thousand; or two layouts behind the
-   conditional, which keeps the engine as measured. Decide by a
-   `bench/` row on Jolt and the JVM, per ../cromulent/IDEA.md section
-   5: multiplication constants are the only difference.
-2. **Where the exporter lives**: `cromulent.export` and a bendix
-   counterpart (recommended: orrery is real code that uses them), or
-   inside orrery.
-3. **Where lesson prose lives**: EDN beside each trace, or markdown
-   the page renders.
-4. **The picture at scale**: whether the visualizer is enough or the
-   class list should be primary from the start.
-5. **Lay display in phase 1**: recommended yes (section 5); the
-   Captain's call.
+1. **The packed-key layout.** Decided 2026-09-25: one layout, under
+   2^53, by the bench (section 8).
+2. **Where the exporter lives.** Deferred until the visualizer needs
+   it; `cromulent.export` with a bendix counterpart remains the
+   recommendation.
+3. **Where lesson prose lives.** Decided: hiccup data in
+   `orrery.lessons` (section 6).
+4. **The picture at scale.** Decided: the class list is primary; the
+   visualizer comes later, with the exporter.
+5. **Lay display in phase 1.** Decided yes: `orrery.lay`.
+6. **The runner as start/step/finish.** A stepped run equals one run
+   under the simple scheduler, which every lesson uses today; under
+   backoff the scheduler's bans and the iteration counter are local to
+   one `embiggen` call. Lesson 5 wants the refactor in cromulent.
 
 ## Status
 
-Design only, 2026-09-25. Nothing built; no `deps.edn`, no
-`index.html`. The Captain does `git init`. Next: the Captain's
-"make it so" on phase 1, beginning with the exporter and the lesson 7
-and 8 traces.
+Phase 1 begun and largely delivered, 2026-09-25 (the Captain's "make
+it so", with the port first and the compiled page as the end state):
+
+- cromulent ported (../cromulent/IDEA.md status); `npm run smoke`
+  runs its 28 facts on node, all green, zero compiler warnings.
+- orrery: `deps.edn`, `shadow-cljs.edn`, `package.json` (shadow-cljs
+  only; no React); `orrery.lay`, `orrery.diff`, `orrery.costs`,
+  `orrery.input`, `orrery.run`, `orrery.lessons`, `orrery.expect` and
+  their tests, green on the JVM and Jolt (10 tests, 72 assertions);
+  `orrery.state`, `orrery.views.{common,scrubber,classes,lesson}`,
+  `orrery.selftest`, `orrery.app`, `public/index.html`,
+  `public/style.css` (light and dark).
+- Lesson 7 live: the run steps one iteration per tick and the
+  counters climb 19, 45, 98, 162, 187, 185, 185 nodes; the scrubber
+  and the diff (ten nodes added and four classes absorbed in the first
+  iteration); the class list with nodes in lay and native, the best
+  term per class and the parents; alternatives (four atoms, six, six
+  under a node limit of 500); a typed term with readable errors;
+  `bin/e2e.sh` green.
+- Lessons 1 to 6 and 10 are listed as coming; 8, 9 and 11 wait for
+  bendix.
+
+Next: the REPL panel, then the lessons in the order of section 7.

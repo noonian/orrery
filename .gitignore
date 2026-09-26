@@ -1,0 +1,11 @@
+.cpcache/
+.jolt/
+.nrepl-port
+.shadow-cljs/
+node_modules/
+public/js/
+target/
+.playwright-cli/
+*.build/
+.DS_Store
+trace.edn
