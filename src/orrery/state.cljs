@@ -17,7 +17,8 @@
             [orrery.input :as input]
             [orrery.lessons :as lessons]
             [orrery.repl :as repl]
-            [orrery.run :as run]))
+            [orrery.run :as run]
+            [orrery.score :as score]))
 
 (defonce app-state
   (atom {:lesson :blowup
@@ -28,7 +29,7 @@
          :follow? true
          :cost :ast-size
          :repl {:input "" :history []}
-         :ui {:print :notation :playing nil :selected nil :hover nil}}))
+         :ui {:print :notation :playing nil :selected nil :hover nil :drawing? false}}))
 
 (defonce ^:private cache (atom {}))
 
@@ -200,14 +201,35 @@
         ;; a value with no field (the fixed rule set of a bendix lesson) stays
         values (into (get-in s [:input :values]) (map (fn [[k v _]] [k v])) results)
         term (:term values)
-        limit 10]
+        limit input/leaf-limit]
     (cond
       error (swap! app-state assoc-in [:input :error] error)
       (and term (= :embiggen (:kind l)) (> (input/leaf-count term) limit))
       (swap! app-state assoc-in [:input :error]
              (str "that has " (input/leaf-count term) " leaves; under these rules the page stops at " limit))
-      :else (do (swap! app-state update :input assoc :values values :error nil :alternative nil :opts {})
+      :else (do (swap! app-state update :input assoc :values values :error nil :alternative nil :opts {} :drawn nil)
                 (start-run!)))))
+
+(defn surprise!
+  "Draw a bank of candidates for the lesson over the rules and options
+  in force, pick one weighted by score, and run it; the input area
+  says what was picked and why. The bank is drawn on the next tick so
+  the button can say it is drawing first."
+  []
+  (swap! app-state assoc-in [:ui :drawing?] true)
+  (js/setTimeout
+   (fn []
+     (let [s @app-state
+           l (lesson s)
+           opts (or (get-in s [:input :opts]) {})
+           c (score/surprise l (get-in s [:input :values]) opts (rand-int 1000000000))]
+       (swap! app-state (fn [s]
+                          (-> s
+                              (assoc :input (assoc (input-for l (:values c) opts nil)
+                                                   :drawn (dissoc c :run :values)))
+                              (assoc-in [:ui :drawing?] false))))
+       (start-run!)))
+   0))
 
 ;; ---------------------------------------------------------------------------
 ;; scrubbing and the rest of the UI

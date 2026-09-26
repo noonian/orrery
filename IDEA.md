@@ -128,28 +128,57 @@ the sum-of-*n* fixture, the twenty-four rows of experiment 5's
 textbook workload (`bendix` `bench/`), and the tables in the test
 suites.
 
-**The generator**: bendix's property tests already draw random terms
-over a small signature (`term-gen`, `trig-term-gen`,
-`test/bendix/*_test.clj`). A candidate is saturated and **scored** by
-features the engine reports:
+**The generator** (`orrery.generate`, built 2026-09-26): random
+terms over the small signatures bendix's and cromulent's property
+tests draw from (`term-gen`, `trig-term-gen`, `cromulent.gen`),
+without test.check: a page has no use for shrinking, and one seed
+must draw the same term on the JVM, on Jolt and in the browser, so
+the stream is Park–Miller's generator (products under 2^53, exact
+everywhere) and every choice indexes a vector, never a set. A
+signature is leaves and shapes; a shape is an operator with slots: a
+subterm, the subterm before it repeated (`a + a`) or reversed
+(`a·b + b·a`, one polynomial and two nodes), or a constant from a
+list; a term comes to share by reusing a subterm already drawn. Each
+lesson names its draw: any term for lesson 1, a sharing one for 2,
+two sides and a wrapper for 3, a term under the rules in force for 4
+to 6, a random order and bracketing of three to five atoms for 7, a
+ring term for 8, a context with sin²u and cos²u planted at two of its
+leaves for 9, a small term of a variable planted beside the same
+term of what it might equal for 10, a function of the variable in
+force for 11. A candidate is run to the end and **scored**
+(`orrery.score`) by features the engine reports, each a raw value
+and a score in [0, 1]:
 
-| feature | from | high means |
-|---|---|---|
-| merges per node | `:stats` `:applied`, class count | the rules did something |
-| shrink ratio | input size over extracted size | simplification is visible |
-| node growth ratio | node count per iteration | the blowup is visible |
-| analysis-only merges | classes merged with no rule applied | the polynomial did the work |
-| a normal-form rule fired | `:applied` by name | lesson 9 material |
-| iterations to saturate | `:iterations` | a scrubbable story, neither one step nor a wall |
-| stop reason | `:stop-reason` | `:node-limit` for lesson 7, `:saturated` elsewhere |
+| feature                  | from                                | high means                                         |
+|--------------------------|-------------------------------------|----------------------------------------------------|
+| merges per node          | `:stats` `:applied`, class count    | the rules did something                            |
+| shrink ratio             | input size over extracted size      | simplification is visible                          |
+| node growth ratio        | node count per iteration            | the blowup is visible                              |
+| analysis-only merges     | classes merged with no rule applied | the polynomial did the work                        |
+| a normal-form rule fired | `:applied` by name                  | lesson 9 material                                  |
+| iterations to saturate   | `:iterations`                       | a scrubbable story, neither one step nor a wall    |
+| stop reason              | `:stop-reason`                      | `:saturated` for every draw; `:node-limit` stays lesson 7's alternative |
 
-A lesson names which features it wants high; a "surprise me" button
-draws from the bank at random, weighted by score; candidates are
-deduplicated by the shape of their result so the bank is not fifty
-spellings of one thing. Interestingness is our score and nothing
-deeper; it is tunable and it is small code. The bank is drawn live
-in the browser once bendix is ported (phase 2); until then "try
-another" is a short curated list per lesson.
+and, for the lessons that are scripts, tree nodes per graph node
+(sharing), classes merged by congruence at the rebuild step, and the
+tree's size (a bell over five to eleven nodes); for lesson 6, how
+many distinct answers the lesson's costs give; for lesson 11,
+whether the answer is free of `D`. A lesson names the features it
+wants as weights (`:surprise :wants`), and its score is their
+weighted mean. "Surprise me" draws a dozen candidates over the rules
+and options in force, keeps one per shape of result (classes, nodes,
+iterations, stop reason) so the bank is not twelve spellings of one
+thing, picks one at random weighted by the cube of its score, runs it
+on the page, and says what it did: *drawn from 12 candidates, 8
+shapes of result; score 0.68: forms the analysis already had 2 (0.3)
+· stop reason saturated (1.0) · shrink 3.7 (0.7) · tree nodes 11
+(1.0)*. Interestingness is our score and nothing deeper; it is
+tunable and it is small code. Counts, iterations, stop reasons and
+costs are the same on every runtime; a feature that reads a best
+term can differ where a tie falls differently, which only moves a
+pick. The bank is drawn live in the browser, well under a second for
+every lesson; the slowest dozen (lesson 9, on bendix) takes a tenth
+of a second on the JVM.
 
 ## 5. Two modes over one canonical form
 
@@ -207,7 +236,8 @@ Decided 2026-09-25, replacing the first draft's scittle route.
   `orrery.diff`, `orrery.costs`, `orrery.input` (the EDN reader),
   `orrery.run`, `orrery.lessons` (prose as hiccup data, decided over
   markdown: no renderer to ship, inline widgets `[:notation t]` and
-  `[:step k label]`, and the tests can walk it) and `orrery.expect`
+  `[:step k label]`, and the tests can walk it), `orrery.generate`,
+  `orrery.score` (section 4) and `orrery.expect`
   are `.cljc`, tested by `clojure -M:test` and `jolt -M:test`, and
   compiled into the page. Runner code (`orrery.state`, the views,
   `orrery.app`) is `.cljs`.
@@ -242,7 +272,7 @@ through it; `bendix.smoke`, its facts on the three runtimes; lessons
 8, 9 and 11 live, with the class list carrying each class's
 polynomial, bendix's two costs in the picker, and a run that ends
 with a materialization step so extraction can choose a normal form.
-Still to come from this phase: the generator and scorer.
+The generator and scorer followed on 2026-09-26 (section 4).
 
 **Phase 3, notation input.** The parser; then a pass on the prose in the
 explorable-explanation voice, with the widgets as its figures.
@@ -375,5 +405,17 @@ port first and the compiled page as the end state):
   root absorbed an old class was shown as new; `orrery.diff` now calls
   a class new only when it holds nothing of the earlier graph.
 
-Next: the generator and scorer (the rest of phase 2), then phase 3,
-notation input.
+The generator and scorer, 2026-09-26 (section 4): `orrery.generate`,
+`orrery.score`, a `:surprise` entry per lesson naming its draw and
+its wants, and the "surprise me" button with the line that says what
+was picked and why. Tests: the stream and a seed's terms pinned on
+the JVM and Jolt, every lesson's draw a term the page takes over
+thirty seeds, the features read off the curated runs (the blowup's
+growth, the fix's seven proposals the analysis had already made,
+pythagoras fired seven times, three answers under three costs), a
+bank for every lesson, the pick's lean on the score; four Playwright
+specs drive the button on lessons 3, 5, 6 and 9. The suites are 28
+tests and 1435 assertions on the JVM and Jolt, 47 specs in the
+browser.
+
+Next: phase 3, notation input.

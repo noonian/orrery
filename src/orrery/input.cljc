@@ -17,6 +17,15 @@
   [t]
   (if (vector? t) (reduce + 0 (map leaf-count (rest t))) 1))
 
+(defn size
+  "How many nodes the tree of t has."
+  [t]
+  (count (tree-seq vector? rest t)))
+
+(def leaf-limit
+  "The most leaves a term the page saturates may have."
+  10)
+
 (defn term-problem
   "nil, or why t is not a term: a tagged vector with a keyword
   operator and keyword or number leaves."

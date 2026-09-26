@@ -5,13 +5,15 @@
   rules and runner options, for a script the function from values to
   steps; alternatives for \"try another\"; which optional panels the
   page shows. Prose is data so the JVM tests can walk it and the page
-  can render it; there is no markdown. Lessons that need bendix carry
-  :status :coming."
+  can render it; there is no markdown. For \"surprise me\", the draw
+  that makes a candidate and the features the lesson wants high
+  (orrery.generate, orrery.score)."
   (:require [bendix.core :as bx]
             [bendix.rules :as rules]
             [clojure.walk :as walk]
             [cromulent.core :as eg]
             [cromulent.rewrite :as rw]
+            [orrery.generate :as generate]
             [orrery.notation :as notation]
             [orrery.run :as run]))
 
@@ -100,6 +102,7 @@
                   {:label "sin(2·x)" :values {:term [:sin [:* 2 :x]]}}
                   {:label "(x + 1)³" :values {:term [:expt [:+ :x 1] 3]}}]
    :panels #{:tree}
+   :surprise {:draw generate/a-term :wants {:size 1}}
    :prose
    [[:p [:notation [:+ [:* 2 :x] :y]] " is a tree: an addition at the root, with " [:notation [:* 2 :x]] " and " [:notation :y] " beneath it, and 2 and " [:notation :x] " beneath the product. In the native format it is the tagged vector " [:native [:+ [:* 2 :x] :y]] ": a vector is a node, its first element the operator and the rest its children; a keyword is a variable and a number is a number."]
     [:p "An e-graph adds a term bottom-up. Each subterm becomes an e-node, and each e-node is put in an e-class, a set of nodes that are known to be equal. Nothing is equal to anything else yet, so classes and nodes are one to one: five of each. Hover a node of the tree to see its class in the list; the class's nodes are written with their children as class ids, " [:native [:+ 1 3]] " rather than the subterms themselves, because a class is a set of terms, not one term."]
@@ -114,6 +117,7 @@
                   {:label "(x + 2·y)·(x + 2·y)" :values {:term [:* [:+ :x [:* 2 :y]] [:+ :x [:* 2 :y]]]}}
                   {:label "(a + a) + (a + a)" :values {:term [:+ [:+ :a :a] [:+ :a :a]]}}]
    :panels #{:tree}
+   :surprise {:draw generate/a-shared-term :wants {:sharing 1 :size 0.5}}
    :prose
    [[:p [:notation [:* [:+ :x 1] [:+ :x 1]]] " has seven tree nodes, but the graph has four. The two " [:notation [:+ :x 1]] " subtrees are the same term, and an e-graph stores each distinct term once: adding a node looks it up first, in a table keyed by the node itself, and a node that is already there returns its class instead of making a new one. That table is the hashcons."]
     [:p "Hover either " [:notation [:+ :x 1]] " in the tree: both light up, and one row of the class list. Sharing is why a graph can hold every arrangement of a sum in far less space than a list of the arrangements would take. Lesson 7 is where the arithmetic of that stops being kind."]]})
@@ -128,6 +132,7 @@
    :alternatives [{:label "x + 0 = x, under a sine" :values {:lhs [:+ :x 0] :rhs :x :wrapper '[:sin ?x]}}
                   {:label "deeper: (?x + 1)·(?x + 1)" :values {:lhs [:* :a 2] :rhs [:<< :a 1] :wrapper '[:* [:+ ?x 1] [:+ ?x 1]]}}]
    :panels #{}
+   :surprise {:draw generate/an-equation :wants {:congruence 1}}
    :prose
    [[:p "Add " [:notation [:/ [:* :a 2] 2]] " and " [:notation [:/ [:<< :a 1] 2]] ": seven classes, one per distinct subterm. Now assert that " [:notation [:* :a 2]] " equals " [:notation [:<< :a 1]] ". Union merges their two classes into one and marks the graph dirty, " [:step 1 "rebuild pending"] ". Nothing else has moved: the two quotients are still two classes, though each now divides the same class by 2."]
     [:p "Rebuild restores the invariant that equal children make equal parents. It re-keys every node whose child moved, finds the two quotient nodes now identical, and merges their classes too, " [:step 2 "without being told"] ". That is congruence, and it is the whole trick of an e-graph: say one equality, and every consequence that follows from the shape of the terms comes for free. This is the example from egg's README."]]})
@@ -142,6 +147,7 @@
    :alternatives [{:label "egg's rules on 0 + 1·a, one iteration" :values {:term [:+ 0 [:* 1 :a]] :rules egg-rules}}
                   {:label "commutativity on a + b" :values {:term [:+ :a :b] :rules '[["comm" [:+ ?a ?b] [:+ ?b ?a]]]}}]
    :panels #{:matches}
+   :surprise {:draw generate/an-arithmetic-term :wants {:merges-per-node 1 :size 0.5}}
    :prose
    [[:p "A rule is a pattern and a replacement: " [:native '[:* ?x 2]] " → " [:native '[:<< ?x 1]] ", multiplying by two is shifting left by one. Running it has two phases. " [:b "Search"] ": match the pattern against the graph. Every class holding a node of the pattern's shape is a match, with " [:native '?x] " bound to the child's class; the matches are highlighted, " [:notation [:* :a 2]] " and " [:notation [:* :b 2]] "."]
     [:p [:b "Apply"] ": for each match, build the replacement under its bindings and union it with the matched class. " [:step 1 "Scrub to iteration 1"] ": two shift nodes appear, each in the class of the product it equals. The term is not rewritten; it is joined. Both forms stay, and the input reads " [:notation [:+ [:* :a 2] [:* :b 2]]] " or " [:notation [:+ [:<< :a 1] [:<< :b 1]]] ", whichever cost you ask under."]
@@ -157,6 +163,7 @@
                   {:label "egg's rules on 0 + 1·a" :values {:term [:+ 0 [:* 1 :a]] :rules egg-rules} :opts {:scheduler :simple}}
                   {:label "five atoms under a node limit of 100" :values {:term (sum-of 5) :rules ac-rules} :opts {:scheduler :simple :node-limit 100}}]
    :panels #{:stats}
+   :surprise {:draw generate/a-small-arithmetic-term :wants {:iterations 1 :saturated 1 :merges-per-node 0.5}}
    :prose
    [[:p "Saturation runs the rules again and again until no application changes the graph. Each iteration searches every rule against the same snapshot, applies every match, then rebuilds. The stats table shows each iteration: how many matches each rule found, how many applications merged something, and the time each phase took. An iteration that applied nothing is the sign to stop."]
     [:p "Under the " [:b "backoff"] " scheduler a rule whose matches exceed its budget is banned for a few iterations, and both its budget and its ban double each time it happens; saturation is declared only when an iteration applied nothing " [:i "and"] " no rule is banned, otherwise the bans are lifted and the run goes on. That is why the run ends with a quiet iteration, and why the stop reason says saturated rather than a limit. Try the alternative that applies every match every time: fewer iterations, the same graph."]
@@ -175,6 +182,7 @@
                   {:label "with commutativity" :values {:term [:+ :a :a]
                                                         :rules '[["double" [:+ ?x ?x] [:* ?x 2]] ["shift" [:* ?x 2] [:<< ?x 1]] ["comm-mul" [:* ?a ?b] [:* ?b ?a]]]}}]
    :panels #{}
+   :surprise {:draw generate/a-doubled-term :wants {:disagreement 1 :size 0.3}}
    :prose
    [[:p "After saturation the class of the input holds three forms: " [:notation [:+ :a :a]] ", " [:notation [:* :a 2]] ", " [:notation [:<< :a 1]] ". Which is the answer? The e-graph does not say. A cost function does: extraction walks the classes bottom-up, gives every node the cost of itself plus its cheapest children, and picks the cheapest node of each class."]
     [:p "Change the cost. Charge multiplications and shifts and the answer is " [:notation [:+ :a :a]] "; charge additions and shifts, " [:notation [:* :a 2]] "; charge additions and multiplications, " [:notation [:<< :a 1]] ". Same graph, three answers. This is the thesis behind bendix: simplification is equality saturation plus taste, and the taste is a cost function. AST size, the default in the other lessons, ties here, since the three forms are the same size, and a tie falls to a fixed but arbitrary order."]]})
@@ -189,6 +197,7 @@
                   {:label "six atoms" :values {:term (sum-of 6) :rules ac-rules}}
                   {:label "six atoms under a node limit of 500" :values {:term (sum-of 6) :rules ac-rules} :opts {:node-limit 500}}]
    :panels #{:stats}
+   :surprise {:draw generate/a-sum :wants {:growth 1 :saturated 0.5} :n 8}
    :prose
    [[:p "A sum of five atoms, " [:notation (sum-of 5)] ", is one term of nine nodes: five atoms and four additions. The e-graph starts there, at " [:step 0 "nine classes and nine nodes"] "."]
     [:p "Two rules say that the order and the grouping of a sum do not matter. Commutativity: " [:native '[:+ ?a ?b]] " → " [:native '[:+ ?b ?a]] ". Associativity: " [:native '[:+ [:+ ?a ?b] ?c]] " → " [:native '[:+ ?a [:+ ?b ?c]]] ". Under them every arrangement of the sum equals every other, and an e-graph is obliged to hold them all."]
@@ -205,6 +214,7 @@
    :alternatives [{:label "x·y + y·x, what if y = x" :values {:term [:+ [:* :x :y] [:* :y :x]] :lhs :y :rhs :x}}
                   {:label "sin x + sin y, what if x = y" :values {:term [:+ [:sin :x] [:sin :y]] :lhs :x :rhs :y}}]
    :panels #{:fork}
+   :surprise {:draw generate/a-what-if :wants {:congruence 1 :size 0.3}}
    :prose
    [[:p "The e-graph is a value. Asserting something in it does not change it; it makes a new one, and the old one is still there. Take " [:notation [:+ [:* :x :x] [:* 2 :x]]] " and ask: what if " [:notation :x] " were 2? Union the classes of " [:notation :x] " and 2 in a copy. " [:notation [:* :x :x]] " and " [:notation [:* 2 :x]] " are now the same node, a product of that class with itself, so " [:step 2 "congruence merges them on rebuild"] ", and the sum becomes a sum of a class with itself."]
     [:p "The original has not moved: it is step 0, side by side with the copy. In a mutable e-graph this needs an undo log or a deep copy; here a fork is a " [:native 'let] "."]]})
@@ -233,6 +243,7 @@
                   {:label "no rules at all" :values {:term (sum-of 5) :rules []}}
                   {:label "six atoms" :values {:term (sum-of 6) :rules ac-rules}}]
    :panels #{:stats}
+   :surprise {:draw generate/a-ring-term :wants {:analysis-merges 1 :shrink 0.5 :saturated 0.5 :size 0.5}}
    :prose
    [[:p "Lesson 7's sum, " [:notation (sum-of 5)] ", the same two rules, and one addition: this e-graph carries the polynomial analysis. Every class computes what it is worth as a polynomial over the atoms, " [:notation [:+ :a0 :a1 :a2 :a3 :a4]] " for the whole sum and " [:notation [:+ :a0 :a1]] " for its first pair, and two classes with the same polynomial are merged as the node is added, before any rule sees it. The column on the right is that polynomial."]
     [:p "Run it. " [:step 1 "One iteration"] ", and the rules merge nothing: commutativity proposes " [:notation [:+ :a1 :a0]] " for the class of " [:notation [:+ :a0 :a1]] ", the analysis has already put it there, and a union of a class with itself is not a merge. Associativity adds three classes, the right-nested pairs, and nothing more. Twelve classes and nineteen nodes where lesson 7 needed thirty-one and a hundred and eighty-five, and the runner stops there: an iteration that merges nothing is saturation."]
@@ -250,6 +261,7 @@
                   {:label "with a cofactor" :values {:term [:+ [:* :y s2] [:* :y c2]]}}
                   {:label "sin(x + y) and cos(y + x)" :values {:term [:+ [:expt [:sin [:+ :x :y]] 2] [:expt [:cos [:+ :y :x]] 2]]}}]
    :panels #{:stats}
+   :surprise {:draw generate/a-pythagorean-term :wants {:rule-fired 1 :shrink 0.5}}
    :prose
    [[:p [:notation [:+ s2 c2]] " = 1 is not a ring identity. The ring sees " [:notation [:sin :x]] " and " [:notation [:cos :x]] " as two atoms it knows nothing about, and the class of " [:notation [:+ [:+ [:+ :a s2] c2] :b]] " is worth sin²x + cos²x + a + b, nothing less. A pattern rule would need the two squares side by side, and here they are not."]
     [:p "The pythagoras rule reads the polynomial instead of the nodes. For every class whose polynomial mentions a sine and a cosine of one argument, it reduces the polynomial modulo sin²x = 1 − cos²x, and modulo cos²x = 1 − sin²x, and where the result differs it proposes it as another form of the class: a + b + 1 here. The runner adds that form as a term and unions it in, the analysis keeps the smaller polynomial, and the classes that share one merge. " [:step 1 "Iteration 1"] " proposes a form for five classes, " [:step 2 "iteration 2"] " for two more, and the third finds nothing."]
@@ -269,6 +281,7 @@
                   {:label "sin(sin(sin x))" :values {:term [:sin [:sin [:sin :x]]]}}
                   {:label "x·|x|: no rule for abs" :values {:term [:* :x [:abs :x]]}}]
    :panels #{:stats}
+   :surprise {:draw generate/a-function :wants {:derivative-free 1 :iterations 0.5 :saturated 0.5}}
    :prose
    [[:p "A derivative is a term like any other: " [:notation [:D [:sin [:* 2 :x]] :x]] " is a node with two children, and differentiating is saturating under rules. The ring part is not a rule at all: for a class worth a polynomial, its derivative is computed from the polynomial, so linearity, the product rule and the power rule are polynomial calculus. The chain rule is one pattern rule per operator: " [:native '[:D [:sin ?u] ?x]] " → " [:native '[:* [:cos ?u] [:D ?u ?x]]] "."]
     [:p [:step 1 "Iteration 1"] ": d-sin fires, and the class of the derivative gains " [:notation [:* [:cos [:* 2 :x]] [:D [:* 2 :x] :x]]] ". " [:step 2 "Iteration 2"] ": the ring differentiates 2·x to 2, so that product is worth 2·cos(2·x). The third iteration finds nothing, and " [:step 4 "the last step"] " writes the normal forms in."]

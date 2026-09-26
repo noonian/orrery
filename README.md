@@ -56,7 +56,9 @@ The page's self-test tile runs them on load.
 11. Differentiation is simplification
 
 Every lesson is live. Each has a curated example, a "try another"
-over alternatives, and inputs you can edit: terms, a pattern, rules
+over alternatives, a "surprise me" that draws a dozen random terms
+in the browser, runs and scores them by what the lesson wants to
+show and picks one, and inputs you can edit: terms, a pattern, rules
 as `[name lhs rhs]` data, exact numbers such as `1/2`. Every panel
 shows the engine's real values, scrubbed forwards and backwards; for
 the bendix lessons the class list carries each class's polynomial;
@@ -72,5 +74,5 @@ Clojure REPL with the engine loaded.
 [:+ [:* 2 :x] :y]
 ```
 
-Lay: the same data printed as mathematics, `2·x + y`. Display first;
-typing mathematics comes later.
+Notation: the same data printed as mathematics, `2·x + y`. Display
+first; typing mathematics comes later.

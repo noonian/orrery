@@ -99,6 +99,7 @@ a.step { text-decoration: underline dotted; cursor: pointer; }
 .alternatives { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .alternatives button { font-size: 14px; }
 .alternatives button.current { border-color: var(--accent); }
+.input-area .drawn { font-size: 14px; color: var(--ink-2); margin-top: 6px; }
 
 .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; }
 .tile { background: var(--surface-2); border-radius: 8px; padding: 8px 10px; }

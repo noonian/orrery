@@ -9,6 +9,7 @@
   (:require [cromulent.core :as eg]
             [cromulent.extract :as ex]
             [orrery.costs :as costs]
+            [orrery.input :as input]
             [orrery.lessons :as lessons]
             [orrery.run :as run]))
 
@@ -96,8 +97,6 @@
                               :best-terms {:no-D [:+ [:* :x [:D [:abs :x] :x]] [:abs :x]]
                                            :bendix [:D [:* :x [:abs :x]] :x]}}}})
 
-(defn- tree-nodes [t] (count (tree-seq vector? rest t)))
-
 (defn observe
   "Everything `runs` may assert about a finished run of lesson."
   [lesson values run]
@@ -109,7 +108,7 @@
      :stop-reason (:stop-reason run)
      :classes (eg/class-count g)
      :nodes (eg/node-count g)
-     :tree-nodes (when-let [t (:term values)] (tree-nodes t))
+     :tree-nodes (when-let [t (:term values)] (input/size t))
      :classes-per-step (mapv eg/class-count (:timeline run))
      :dirty-per-step (mapv (comp boolean :dirty?) (:timeline run))
      :nodes-per-iteration (run/nodes-per-iteration run)

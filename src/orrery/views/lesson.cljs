@@ -6,6 +6,7 @@
             [orrery.costs :as costs]
             [orrery.lessons :as lessons]
             [orrery.run :as run]
+            [orrery.score :as score]
             [orrery.state :as state]
             [orrery.views.classes :as classes]
             [orrery.views.common :as common]
@@ -38,7 +39,8 @@
              [:span.coming (str (:n l) ". " (:title l) " · coming")])])))
 
 (defn- input-area [s l]
-  (let [{:keys [fields error alternative]} (:input s)]
+  (let [{:keys [fields error alternative drawn]} (:input s)
+        drawing? (get-in s [:ui :drawing?])]
     [:div.panel.input-area
      (for [{:keys [key label type]} (:inputs l)]
        [:div.field {:replicant/key key}
@@ -58,7 +60,15 @@
                 [:button {:replicant/key (:label alt)
                           :class (when (= alternative (:label alt)) "current")
                           :on {:click #(state/choose-alternative! alt)}}
-                 (:label alt)]))])]))
+                 (:label alt)]))])
+     (when (:surprise l)
+       [:div
+        [:div.row
+         [:button {:id "surprise" :disabled drawing? :on {:click #(state/surprise!)}}
+          (if drawing? "drawing…" "surprise me")]
+         [:span.status "a dozen random terms, run and scored; one picked, weighted by score"]]
+        (when drawn
+          [:div.drawn {:id "drawn"} (score/explain drawn (get-in l [:surprise :wants]))])])]))
 
 (defn- run-panel [s r g]
   [:div.panel {:style {:margin-top "16px"}}
