@@ -4,6 +4,7 @@
   the state; the other views take values."
   (:require [cromulent.core :as eg]
             [orrery.costs :as costs]
+            [orrery.eclass :as eclass]
             [orrery.lessons :as lessons]
             [orrery.run :as run]
             [orrery.score :as score]
@@ -16,17 +17,53 @@
             [orrery.views.stats :as stats]
             [orrery.views.tree :as tree]))
 
+(defn- work-link
+  "A work of the reading list as a link to the paper, or as text when
+  it has none."
+  [k text]
+  (if-let [url (:url (get lessons/reading k))]
+    [:a {:href url :target "_blank" :rel "noreferrer"} text]
+    [:span text]))
+
+(defn- act
+  "A link in the prose that does something to the page."
+  [kind f label]
+  [:a.act {:data-act (name kind) :on {:click f}} label])
+
 (defn- prose
-  "Lesson prose with its widgets resolved: [:notation t], [:native t],
-  [:step k label]."
-  [x]
+  "Lesson prose with its widgets resolved (orrery.lessons/widget-kinds):
+  a term in either spelling, links that scrub to a step, open the
+  class of a term (at a step, if one is named), set a cost, choose an
+  alternative or switch the print mode, and citations as superscript
+  author-year links to the papers. A class link whose term the
+  e-graph on show does not hold, because the input was edited, is
+  plain text."
+  [s x]
   (cond
-    (and (vector? x) (= :notation (first x))) (common/term-view (second x) :notation)
-    (and (vector? x) (= :native (first x))) (common/term-view (second x) :native)
-    (and (vector? x) (= :step (first x)))
-    (let [[_ k label] x] [:a.step {:on {:click #(state/set-step! k)}} label])
-    (vector? x) (into [(first x)] (map prose (rest x)))
+    (and (vector? x) (contains? lessons/widget-kinds (first x)))
+    (let [[kind a b c] x]
+      (case kind
+        :notation (common/term-view a :notation)
+        :native (common/term-view a :native)
+        :step (act :step #(state/set-step! a) b)
+        :select (if (some-> (if c (state/egraph-at s c) (state/current-egraph s)) (eclass/class-of a))
+                  (act :select #(state/select-term! a c) b)
+                  b)
+        :cost (act :cost #(state/set-cost! a) b)
+        :alternative (act :alternative #(state/choose-alternative-by-label! a) b)
+        :print (act :print #(state/set-print! a) b)
+        :cite (into [:sup.cite] (interpose ", " (for [k (rest x)] (work-link k (:short (get lessons/reading k))))))))
+    (vector? x) (into [(first x)] (map #(prose s %) (rest x)))
     :else x))
+
+(defn- reading-view
+  "The works the lesson's prose cites, with links: its footnotes."
+  [l]
+  (when-let [ks (seq (lessons/credits l))]
+    (into [:div.reading [:span.label "reading"]]
+          (interpose [:span.sep " · "]
+                     (for [k ks :let [{:keys [who what where year]} (get lessons/reading k)]]
+                       [:span.work {:replicant/key k} who ", " (work-link k [:i what]) " (" where ", " year ")"])))))
 
 (defn- nav [current]
   (into [:ul.lesson-nav]
@@ -108,13 +145,20 @@
                          :on {:change #(state/set-cost! (:key c))}}]
                 " " (:label c)])))]))
 
-(defn- class-panel [title g s opts]
+(defn- class-panel
+  "The class list over the e-graph at step k, with the opened class."
+  [title g s k opts]
   [:div.panel
    [:h3 title]
    (classes/class-list (merge {:g g :mode (get-in s [:ui :print])
                                :selected (get-in s [:ui :selected])
                                :hovered (get-in s [:ui :hover])
-                               :on-select state/select-class!}
+                               :detail (state/detail-at s k)
+                               :labels (:labels (:run s))
+                               :cost-label (costs/label (:cost s))
+                               :on-select state/select-class!
+                               :on-step state/set-step!
+                               :on-close state/deselect!}
                               opts))])
 
 (defn page [s]
@@ -134,7 +178,8 @@
      (when l
        [:section.lesson
         [:h2 (str (:n l) ". " (:title l))]
-        (into [:div.prose] (map prose (:prose l)))
+        (into [:div.prose] (map #(prose s %) (:prose l)))
+        (reading-view l)
         (when (and r g)
           [:div.workbench
            [:div
@@ -153,13 +198,14 @@
               [:div.panel {:style {:margin-bottom "16px"}}
                [:h3 "the tree"]
                (tree/tree-view {:g g :term (get-in s [:input :values :term])
-                                :hovered (get-in s [:ui :hover]) :on-hover state/hover!})])
+                                :hovered (or (get-in s [:ui :hover]) (get-in s [:ui :selected]))
+                                :on-hover state/hover! :on-select state/select-class!})])
             (if (contains? panels :fork)
               [:div.fork
-               (class-panel "the original, step 0" (state/egraph-at s 0) s {:root (:root r)})
-               (class-panel (str "this step: " (nth (:labels r) (:step s) "")) g s
+               (class-panel "the original, step 0" (state/egraph-at s 0) s 0 {:root (:root r)})
+               (class-panel (str "this step: " (nth (:labels r) (:step s) "")) g s (:step s)
                             {:diff (state/diff-at s) :best (state/best-at s) :root (state/root-at s)})]
-              (class-panel "the classes" g s
+              (class-panel "the classes" g s (:step s)
                            {:diff (state/diff-at s) :best (state/best-at s) :root (state/root-at s)
                             :matches (state/matched-classes matches)}))]])
         (when r

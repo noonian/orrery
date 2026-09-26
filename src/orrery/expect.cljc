@@ -38,7 +38,7 @@
     "egg's rules on 0 + 1·a, one iteration" {:iterations 1 :stop-reason :iter-limit :classes 5 :nodes 7}
     "commutativity on a + b" {:iterations 1 :stop-reason :iter-limit :classes 3 :nodes 4}}
    :saturation
-   {nil {:stop-reason :saturated :classes 15 :nodes 54 :banned? true :quiet-end? true}
+   {nil {:iterations 14 :stop-reason :saturated :classes 15 :nodes 54 :banned? true :quiet-end? true}
     "the same, every match every time" {:iterations 6 :stop-reason :saturated :classes 15 :nodes 54 :banned? false}
     "egg's rules on 0 + 1·a" {:iterations 3 :stop-reason :saturated :classes 3 :nodes 7 :best-cost 1}
     "five atoms under a node limit of 100" {:stop-reason :node-limit}}

@@ -4,18 +4,25 @@
   (:require [orrery.notation :as notation]))
 
 (defn term-view
-  "A term in the mode in force."
+  "A term in the mode in force; in the notation, the native spelling
+  is the tooltip, which tells a nested sum from a flat one."
   [t mode]
   (if (= :native mode)
     [:code.native (pr-str t)]
-    [:span.notation (notation/term->str t)]))
+    [:span.notation {:title (pr-str t)} (notation/term->str t)]))
 
 (defn enode-view
-  "An e-node, its children as class ids."
+  "An e-node, its children as class ids; in the notation each id is a
+  link that opens its class when on-ref is given."
   [node mode on-ref]
   (if (= :native mode)
     [:code.native (pr-str node)]
-    [:span.notation (notation/enode->str node)]))
+    (into [:span.notation]
+          (map (fn [tok]
+                 (if (and on-ref (re-matches #"#\d+" tok))
+                   [:span.ref {:on {:click #(on-ref (js/parseInt (subs tok 1) 10))}} tok]
+                   tok))
+               (re-seq #"#\d+|[^#]+" (notation/enode->str node))))))
 
 (defn stop-reason-text [reason]
   (case reason

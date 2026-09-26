@@ -65,6 +65,17 @@ the bendix lessons the class list carries each class's polynomial;
 and a REPL underneath has `g` bound to the e-graph you are looking
 at, with cromulent's and bendix's namespaces loaded.
 
+The prose is written to be pulled on: each paragraph hands you a
+step to scrub to, a class to open, a cost to switch, an alternative
+to try, and cites the paper behind the idea as a link, with a
+reading line under each lesson. Click a class, a `#id` inside any node, a node of
+the tree, or a link in the prose to open the class: its nodes with
+their costs under the cost in force and the cheapest marked, how
+many terms it stands for and the cheapest few (lesson 7's input
+class holds 1680 arrangements in thirty nodes; a class that reaches
+itself holds infinitely many), what it points at and what points at
+it, and where it has been along the run.
+
 ## Two modes
 
 Native: the tagged-vector format, typed into the page or at the

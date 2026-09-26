@@ -3,8 +3,13 @@
   and the best term of the class under the cost in force, and, when
   the graph carries bendix's polynomial analysis, the normal form
   of each class. Diff highlighting marks what the current step added
-  or merged."
+  or merged. An opened class shows above the list what the engine
+  knows about it: each node with its cost and the cheapest marked,
+  the terms it stands for, the classes it points at and the nodes
+  that point at it, and where it has been along the run."
   (:require [cromulent.core :as eg]
+            [orrery.costs :as costs]
+            [orrery.eclass :as eclass]
             [orrery.notation :as notation]
             [orrery.normal :as normal]
             [orrery.views.common :as common]))
@@ -21,20 +26,81 @@
 (defn- ref-chip [id on-select]
   [:span.ref {:on {:click #(on-select id)}} (notation/class-ref id)])
 
+(defn- count-text [n]
+  (cond (= :infinite n) "infinitely many terms, since the class reaches itself"
+        (>= n eclass/count-cap) "more than a million terms"
+        (= 1 n) "one term"
+        :else (str n " terms")))
+
+(defn- step-links [labels ks on-step]
+  (interpose ", " (for [k ks] [:a.step {:title (nth labels k "") :on {:click #(on-step k)}} (str "step " k)])))
+
+(defn detail-view
+  "The opened class, above the list."
+  [{:keys [id root nodes cheapest count children parents history]}
+   {:keys [mode cost-label labels root-id on-select on-step on-close]}]
+  [:div.class-detail
+   [:div.detail-title
+    [:span.class-id (notation/class-ref root)]
+    (when (not= id root) [:span.status (str (notation/class-ref id) " is part of it now")])
+    (when (= root root-id) [:span.status "the input's class"])
+    [:span.spacer]
+    [:button.close {:title "close" :on {:click #(on-close)}} "×"]]
+   [:div.detail-row.nodes
+    [:span.label "nodes"]
+    (for [{:keys [node cost best?]} nodes]
+      [:span.dnode {:class (when best? "best") :title (when best? (str "the cheapest under " cost-label))}
+       (common/enode-view node mode on-select)
+       [:span.cost (costs/cost-str cost)]])]
+   [:div.detail-row.terms
+    [:span.label "stands for"]
+    (count-text count)
+    (when (seq cheapest)
+      (list (if (and (number? count) (<= count (clojure.core/count cheapest)))
+              (str ", under " cost-label ": ")
+              (str "; the cheapest under " cost-label ": "))
+            (interpose ", " (for [{:keys [term cost]} cheapest]
+                              [:span.costed (common/term-view term mode) [:span.cost (costs/cost-str cost)]]))))]
+   [:div.detail-row.children
+    [:span.label "points at"]
+    (if (seq children)
+      (interpose ", " (for [c children] (ref-chip c on-select)))
+      "nothing: a leaf")]
+   [:div.detail-row.parents
+    [:span.label "pointed at by"]
+    (if (seq parents)
+      (for [{:keys [node class]} parents]
+        [:span.dnode (common/enode-view node mode on-select) [:span.cost "in " (ref-chip class on-select)]])
+      "nothing")]
+   (when history
+     (let [{:keys [born grew merged]} history]
+       [:div.detail-row.history
+        [:span.label "along the run"]
+        "first at " (step-links labels [born] on-step)
+        (when (seq grew) (list "; gained nodes at " (step-links labels grew on-step)))
+        (when (seq merged) (list "; classes became one at " (step-links labels merged on-step)))]))])
+
 (defn class-list
-  [{:keys [g diff best mode root selected hovered matches on-select]}]
+  [{:keys [g diff best mode root selected hovered matches detail labels cost-label
+           on-select on-step on-close]}]
   (let [added (:added diff)
         absorbing (:absorbing diff)
         new-classes (:new-classes diff)
         dirty? (:dirty? g)
-        normal? (normal/analysis? g)]
+        normal? (normal/analysis? g)
+        child-set (set (:children detail))
+        parent-set (set (map :class (:parents detail)))]
     [:div
      [:div.legend
       [:span [:span.swatch {:style {:background "var(--added)"}}] "node added this step"]
       [:span [:span.swatch {:style {:background "var(--merged-ink)"}}] "class absorbed a merge"]
       [:span [:span.swatch {:style {:background "var(--added-ink)"}}] "new class"]
       [:span [:span.swatch {:style {:background "var(--root)"}}] "the input's class"]
-      (when (seq matches) [:span [:span.swatch {:style {:background "var(--match)"}}] "a rule matches here"])]
+      (when (seq matches) [:span [:span.swatch {:style {:background "var(--match)"}}] "a rule matches here"])
+      [:span "click a class, or a #id, to open it"]]
+     (when detail
+       (detail-view detail {:mode mode :cost-label cost-label :labels labels :root-id root
+                            :on-select on-select :on-step on-step :on-close on-close}))
      [:table.classes
       [:thead [:tr [:th "class"] [:th "nodes"] (when normal? [:th "polynomial"]) [:th "best"] [:th "parents"]]]
       (into [:tbody]
@@ -50,7 +116,10 @@
                              (contains? absorbing id) (conj "absorbing")
                              (contains? new-classes id) (conj "new-class")
                              dirty? (conj "dirty"))}
-               [:td [:span.class-id {:on {:click #(on-select id)}} (notation/class-ref id)]]
+               [:td [:span.class-id {:on {:click #(on-select id)}} (notation/class-ref id)]
+                (when (and detail (not= id (:root detail)))
+                  (cond (contains? child-set id) [:span.rel "child"]
+                        (contains? parent-set id) [:span.rel "parent"]))]
                (into [:td]
                      (for [node (sort-by pr-str (:nodes c))]
                        [:span.node {:class (when (contains? added-here node) "added")}

@@ -14,6 +14,7 @@
             [cromulent.pattern :as pat]
             [orrery.costs :as costs]
             [orrery.diff :as diff]
+            [orrery.eclass :as eclass]
             [orrery.input :as input]
             [orrery.lessons :as lessons]
             [orrery.notation :as notation]
@@ -52,13 +53,18 @@
 
 (defn current-egraph [s] (egraph-at s (:step s)))
 
+(defn diff-for
+  "What step k of the run changed, or nil at step 0."
+  [s k]
+  (let [{:keys [run run-id]} s]
+    (when (and run (pos? k))
+      (cached [run-id k :diff]
+              #(diff/between (run/egraph-at run (dec k)) (run/egraph-at run k))))))
+
 (defn diff-at
   "What the current step changed, or nil at step 0."
   [s]
-  (let [{:keys [run run-id step]} s]
-    (when (and run (pos? step))
-      (cached [run-id step :diff]
-              #(diff/between (run/egraph-at run (dec step)) (run/egraph-at run step))))))
+  (diff-for s (:step s)))
 
 (defn best-at
   "An extractor over the current e-graph under the cost in force:
@@ -69,6 +75,43 @@
       (cached [run-id step cost]
               #(let [g (run/egraph-at run step)]
                  (ex/extractor g (costs/cost-fn cost g)))))))
+
+(defn cheapest-at
+  "The few cheapest terms of every class of the e-graph at step k,
+  under the cost in force (orrery.eclass/cheapest). One table per
+  step and cost, computed when a class is first opened there."
+  [s k]
+  (let [{:keys [run run-id cost]} s]
+    (when run
+      (cached [run-id k cost :cheapest]
+              #(let [g (run/egraph-at run k)]
+                 (eclass/cheapest g (costs/cost-fn cost g) eclass/few))))))
+
+(defn detail-at
+  "What the class panel says about the selected class in the e-graph
+  at step k, or nil when nothing is selected or that e-graph does not
+  have the class yet: its root there, its nodes with their costs, its
+  cheapest terms and how many it stands for, the classes it points at
+  and the nodes that point at it, and its history along the run."
+  [s k]
+  (let [{:keys [run run-id cost]} s
+        id (get-in s [:ui :selected])]
+    (when (and run id)
+      (let [g (run/egraph-at run k)]
+        (when (< id (:next-id g))
+          (cached [run-id k cost id (run/last-step run) :detail]
+                  #(let [root (eg/find g id)
+                         cf (costs/cost-fn cost g)
+                         table (cheapest-at s k)]
+                     {:id id
+                      :root root
+                      :nodes (eclass/node-costs g table cf root)
+                      :cheapest (nth table root)
+                      :count (eclass/term-count g root)
+                      :children (eclass/children g root)
+                      :parents (eclass/parents g root)
+                      :history (when (> (count (:timeline run)) 1)
+                                 (eclass/history (:timeline run) k root))})))))))
 
 (defn root-at
   "The input term's class in the current e-graph, when the run has one."
@@ -188,6 +231,12 @@
     (swap! app-state assoc :input (input-for (print-mode @app-state) l values (or (:opts alt) {}) (:label alt)))
     (start-run!)))
 
+(defn choose-alternative-by-label!
+  "The lesson's alternative with this label, from a link in the prose."
+  [label]
+  (when-let [alt (some (fn [a] (when (= label (:label a)) a)) (:alternatives (lesson @app-state)))]
+    (choose-alternative! alt)))
+
 (defn set-field! [k text]
   (swap! app-state assoc-in [:input :fields k] text))
 
@@ -283,7 +332,22 @@
                                   (:inputs (lesson s))))]
              (-> s (assoc-in [:ui :print] mode) (update-in [:input :fields] refill))))))
 
-(defn select-class! [id] (swap! app-state assoc-in [:ui :selected] id))
+(defn select-class!
+  "Open the class of id in the class list; opening it again closes it."
+  [id]
+  (swap! app-state update-in [:ui :selected] #(if (= % id) nil id)))
+
+(defn deselect! [] (swap! app-state assoc-in [:ui :selected] nil))
+
+(defn select-term!
+  "Open the class holding t, from a link in the prose, scrubbing to
+  step k first when one is given; nothing happens when the e-graph on
+  show does not hold t."
+  [t k]
+  (when k (set-step! k))
+  (let [s @app-state]
+    (when-let [id (eclass/class-of (current-egraph s) t)]
+      (swap! app-state assoc-in [:ui :selected] id))))
 
 (defn hover! [id] (swap! app-state assoc-in [:ui :hover] id))
 

@@ -4,6 +4,7 @@
             [orrery.notation-test]
             [orrery.parse-test]
             [orrery.diff-test]
+            [orrery.eclass-test]
             [orrery.input-test]
             [orrery.lessons-test]
             [orrery.normal-test]
@@ -15,6 +16,7 @@
   (let [{:keys [fail error]} (t/run-tests 'orrery.notation-test
                                           'orrery.parse-test
                                           'orrery.diff-test
+                                          'orrery.eclass-test
                                           'orrery.input-test
                                           'orrery.lessons-test
                                           'orrery.normal-test

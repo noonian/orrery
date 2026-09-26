@@ -94,6 +94,23 @@ The panels, each mapped to what exists:
   classes the picture is spaghetti and the class list is primary.
 - **The class list.** Every root, its nodes, its parents, its analysis
   data rendered. `eg/roots`, `eg/nodes`, `eg/eclass`, `eg/data`.
+- **The opened class** (2026-09-26). A click on a class id, on a
+  `#id` inside any node, on a node of the tree, or on a link in the
+  prose opens the class above the list, with what the engine knows
+  about it (`orrery.eclass`): each node with the cost of the
+  cheapest term it heads under the cost in force, the cheapest
+  marked; how many terms the class stands for and the few cheapest
+  (a k-best extraction, the bottom-up fixpoint of `best-costs`
+  keeping k terms per class; the count is a walk with cycle
+  detection, so `x = x + 0` reports infinitely many); the classes
+  it points at and the nodes that point at it (between a union and
+  the rebuild two parents that read the same sit in two classes,
+  which is the broken invariant lesson 3 shows); and where it has
+  been along the run, born, grew, classes became one, traced by
+  which roots of each step the union-find of the step on show joins
+  into it, since ids are not stable across a merge. Lesson 7's input
+  class has thirty nodes and stands for 1680 terms, lesson 8's for
+  37; opening the six-atom root takes 180 ms in Chromium.
 - **The scrubber.** Iteration k of the timeline, forwards and
   backwards; the diff to k−1 highlighted: nodes added, classes
   merged. The diff is a set difference on `memo-entries`.
@@ -241,8 +258,15 @@ Decided 2026-09-25, replacing the first draft's scittle route.
 - **Pure namespaces on three runtimes.** `orrery.notation` (the printer),
   `orrery.diff`, `orrery.costs`, `orrery.input` (the EDN reader),
   `orrery.run`, `orrery.lessons` (prose as hiccup data, decided over
-  markdown: no renderer to ship, inline widgets `[:notation t]` and
-  `[:step k label]`, and the tests can walk it), `orrery.generate`,
+  markdown: no renderer to ship, inline widgets that are the prose's
+  figures, `[:notation t]`, `[:native t]`, `[:step k label]`,
+  `[:select t label k?]`, `[:cost key label]`, `[:alternative label
+  text]`, `[:print mode label]`, and the tests walk them: every step
+  is within the curated run, every term a class of it, every cost
+  and alternative the lesson's, every citation a work of
+  `lessons/reading`, which the reading line under each lesson is
+  derived from), `orrery.eclass`
+  (the opened class, section 3), `orrery.generate`,
   `orrery.score` (section 4) and `orrery.expect`
   are `.cljc`, tested by `clojure -M:test` and `jolt -M:test`, and
   compiled into the page. Runner code (`orrery.state`, the views,
@@ -281,12 +305,13 @@ polynomial, bendix's two costs in the picker, and a run that ends
 with a materialization step so extraction can choose a normal form.
 The generator and scorer followed on 2026-09-26 (section 4).
 
-**Phase 3, notation input.** The parser (delivered 2026-09-26:
-`orrery.parse`, the inputs reading either spelling and showing the
-mode in force, the printer made faithful to it, the round trip over
-every lesson's values and thirty seeds of every draw); then a pass on
-the prose in the explorable-explanation voice, with the widgets as
-its figures.
+**Phase 3, notation input and the prose** (delivered 2026-09-26).
+The parser (`orrery.parse`, the inputs reading either spelling and
+showing the mode in force, the printer made faithful to it, the round
+trip over every lesson's values and thirty seeds of every draw); then
+the pass on the prose in the explorable-explanation voice, with the
+widgets as its figures (section 12, decision 8), and the opened
+class the prose points at (section 3).
 
 **Later.** The egraph-visualizer picture, which is when
 `cromulent.export` and the `egraph-serialize` JSON are needed;
@@ -409,6 +434,29 @@ the one the page most wants to welcome. The other mode stays
    reads as `:neg`, the generator's spelling; `[:- x]` prints the same
    and is accepted. Pattern variables are `?x` in both spellings,
    as `cromulent.pattern/variable?` already had them.
+8. **The prose voice, and credit.** Decided 2026-09-26. Each
+   paragraph says what is on the page now and hands the reader one
+   thing to pull: a step, a class to open, a cost, an alternative,
+   the print mode. Those links are data (section 6) and the JVM and
+   Jolt suites check every one against the curated run, so a number
+   or a claim in the prose is a fact of the run on show; a class link
+   whose term the edited input no longer holds renders as plain text
+   rather than a dead link. Every idea is cited where it appears, as
+   a superscript author-year link to the paper (`[:cite key …]` over
+   `lessons/reading`: the e-graph to Nelson's report, congruence
+   closure to Nelson and Oppen and to Downey, Sethi and Tarjan, the
+   hashcons to Ershov and Goto, e-matching to Detlefs, Nelson and
+   Saxe and to de Moura and Bjørner, equality saturation and
+   extraction to Tate et al. and to egg, the rebuild, the scheduler
+   and the analyses to egg, AC congruence closure to Bachmair, Tiwari
+   and Vigneron, the analysis that decides to Nelson and Oppen's
+   cooperating procedures and Zucker's e-graphs modulo theories,
+   persistence to Driscoll et al., Bagwell and Hickey), and the
+   lesson's reading line lists the works it cites, linked. The prose
+   itself stays on what is happening; it cites, it does not recount
+   (the Captain, 2026-09-26: cite the authors, footnote the papers,
+   no history lesson). Links are DOIs where one exists, each checked
+   against CrossRef.
 
 ## Status
 
@@ -469,7 +517,25 @@ in the self-test tile and the node smoke, because a regex that
 JavaScript's `re-matches` read differently from Java's slipped past
 the JVM and Jolt suites and was caught only in the browser. The
 suites are 41 tests and 2223 assertions on the JVM and Jolt, 64 facts
-on node, 107 in the tile, 53 specs in the browser. The prose pass
-remains.
+on node, 107 in the tile, 53 specs in the browser.
 
-Next: phase 3, notation input.
+The prose pass and the opened class, 2026-09-26 (phase 3's second
+deliverable, section 12 decision 8): every lesson's prose rewritten
+in the explorable voice with the widgets as figures, four new widget
+kinds (`:select`, `:cost`, `:alternative`, `:print`) beside `:step`,
+citations as author-year links (`:cite`) and a reading line per
+lesson derived from them;
+`orrery.eclass` and the opened class above the list (section 3), a
+`#id` inside any node and a node of the tree opening its class, the
+selected class lighting the tree; `lessons_test` checking every
+widget against the curated run and every credit against the reading
+list, `eclass_test` pinning the counts (1680, 120, 37, 16, the
+infinite class), the costs under each of lesson 6's costs, the
+parents across lesson 3's steps and the histories; `selection.spec.js`
+driving the panel and the prose links in the browser; lesson 5's
+backoff run pinned at fourteen iterations. The suites are 47 tests
+and 2416 assertions on the JVM and Jolt, 64 facts on node, 107 in
+the tile, 59 specs in the browser.
+
+Next: the later items of section 7, the visualizer with the
+exporter first.

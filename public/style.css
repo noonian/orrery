@@ -87,7 +87,15 @@ textarea, input[type=text] {
 .prose p { margin: 0 0 12px; }
 .notation { font-style: italic; white-space: nowrap; }
 .native { font-size: 15px; background: var(--surface-2); padding: 1px 5px; border-radius: 4px; white-space: nowrap; }
-a.step { text-decoration: underline dotted; cursor: pointer; }
+a.step, a.act { text-decoration: underline dotted; cursor: pointer; }
+sup.cite { font-size: 11px; line-height: 0; margin-left: 1px; white-space: nowrap; }
+sup.cite a, sup.cite span { color: var(--muted); text-decoration: none; }
+sup.cite a:hover { text-decoration: underline; }
+.reading a { color: inherit; text-decoration: underline dotted; }
+.reading { max-width: 720px; font-size: 13px; color: var(--ink-2); margin: 0 0 16px; line-height: 1.6; }
+.reading .label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; margin-right: 8px; }
+.reading .sep { color: var(--muted); }
+.prose code { font-size: 15px; background: var(--surface-2); padding: 1px 5px; border-radius: 4px; }
 
 .workbench { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
 @media (min-width: 900px) { .workbench { grid-template-columns: 340px minmax(0, 1fr); } }
@@ -128,9 +136,27 @@ table.classes tr.dirty { background: var(--dirty); }
 table.classes td.poly, table.classes td.best { min-width: 120px; }
 table.classes td.poly .notation, table.classes td.best .notation, table.classes td.poly .native, table.classes td.best .native { white-space: normal; } /* a polynomial or a best term wraps at its operators, so the table fits the panel; in prose a term stays on one line */
 .class-id { cursor: pointer; font-weight: 600; }
+.rel { font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-left: 6px; }
 .node { display: inline-block; margin: 1px 6px 1px 0; padding: 0 5px; border-radius: 4px; background: var(--surface-2); white-space: nowrap; }
 .node.added { background: var(--added); color: var(--added-ink); }
 .ref { cursor: pointer; text-decoration: underline dotted; }
+.node .ref, .dnode .ref { text-decoration: none; }
+.node .ref:hover, .dnode .ref:hover { text-decoration: underline dotted; }
+
+/* the opened class, above the list */
+.class-detail { background: var(--surface-2); border-radius: 8px; padding: 8px 10px; margin: 0 0 10px; font-size: 14px; }
+.class-detail .detail-title { display: flex; align-items: baseline; gap: 10px; margin-bottom: 4px; }
+.class-detail .detail-title .class-id { font-size: 16px; }
+.class-detail .detail-title .status { margin: 0; }
+.class-detail .detail-title .spacer { flex: 1; }
+.class-detail button.close { padding: 0 7px; font-size: 13px; line-height: 1.5; }
+.class-detail .detail-row { margin: 4px 0; line-height: 1.7; }
+.class-detail .label { display: inline-block; min-width: 108px; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
+.class-detail .dnode { display: inline-block; margin: 1px 6px 1px 0; padding: 0 6px; border-radius: 4px; background: var(--surface); border: 1px solid var(--hairline); white-space: nowrap; }
+.class-detail .dnode.best { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.class-detail .cost { color: var(--muted); font-family: var(--mono); font-size: 12px; margin-left: 5px; }
+.class-detail .costed { white-space: nowrap; }
+.class-detail .terms .notation, .class-detail .terms .native { white-space: nowrap; }
 
 .best .term { font-size: 20px; margin: 4px 0; }
 .best .cost-picker { display: flex; gap: 10px; flex-wrap: wrap; font-size: 14px; }
@@ -159,7 +185,7 @@ table.classes tr.hovered { background: var(--selected); }
 .field h3 { margin-bottom: 4px; }
 
 .tree { overflow-x: auto; padding: 4px 0; }
-.tnode { display: inline-flex; flex-direction: column; align-items: center; margin: 0 4px; padding: 2px 4px; border-radius: 6px; }
+.tnode { display: inline-flex; flex-direction: column; align-items: center; margin: 0 4px; padding: 2px 4px; border-radius: 6px; cursor: pointer; }
 .tnode.hl { background: var(--selected); }
 .tlabel { display: flex; gap: 6px; align-items: baseline; padding: 3px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface-2); white-space: nowrap; }
 .tlabel .top { font-family: var(--mono); }
