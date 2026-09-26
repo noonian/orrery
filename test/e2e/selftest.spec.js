@@ -1,9 +1,9 @@
 import { test, expect } from '@playwright/test';
 import { expectSelfTest, expectSnapshot } from './orrery.js';
 
-test('the engine self-test tile is green: 96 facts hold in this browser', async ({ page }) => {
+test('the engine self-test tile is green: 107 facts hold in this browser', async ({ page }) => {
   await page.goto('/');
-  await expectSelfTest(page, 96);
+  await expectSelfTest(page, 107);
 });
 
 test('no hash opens the blowup; the navigation lists all eleven lessons', async ({ page }) => {

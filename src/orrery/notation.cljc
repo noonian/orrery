@@ -5,8 +5,14 @@
   d/dx sin(2·x). Nesting is shown faithfully: [:+ :a [:+ :b :c]] is
   a + (b + c) while [:+ [:+ :a :b] :c] is a + b + c, so an arrangement
   of a sum stays visible. E-nodes, whose children are class ids, print
-  the ids as #7. Pure and the same on every runtime; notation input, the
-  parser, is a later addition."
+  the ids as #7. Pure and the same on every runtime.
+
+  orrery.parse reads the notation back, so what prints here must read
+  as the term it came from: a numeral's spelling absorbs a leading
+  minus and a slash between integers there, so the quotient node of
+  two integers prints 1/(2), the negation of a numeral −(3), and a
+  negative numeral is parenthesized wherever a negation would be,
+  (−2)²."
   (:require [bendix.num :as num]
             [clojure.string :as str]))
 
@@ -19,7 +25,10 @@
 (def ^:private binary
   {:+ [" + " 1] :- [" − " 1] :* ["·" 3] :/ ["/" 3] :<< [" << " 0] :>> [" >> " 0]})
 
-(def ^:private functions #{:sin :cos :tan :exp :log :sqrt :abs})
+(def functions
+  "The operators that print as a function of one argument, sin x,
+  and read back as one."
+  #{:sin :cos :tan :exp :log :sqrt :abs})
 
 (def ^:private constants {:pi "π" :e "e"})
 
@@ -51,6 +60,14 @@
         (string? x) x
         :else (pr-str x)))
 
+(defn- leaf-level
+  "A ratio sits at the product level (1/2·x, x·(1/2), x^(1/2)); a
+  negative integer at the level of a negation ((−2)², sin(−2))."
+  [x]
+  (cond (num/ratio? x) 3
+        (and (number? x) (neg? x)) 4
+        :else 6))
+
 (defn- chain
   "A left-associative chain at level p: a + b + c, a + (b + c). The
   first operand is parenthesized below first-min, the rest below
@@ -61,7 +78,8 @@
 
 (defn- render
   "[string level] for t. child renders an operand; ids? says the
-  operands are class ids (an e-node), so no exponent is a number."
+  operands are class ids (an e-node), so no exponent is a number and
+  no child is a numeral."
   [t child ids?]
   (if (vector? t)
     (let [op (first t), args (rest t), cs (mapv child args), n (count cs)]
@@ -69,10 +87,14 @@
         (zero? n) [(get constants op (name op)) 6]
 
         (and (= 1 n) (or (= :- op) (= :neg op)))
-        [(str "−" (wrap (first cs) 2)) 4]
+        (if (and (not ids?) (num/rational? (first args)))
+          [(str "−" (paren (first (first cs)))) 4]    ; −(3): the node, not the number −3
+          [(str "−" (wrap (first cs) 4)) 4])
 
         (= :/ op)
-        (chain "/" 3 4 4 cs)                     ; (a·2)/2, a/(b·c): both sides parenthesized
+        (if (and (not ids?) (= 2 n) (every? integer? args))
+          [(str (first (first cs)) "/" (paren (first (second cs)))) 3]   ; 1/(2): the node, not the number 1/2
+          (chain "/" 3 4 4 cs))                     ; (a·2)/2, a/(b·c): both sides parenthesized
 
         (contains? binary op)
         (let [[sep p] (binary op)] (chain sep p cs))
@@ -103,7 +125,7 @@
 
         :else
         [(str (name op) (paren (str/join ", " (map first cs)))) 6]))
-    [(leaf-str t) (if (num/ratio? t) 3 6)]))   ; 1/2·x, x^(1/2)
+    [(leaf-str t) (leaf-level t)]))
 
 (defn- render-term [t] (render t render-term false))
 
@@ -111,6 +133,16 @@
   "t as mathematics."
   [t]
   (first (render-term t)))
+
+(defn rule->str
+  "A [name lhs rhs] rule as name: lhs → rhs, the line orrery.parse reads."
+  [[n lhs rhs]]
+  (str n ": " (term->str lhs) " → " (term->str rhs)))
+
+(defn rules->str
+  "Rules as [name lhs rhs] data, one line each."
+  [rules]
+  (str/join "\n" (map rule->str rules)))
 
 (defn class-ref
   "How a class id prints inside an e-node."

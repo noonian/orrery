@@ -1,5 +1,6 @@
 (ns orrery.notation-test
-  (:require [clojure.test :refer [deftest is]]
+  (:require [bendix.num :as num]
+            [clojure.test :refer [deftest is]]
             [orrery.notation :as notation]))
 
 (deftest terms
@@ -26,6 +27,30 @@
   (is (= "π" (notation/term->str [:pi])))
   (is (= "−1" (notation/term->str -1)))
   (is (= "f(a, b, c)" (notation/term->str [:f :a :b :c])) "unknown operators print as functions"))
+
+(deftest numerals-print-apart-from-the-nodes-over-them
+  (is (= "1/2" (notation/term->str (num/ratio 1 2))) "the number")
+  (is (= "1/(2)" (notation/term->str [:/ 1 2])) "the quotient node")
+  (is (= "−1/(2)" (notation/term->str [:/ -1 2])))
+  (is (= "x/2" (notation/term->str [:/ :x 2])))
+  (is (= "1/2·x" (notation/term->str [:* (num/ratio 1 2) :x])))
+  (is (= "x·(1/2)" (notation/term->str [:* :x (num/ratio 1 2)])))
+  (is (= "(1/2)/3" (notation/term->str [:/ (num/ratio 1 2) 3])))
+  (is (= "−3" (notation/term->str -3)) "the number")
+  (is (= "−(3)" (notation/term->str [:neg 3])) "the negation node")
+  (is (= "−(1/2)" (notation/term->str [:- (num/ratio 1 2)])))
+  (is (= "−3·x" (notation/term->str [:* -3 :x])))
+  (is (= "−(a·b)" (notation/term->str [:neg [:* :a :b]])) "a negation parenthesizes a product")
+  (is (= "−(sin x)" (notation/term->str [:neg [:sin :x]])))
+  (is (= "−x²" (notation/term->str [:neg [:expt :x 2]])) "but not a power")
+  (is (= "(−2)²" (notation/term->str [:expt -2 2])) "a negative base is parenthesized")
+  (is (= "sin(−2)" (notation/term->str [:sin -2])))
+  (is (= "x⁻¹" (notation/term->str [:expt :x -1])))
+  (is (= "2·x + −3" (notation/term->str [:+ [:* 2 :x] -3]))))
+
+(deftest rules-print-one-per-line
+  (is (= "comm: ?a + ?b → ?b + ?a\nassoc: ?a + ?b + ?c → ?a + (?b + ?c)"
+         (notation/rules->str '[["comm" [:+ ?a ?b] [:+ ?b ?a]] ["assoc" [:+ [:+ ?a ?b] ?c] [:+ ?a [:+ ?b ?c]]]]))))
 
 (deftest enodes
   (is (= "#3 + #5" (notation/enode->str [:+ 3 5])))

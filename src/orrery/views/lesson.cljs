@@ -40,17 +40,21 @@
 
 (defn- input-area [s l]
   (let [{:keys [fields error alternative drawn]} (:input s)
-        drawing? (get-in s [:ui :drawing?])]
+        drawing? (get-in s [:ui :drawing?])
+        mode (get-in s [:ui :print])]
     [:div.panel.input-area
-     (for [{:keys [key label type]} (:inputs l)]
+     (for [{:keys [key type] :as input} (:inputs l)]
        [:div.field {:replicant/key key}
-        [:h3 label]
+        [:h3 (lessons/input-label input mode)]
         [:textarea {:id (str "input-" (name key)) :rows (if (= :rules type) 4 2)
                     :value (get fields key "")
                     :on {:input (fn [e] (state/set-field! key (.. e -target -value)))}}]])
      [:div.row
       [:button.primary {:id "run" :on {:click #(state/submit-input!)}} "run"]
-      [:span.status "native format: tagged vectors, keyword operators and variables"]]
+      [:span.status {:id "input-help"}
+       (if (= :notation mode)
+         "notation as the page prints it: 2·x + y, x^2 or x², sin x, 1/2 exact, ?x in a pattern; native [:+ [:* 2 :x] :y] reads too"
+         "native format: tagged vectors, keyword operators and variables; notation such as 2·x + y reads too")]]
      (when error [:div.error error])
      (when (seq (:alternatives l))
        [:div

@@ -43,7 +43,13 @@
   (mapv (fn [r] (if (map? r) r (let [[n lhs rhs] r] (rw/rule n lhs rhs)))) rule-data))
 
 (def term-input {:key :term :label "the term" :type :term})
-(def rules-input {:key :rules :label "the rules, as [name pattern replacement]" :type :rules})
+(def rules-input {:key :rules :label "the rules, as [name pattern replacement]"
+                  :notation-label "the rules, one per line, as name: pattern → replacement" :type :rules})
+
+(defn input-label
+  "An input's heading in the print mode in force."
+  [{:keys [label notation-label]} mode]
+  (if (and (= :notation mode) notation-label) notation-label label))
 
 (defn- fill
   "wrapper with ?x replaced by t."

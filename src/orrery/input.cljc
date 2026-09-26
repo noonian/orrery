@@ -1,16 +1,31 @@
 (ns orrery.input
-  "Learner input in the native format, read by the EDN reader with
-  ratios exact on every runtime (bendix.num): a term, or rules as
-  [[name lhs rhs] ...]. Each reader returns {:term t}, {:rules [...]}
-  or {:error message}."
+  "Learner input, in either spelling: the native format, read by the
+  EDN reader with ratios exact on every runtime (bendix.num), or the
+  notation, read by orrery.parse. Text that starts with a vector or a
+  keyword is native; anything else is notation, and a bare number or
+  ?x reads the same either way. A term, a pattern, or rules as
+  [[name lhs rhs] ...] or one name: pattern -> replacement per line.
+  Each reader returns {:term t}, {:pattern p}, {:rules [...]} or
+  {:error message}."
   (:require [bendix.num :as num]
             [cromulent.pattern :as pat]
-            [cromulent.rewrite :as rw]))
+            [cromulent.rewrite :as rw]
+            [orrery.parse :as parse]))
+
+(defn native?
+  "Is text in the native format?"
+  [text]
+  (boolean (re-find #"^\s*[\[:]" text)))
 
 (defn- read-edn [text]
   (try {:value (num/read-string text)}
        (catch #?(:clj Exception :default :default) e
          {:error (str "could not read that: " (ex-message e))})))
+
+(defn- read-text
+  "{:value v} or {:error message}, by the spelling of text."
+  [text]
+  (if (native? text) (read-edn text) (parse/term text)))
 
 (defn leaf-count
   "How many leaves t has."
@@ -37,14 +52,15 @@
     (keyword? t) nil
     (num/rational? t) nil
     (number? t) (str (pr-str t) " is not exact; write a ratio such as 1/2")
+    (pat/variable? t) (str t " is a pattern variable; a term has none")
     :else (str (pr-str t) " is not a variable or a number")))
 
 (defn read-term
   "{:term t} or {:error message}."
   [text]
-  (let [{:keys [value error]} (read-edn text)]
+  (let [{:keys [value error]} (read-text text)]
     (cond error {:error error}
-          (nil? value) {:error "type a term, such as [:+ [:* 2 :x] :y]"}
+          (nil? value) {:error "type a term, such as 2·x + y or [:+ [:* 2 :x] :y]"}
           :else (if-let [p (term-problem value)] {:error p} {:term value}))))
 
 (defn- pattern-problem [p]
@@ -59,21 +75,21 @@
 (defn read-pattern
   "{:pattern p} or {:error message}: a term that may hold ?variables."
   [text]
-  (let [{:keys [value error]} (read-edn text)]
+  (let [{:keys [value error]} (read-text text)]
     (cond error {:error error}
-          (nil? value) {:error "type a pattern, such as [:/ ?x 2]"}
+          (nil? value) {:error "type a pattern, such as ?x/2 or [:/ ?x 2]"}
           :else (if-let [p (pattern-problem value)] {:error p} {:pattern value}))))
 
 (defn read-rules
-  "Rules as [[\"name\" lhs rhs] ...]: {:rules data} with the same
-  shape, validated (every right-hand variable bound on the left), or
-  {:error message}."
+  "Rules as [[\"name\" lhs rhs] ...] or as name: pattern -> replacement
+  lines: {:rules data} in the vector shape, validated (every
+  right-hand variable bound on the left), or {:error message}."
   [text]
-  (let [{:keys [value error]} (read-edn text)]
+  (let [{:keys [value error]} (if (native? text) (read-edn text) (parse/rules text))]
     (cond
       error {:error error}
       (not (and (vector? value) (seq value) (every? vector? value)))
-      {:error "rules are a vector of [\"name\" lhs rhs] vectors"}
+      {:error "rules are one per line, name: pattern -> replacement, or a vector of [\"name\" lhs rhs] vectors"}
       (not= (count value) (count (distinct (map first value))))
       {:error "rule names must be distinct"}
       :else

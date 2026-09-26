@@ -10,6 +10,8 @@
             [cromulent.extract :as ex]
             [orrery.costs :as costs]
             [orrery.input :as input]
+            [orrery.notation :as notation]
+            [orrery.parse :as parse]
             [orrery.lessons :as lessons]
             [orrery.run :as run]))
 
@@ -141,3 +143,27 @@
                actual (narrow expected (observe lesson values run))]]
      {:name (str (:n lesson) ". " (:title lesson) (when label (str " · " label)))
       :expected expected :actual actual :ok? (= expected actual)})))
+
+(defn notation-checks
+  "One {:name :expected :actual :ok?} per lesson: its curated values
+  and its alternatives', printed in the notation and read back, are
+  the same terms up to `parse/as-read`, the rules too; the first
+  disagreement is the fact reported. orrery.parse-test asserts the
+  same on the JVM and Jolt, and over thirty seeds of every draw."
+  []
+  (vec
+   (for [lesson lessons/all]
+     (let [values (cons (:values lesson) (map :values (:alternatives lesson)))
+           pairs (for [vs values, [k v] vs
+                       :let [pair (if (= :rules k)
+                                    (when (and (vector? v) (seq v) (every? vector? v))
+                                      [(mapv (fn [[n lhs rhs]] [n (parse/as-read lhs) (parse/as-read rhs)]) v)
+                                       (:value (parse/rules (notation/rules->str v)))])
+                                    [(parse/as-read v) (:value (parse/term (notation/term->str v)))])]
+                       :when pair]
+                   pair)
+           [expected actual :as mismatch] (first (remove (fn [[e a]] (= e a)) pairs))]
+       {:name (str "notation round trip: " (:title lesson) ", " (count pairs) " values")
+        :expected (if mismatch expected :all-read-back)
+        :actual (if mismatch actual :all-read-back)
+        :ok? (nil? mismatch)}))))

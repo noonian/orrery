@@ -58,8 +58,8 @@ The page's self-test tile runs them on load.
 Every lesson is live. Each has a curated example, a "try another"
 over alternatives, a "surprise me" that draws a dozen random terms
 in the browser, runs and scores them by what the lesson wants to
-show and picks one, and inputs you can edit: terms, a pattern, rules
-as `[name lhs rhs]` data, exact numbers such as `1/2`. Every panel
+show and picks one, and inputs you can edit in either spelling:
+terms, a pattern, rules, exact numbers such as `1/2`. Every panel
 shows the engine's real values, scrubbed forwards and backwards; for
 the bendix lessons the class list carries each class's polynomial;
 and a REPL underneath has `g` bound to the e-graph you are looking
@@ -74,5 +74,8 @@ Clojure REPL with the engine loaded.
 [:+ [:* 2 :x] :y]
 ```
 
-Notation: the same data printed as mathematics, `2·x + y`. Display
-first; typing mathematics comes later.
+Notation: the same data as mathematics, `2·x + y`, printed by every
+panel and read by every input: `sin²x` or `sin^2 x`, `x^(n + 1)`,
+`d/dx sin(2·x)`, `?x` in a pattern, `1/2` the number and `1/(2)` the
+quotient node, rules one per line as `comm: ?a + ?b -> ?b + ?a`. The
+fields show whichever mode is in force and read both.

@@ -1,16 +1,18 @@
 (ns orrery.smoke-cli
   "The third runtime as a command: cromulent's and bendix's
-  cross-runtime facts, compiled by shadow-cljs and run by node.
+  cross-runtime facts and the notation round trip over every lesson,
+  compiled by shadow-cljs and run by node.
 
     npx shadow-cljs compile smoke && node target/smoke.js
 
   Prints one row per check and exits 1 on any failure."
   (:require [bendix.smoke :as bendix-smoke]
-            [cromulent.smoke :as smoke]))
+            [cromulent.smoke :as smoke]
+            [orrery.expect :as expect]))
 
 (defn -main [& _]
   (let [t0 (js/performance.now)
-        cs (into (smoke/checks) (bendix-smoke/checks))
+        cs (-> (smoke/checks) (into (bendix-smoke/checks)) (into (expect/notation-checks)))
         ms (- (js/performance.now) t0)
         failed (remove :ok? cs)]
     (doseq [{:keys [name ok? expected actual]} cs]

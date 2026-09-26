@@ -2,6 +2,7 @@
   "Entry point for `jolt test` / `jolt -M:test` and `clojure -M:test`."
   (:require [clojure.test :as t]
             [orrery.notation-test]
+            [orrery.parse-test]
             [orrery.diff-test]
             [orrery.input-test]
             [orrery.lessons-test]
@@ -12,6 +13,7 @@
 
 (defn -main [& _]
   (let [{:keys [fail error]} (t/run-tests 'orrery.notation-test
+                                          'orrery.parse-test
                                           'orrery.diff-test
                                           'orrery.input-test
                                           'orrery.lessons-test

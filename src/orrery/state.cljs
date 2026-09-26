@@ -16,6 +16,7 @@
             [orrery.diff :as diff]
             [orrery.input :as input]
             [orrery.lessons :as lessons]
+            [orrery.notation :as notation]
             [orrery.repl :as repl]
             [orrery.run :as run]
             [orrery.score :as score]))
@@ -157,28 +158,34 @@
 ;; ---------------------------------------------------------------------------
 ;; input
 
-(defn- field-text [type v]
-  (case type
-    :rules (str "[" (str/join "\n " (map pr-str v)) "]")
-    (pr-str v)))
+(defn- field-text
+  "What a field shows for a value, in the print mode in force."
+  [mode type v]
+  (if (= :notation mode)
+    (if (= :rules type) (notation/rules->str v) (notation/term->str v))
+    (case type
+      :rules (str "[" (str/join "\n " (map pr-str v)) "]")
+      (pr-str v))))
 
-(defn- input-for [l values opts alternative]
-  {:fields (into {} (for [{:keys [key type]} (:inputs l)] [key (field-text type (get values key))]))
+(defn- input-for [mode l values opts alternative]
+  {:fields (into {} (for [{:keys [key type]} (:inputs l)] [key (field-text mode type (get values key))]))
    :values values :error nil :alternative alternative :opts opts})
+
+(defn- print-mode [s] (get-in s [:ui :print]))
 
 (defn load-lesson! [k]
   (when-let [l (lessons/by-key k)]
     (when (lessons/live? l)
       (swap! app-state assoc
              :lesson k
-             :input (input-for l (:values l) {} nil)
+             :input (input-for (print-mode @app-state) l (:values l) {} nil)
              :cost (or (first (:costs l)) :ast-size))
       (start-run!))))
 
 (defn choose-alternative! [alt]
   (let [l (lesson @app-state)
         values (merge (:values l) (:values alt))]
-    (swap! app-state assoc :input (input-for l values (or (:opts alt) {}) (:label alt)))
+    (swap! app-state assoc :input (input-for (print-mode @app-state) l values (or (:opts alt) {}) (:label alt)))
     (start-run!)))
 
 (defn set-field! [k text]
@@ -190,8 +197,9 @@
   (let [s @app-state
         l (lesson s)
         fields (get-in s [:input :fields])
-        results (for [{:keys [key type label]} (:inputs l)]
+        results (for [{:keys [key type] :as input} (:inputs l)]
                   (let [text (get fields key "")
+                        label (lessons/input-label input (print-mode s))
                         r (case type
                             :term (input/read-term text)
                             :pattern (input/read-pattern text)
@@ -225,7 +233,7 @@
            c (score/surprise l (get-in s [:input :values]) opts (rand-int 1000000000))]
        (swap! app-state (fn [s]
                           (-> s
-                              (assoc :input (assoc (input-for l (:values c) opts nil)
+                              (assoc :input (assoc (input-for (print-mode s) l (:values c) opts nil)
                                                    :drawn (dissoc c :run :values)))
                               (assoc-in [:ui :drawing?] false))))
        (start-run!)))
@@ -258,7 +266,22 @@
 
 (defn set-cost! [k] (swap! app-state assoc :cost k))
 
-(defn set-print! [mode] (swap! app-state assoc-in [:ui :print] mode))
+(defn set-print!
+  "Switch the print mode; a field the learner has not edited follows it."
+  [mode]
+  (swap! app-state
+         (fn [s]
+           (let [old (print-mode s)
+                 values (get-in s [:input :values])
+                 refill (fn [fields]
+                          (reduce (fn [fields {:keys [key type]}]
+                                    (let [v (get values key)]
+                                      (cond-> fields
+                                        (= (get fields key) (field-text old type v))
+                                        (assoc key (field-text mode type v)))))
+                                  fields
+                                  (:inputs (lesson s))))]
+             (-> s (assoc-in [:ui :print] mode) (update-in [:input :fields] refill))))))
 
 (defn select-class! [id] (swap! app-state assoc-in [:ui :selected] id))
 

@@ -195,10 +195,16 @@ because a learner meets lesson 1 in the notation; it is small
 (precedence, parentheses, a few special forms: `orrery.notation`, built
 2026-09-25) and prints nesting faithfully, `a + (b + c)` against
 `a + b + c`, so an arrangement of a sum stays visible. The
-**parser**, notation input, is the future addition the Captain named; it
-is a Pratt parser of similar size and comes after the lessons are
-live (phase 3). Until then the notation mode is display-only and input is
-native, or by choosing from the bank.
+**parser**, notation input, is `orrery.parse` (built 2026-09-26, phase
+3): a Pratt parser over the printer's precedence table, so what the
+page prints reads back as the term it printed, with typed spellings
+beside the printed ones (`*` for `·`, `-` for `−`, `^` or `**` for a
+superscript, `pi` for `π`, `->` for `→`), `?x` for a pattern variable,
+`f(a, b)` for any operator, and rules one per line as `name: pattern
+-> replacement`. Every input takes either spelling: text that starts
+with a vector or a keyword is native, anything else is notation; the
+fields show the values in the print mode in force and follow the
+toggle while unedited. Section 12, decision 7, says what a numeral is.
 
 ## 6. Architecture
 
@@ -241,10 +247,11 @@ Decided 2026-09-25, replacing the first draft's scittle route.
   are `.cljc`, tested by `clojure -M:test` and `jolt -M:test`, and
   compiled into the page. Runner code (`orrery.state`, the views,
   `orrery.app`) is `.cljs`.
-- **Verification, one table four ways.** `cromulent.smoke` (28 facts)
-  and `orrery.expect` (the lessons' counts, iterations, stop reasons
-  and costs) are asserted by the JVM and Jolt suites, by `npm run
-  smoke` on node, by the page's self-test tile in the browser, and by
+- **Verification, one table four ways.** `cromulent.smoke` (28 facts),
+  `bendix.smoke` (25) and `orrery.expect` (the lessons' counts,
+  iterations, stop reasons and costs, and each lesson's values read
+  back from their notation) are asserted by the JVM and Jolt suites, by
+  `npm run smoke` on node, by the page's self-test tile in the browser, and by
   the Playwright suite in `test/e2e` (`npm run e2e`), which builds a
   release, serves it, and drives every live lesson, its alternatives
   and inputs, the transport and the REPL through the DOM. Never ids,
@@ -274,8 +281,12 @@ polynomial, bendix's two costs in the picker, and a run that ends
 with a materialization step so extraction can choose a normal form.
 The generator and scorer followed on 2026-09-26 (section 4).
 
-**Phase 3, notation input.** The parser; then a pass on the prose in the
-explorable-explanation voice, with the widgets as its figures.
+**Phase 3, notation input.** The parser (delivered 2026-09-26:
+`orrery.parse`, the inputs reading either spelling and showing the
+mode in force, the printer made faithful to it, the round trip over
+every lesson's values and thirty seeds of every draw); then a pass on
+the prose in the explorable-explanation voice, with the widgets as
+its figures.
 
 **Later.** The egraph-visualizer picture, which is when
 `cromulent.export` and the `egraph-serialize` JSON are needed;
@@ -294,6 +305,7 @@ rename, and cost nothing measurable on the primary runtimes.
 | the clock | `cromulent.platform/now-ms`, the library's one conditional file |
 | backoff arithmetic | doubling by multiplication, on all runtimes |
 | exceptions | `(catch #?(:clj Exception :default :default) e …)`, twice in `cromulent.rewrite` |
+| regexes | `re-matches` in ClojureScript only checks that the regex's first match is the whole string, so a lazy group stops short where Java's `matches()` would extend it: a pattern meant for the whole line is anchored `^…$` (`orrery.parse`, 2026-09-26, found by the browser suite after the JVM and Jolt suites passed). `re-find` against a `^`-anchored pattern behaves the same on both |
 | determinism | class and node counts, iterations, stop reasons, per-rule counts and costs are identical on the three runtimes (`cromulent.smoke`). Root ids and tied extractions are stable per runtime only: hash iteration order differs, and the tie falls to child ids. Every arrangement of the five-atom sum costs 9, so lesson 7 asserts the cost, not the spelling |
 | bendix numerics | `bendix.num` (2026-09-25): on the JVM and Jolt the operations are `+'`, `*'` and `/` with bignum promotion; in ClojureScript an integer is a number within 2^53 (past it, the operation throws) and a non-integer rational is a `Ratio` deftype, normalized, hashed and compared by value, printed as `1/2`, never zero and never an integer, so `zero?`, `integer?` and `=` against small literals keep their meaning on plain numbers. Only the sites that add, multiply, divide or compare a coefficient call it; exponents are plain integers. `bendix.num/read-string` is the EDN reader with ratios exact everywhere: ClojureScript's reader turns `1/2` into `0.5`, so the text is scanned for ratio tokens first and each becomes a tagged literal. The one ratio literal in bendix's source, `65/64` in the default cost, is written as a division because the ClojureScript compiler has no ratio constant; it is the exact double 1.015625 there, so costs stay exact and comparable, and the page prints a cost that is a multiple of 1/64 as `k/64`. `cromulent.term/compare-nodes` ranks a `Ratio` leaf after vectors in ClojureScript and among numbers on the JVM, which only moves a tie |
 | performance | compiled: 29 self-test facts in about 40 ms in Chromium; the sum of six atoms (608 nodes, 8 iterations) well under a second; the AC-10 yardstick is still not a browser workload |
@@ -372,6 +384,31 @@ the one the page most wants to welcome. The other mode stays
    `cromulent.rewrite/start`, `step` and `finish`, with `embiggen` as
    the loop over them, so a run stepped by the page from a timer is
    exactly the run one call makes, bans and all (lesson 5).
+7. **What a numeral is, in the notation.** Decided 2026-09-26.
+   Mathematically `1/2` and `[:/ 1 2]` are the same number; in the
+   e-graph they are not the same term. The ratio is one leaf in one
+   class; the quotient is a node over two more classes; cromulent
+   folds no constants unless a rule says so; a pattern `[:/ ?x 2]`
+   matches the node and not the leaf; and the counts and costs the
+   page shows differ. bendix's analysis folds `[:/ p k]` for a
+   constant `k`, so there the two classes carry one polynomial and
+   merge at the next rebuild. Neither engine is wrong either way;
+   what matters is that the learner's text denotes one term,
+   predictably, and that the page's own printing reads back. So the
+   parser is a spelling, not an evaluator (`2·3` is a product node),
+   and a numeral's spelling absorbs a leading minus and a slash
+   between integers, as the EDN reader's does and as bendix writes
+   its coefficients (`[:* 1/2 :x]`, `[:* -1 :x]`): `1/2` and `-3` are
+   numbers, `1/(2)` and `-(3)` are nodes, `-3·x` is the coefficient
+   −3 times x, `-3²` the negation of a power, `1/2³` one over a
+   power. The printer prints the nodes apart from the numbers
+   (`1/(2)`, `−(3)`, `(−2)²`) and parenthesizes whatever a negation is
+   over, `−(a·b)`, so the round trip holds. `a + b + c` reads as the
+   left-nested chain; bendix's n-ary sums print the same and read
+   back nested, which its polynomial cannot tell apart. Unary minus
+   reads as `:neg`, the generator's spelling; `[:- x]` prints the same
+   and is accepted. Pattern variables are `?x` in both spellings,
+   as `cromulent.pattern/variable?` already had them.
 
 ## Status
 
@@ -417,5 +454,22 @@ bank for every lesson, the pick's lean on the score; four Playwright
 specs drive the button on lessons 3, 5, 6 and 9. The suites are 28
 tests and 1435 assertions on the JVM and Jolt, 47 specs in the
 browser.
+
+Notation input, 2026-09-26 (phase 3, the first of its two
+deliverables): `orrery.parse` and its test (the precedence table, the
+numerals, functions and derivatives, the typed spellings, patterns,
+the problems said in words, rules by line, and the round trip over the
+printer's corpus, every lesson's values and alternatives, and thirty
+seeds of every draw); `orrery.input` reading either spelling; the
+fields showing the print mode in force and following the toggle while
+unedited; the printer's faithfulness fixes (section 12, decision 7);
+`notation.spec.js` driving the fields, the toggle and the problems in
+the browser; `expect/notation-checks`, a round-trip fact per lesson
+in the self-test tile and the node smoke, because a regex that
+JavaScript's `re-matches` read differently from Java's slipped past
+the JVM and Jolt suites and was caught only in the browser. The
+suites are 41 tests and 2223 assertions on the JVM and Jolt, 64 facts
+on node, 107 in the tile, 53 specs in the browser. The prose pass
+remains.
 
 Next: phase 3, notation input.

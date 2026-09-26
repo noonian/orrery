@@ -43,7 +43,7 @@ test.describe('surprise me', () => {
     const line = await surprise(page);
     expect(line).toMatch(why);
     expect(line).toContain('normal-form rule applications');
-    expect(await page.locator('#input-term').inputValue()).toMatch(/\[:sin .*\[:cos |\[:cos .*\[:sin /);
+    expect(await page.locator('#input-term').inputValue()).toMatch(/sin.*cos|cos.*sin/);
     await expectSnapshot(page, { stopReason: 'saturated' });
   });
 
