@@ -78,6 +78,16 @@ class holds 1680 arrangements in thirty nodes; a class that reaches
 itself holds infinitely many), what it points at and what points at
 it, and where it has been along the run.
 
+"Draw the graph", in the row under the transport, adds the picture:
+a box per class with its nodes inside and an edge from each node to
+the class it points at, layered with the leaves at the bottom, the
+same marks as the list, and the polynomial in the box on the bendix
+lessons; hover a box to light its row, click it to open the class,
+zoom or fit the width, or draw only what the opened class reaches.
+It is off by default because it takes the room. The same row copies
+or downloads the step as egraph-serialize JSON, the format egg's and
+egglog's tools read, every node costed under the cost in force.
+
 ## Two modes
 
 Native: the tagged-vector format, typed into the page or at the

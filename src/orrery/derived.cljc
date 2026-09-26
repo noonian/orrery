@@ -7,12 +7,16 @@
   clears (orrery.state), so the views build on the JVM and Jolt as
   well as in the browser."
   (:require [cromulent.core :as eg]
+            [cromulent.export :as export]
             [cromulent.extract :as ex]
             [cromulent.pattern :as pat]
             [orrery.costs :as costs]
             [orrery.diff :as diff]
             [orrery.eclass :as eclass]
+            [orrery.graph :as graph]
             [orrery.lessons :as lessons]
+            [orrery.normal :as normal]
+            [orrery.notation :as notation]
             [orrery.run :as run]))
 
 (defonce ^:private cache (atom {}))
@@ -115,6 +119,61 @@
 
 (defn matched-classes [matches]
   (into #{} (mapcat (fn [m] (map :class (:matches m)))) matches))
+
+(defn- form-label
+  "What a class's normal form says in a box's head, in the print mode:
+  the polynomial, its opaque atoms rendered by their best terms, cut
+  short past a couple of dozen characters, or what the analysis
+  reports instead."
+  [g id mode render]
+  (when-let [{:keys [kind term]} (normal/form g id render)]
+    (case kind
+      :polynomial (let [s (if (= :native mode) (pr-str term) (notation/term->str term))]
+                    (if (> (count s) 24) (str (subs s 0 23) "…") s))
+      :atom "its own atom"
+      :too-big "too big"
+      :conflict "a contradiction"
+      nil)))
+
+(defn graph-at
+  "The picture of the e-graph at the current step (orrery.graph/layout):
+  every class, or, with the filter on and a class opened, what that
+  class reaches; labels in the print mode, a polynomial's opaque
+  atoms spelled by their best terms under the cost in force. One
+  layout per step, filter, mode and cost."
+  [s]
+  (let [{:keys [run run-id step cost]} s
+        mode (get-in s [:ui :print])
+        selected (get-in s [:ui :selected])]
+    (when run
+      (let [g (run/egraph-at run step)
+            only (when (and (get-in s [:ui :graph-filter?]) selected (< selected (:next-id g)))
+                   (graph/reachable g selected))]
+        (cached [run-id step mode only cost :graph]
+                #(let [best (best-at s)]
+                   (graph/layout g {:only only
+                                    :node-label (fn [n] (if (= :native mode) (pr-str n) (notation/enode->str n)))
+                                    :class-label (fn [id] (form-label g id mode (fn [c] (:term (best c)))))})))))))
+
+(defn export-json
+  "The e-graph on show as egraph-serialize JSON (cromulent.export):
+  every node with its cost under the cost in force, the input's class
+  as the root, and, when the graph carries the polynomial analysis,
+  each class's kind as its type and its normal form in the notation,
+  opaque atoms spelled by their best terms."
+  [s]
+  (when-let [g (current-egraph s)]
+    (let [root (root-at s)
+          best (best-at s)
+          render (fn [c] (:term (best c)))]
+      (export/json g {:cost (costs/cost-fn (:cost s) g)
+                      :roots (when root [root])
+                      :class-data (when (normal/analysis? g)
+                                    (fn [g id]
+                                      (when-let [{:keys [kind term]} (normal/form g id render)]
+                                        (if (= :polynomial kind)
+                                          {"type" "polynomial" "poly" (notation/term->str term)}
+                                          {"type" (name kind)}))))}))))
 
 (defn snapshot
   "Plain data about where the page is, for the end-to-end check."

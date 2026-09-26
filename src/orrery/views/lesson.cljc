@@ -15,6 +15,7 @@
             [orrery.views.classes :as classes]
             [orrery.views.common :as common]
             [orrery.views.detail :as detail]
+            [orrery.views.graph :as graph]
             [orrery.views.matches :as matches]
             [orrery.views.repl :as repl]
             [orrery.views.scrubber :as scrubber]
@@ -146,6 +147,35 @@
                             :labels (:labels r)
                             :root-id (derived/root-at s)}))])
 
+(defn- tools
+  "The row under the replay bar: the graph picture's switch, and the
+  e-graph on show as egraph-serialize JSON, copied or downloaded."
+  [s]
+  (let [graph? (get-in s [:ui :graph?])]
+    [:div.tools {:id "tools"}
+     [:button {:id "graph-toggle" :class (when graph? "current") :on {:click [:graph/toggle]}}
+      (if graph? "hide the graph" "draw the graph")]
+     [:span.spacer]
+     [:span.status {:title "the e-graph on show in the egraph-serialize format, which egg's and egglog's tools read"}
+      "this step as egraph-serialize JSON:"]
+     [:button {:id "export-copy" :on {:click [:export/copy]}} "copy"]
+     [:button {:id "export-download" :on {:click [:export/download]}} "download"]
+     (when-let [m (get-in s [:ui :export-status])]
+       [:span.status {:id "export-status"} m])]))
+
+(defn- graph-panel [s matches]
+  (when (get-in s [:ui :graph?])
+    (let [selected (get-in s [:ui :selected])]
+      (graph/graph-view {:layout (derived/graph-at s)
+                         :root (derived/root-at s)
+                         :selected selected
+                         :hovered (get-in s [:ui :hover])
+                         :diff (derived/diff-at s)
+                         :matches (derived/matched-classes matches)
+                         :zoom (get-in s [:ui :graph-zoom])
+                         :filter? (get-in s [:ui :graph-filter?])
+                         :filterable? (some? selected)}))))
+
 (defn- best-panel [s l]
   (let [best (derived/best-at s)
         root (derived/root-at s)
@@ -215,6 +245,8 @@
                (tree/tree-view {:g g :term (get-in s [:input :values :term])
                                 :hovered (or (get-in s [:ui :hover]) (get-in s [:ui :selected]))})])
             (replay-bar s r g)
+            (tools s)
+            (graph-panel s matches)
             (if (contains? panels :fork)
               [:div.fork
                (class-panel "the original, step 0" (derived/egraph-at s 0) s 0 {:root (:root r)})

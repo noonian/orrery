@@ -87,11 +87,31 @@ ported in phase 2. All eleven are live.
 
 The panels, each mapped to what exists:
 
-- **The graph.** Classes as boxes, nodes inside, edges to child
-  classes. Rendered by the egraphs-good `egraph-visualizer` component
-  (Cytoscape and the Eclipse Layout Kernel) fed the `egraph-serialize`
-  JSON that cromulent will emit. For small graphs. Past a few dozen
-  classes the picture is spaghetti and the class list is primary.
+- **The graph** (2026-09-26). Classes as boxes, nodes inside, an
+  edge from each node's child slot to the class it points at, drawn
+  by the page itself: `orrery.graph` lays it out and
+  `orrery.views.graph` renders SVG. Layers by height with the leaves
+  at the bottom, so every edge points down except one that closes a
+  cycle, drawn back up and dashed; within a layer the boxes are
+  ordered by the barycenter of their neighbours, ties by id; integer
+  coordinates, the same counts on every runtime, positions that
+  follow the ids. The picture carries the marks of the list, the
+  input's class, the opened and the hovered class, what the step
+  added or merged, where a rule matches, and a bendix class's
+  polynomial in its head; hovering a box lights its row and clicking
+  it opens the class, as with the tree. Off by default (the Captain,
+  2026-09-26: it takes the room), switched on from the tools row
+  under the replay bar and kept on across lessons; zoom in and out
+  or fit the width, and a filter to what the opened class reaches.
+  Past a few dozen classes the picture is a wall, lesson 7's blowup
+  on purpose, and the class list is primary. Why not the
+  egraphs-good visualizer: section 9 and section 12, decision 9.
+- **The export** (2026-09-26). The tools row copies or downloads the
+  step on show as `egraph-serialize` JSON (`cromulent.export` through
+  `orrery.derived/export-json`): every node costed under the cost in
+  force, the input's class as the root, and on a bendix graph each
+  class's kind as its type and its polynomial in the notation as
+  class data, which that format's tools show inside the class.
 - **The class list.** Every root, its nodes, its parents, its analysis
   data rendered. `eg/roots`, `eg/nodes`, `eg/eclass`, `eg/data`.
 - **The opened class** (2026-09-26). A click on a class id, on a
@@ -338,9 +358,14 @@ the pass on the prose in the explorable-explanation voice, with the
 widgets as its figures (section 12, decision 8), and the opened
 class the prose points at (section 3).
 
-**Later.** The egraph-visualizer picture, which is when
-`cromulent.export` and the `egraph-serialize` JSON are needed;
-per-rule timings at scale; static deployment.
+**Phase 4, the picture and the exporter** (delivered 2026-09-26).
+`cromulent.export`, the `egraph-serialize` JSON with a printer of its
+own (section 12, decision 2); bendix's `class-data` and `serialize`
+over it; the page's copy and download of the step on show; and the
+graph drawn by the page, off by default (section 3; section 12,
+decision 9).
+
+**Later.** Per-rule timings at scale; static deployment.
 
 ## 8. Portability ledger
 
@@ -362,11 +387,22 @@ rename, and cost nothing measurable on the primary runtimes.
 
 ## 9. Relationship to existing tools
 
-- **egraph-visualizer** (egraphs-good; Cytoscape + ELK; an npm
-  package and a GitHub Pages demo): the static picture of one
-  serialized e-graph. Reused, not rebuilt.
-- **egraph-serialize**: the JSON format between e-graph libraries and
-  the visualizer. cromulent emits it.
+- **egraph-visualizer** (egraphs-good): a picture of one serialized
+  e-graph, or of a list of them with a slider. Read from its source
+  on 2026-09-26, version 2.3.0: React 18, React Flow and elkjs in a
+  worker, not the Cytoscape of its first version; 3.3 MB minified
+  and 968 KB gzipped plus 260 KB of CSS, against the 1.27 MB of the
+  whole orrery page; `mount(el)` returns `render(jsons)` and
+  `unmount()` and nothing else, no event out and no state in, so a
+  click in it cannot open a class and the opened class cannot light
+  in it; it ignores `cost` and `root_eclasses`. Its two features
+  worth wanting, the filter to what a selection reaches and
+  positions that hold across a history, the page's own picture has.
+  Weighed and not taken (section 12, decision 9).
+- **egraph-serialize**: the JSON format between e-graph libraries
+  and their tools. cromulent emits it (`cromulent.export`), and the
+  page copies or downloads the step on show, so any graph here opens
+  in that visualizer's demo site, in egg's tools or in a notebook.
 - **egglog-demo**: a text box and a run button over egglog. No
   timeline, no diff, no cost picker, no analysis data, no fork,
   because a mutable engine does not keep the states.
@@ -422,13 +458,23 @@ the one the page most wants to welcome. The other mode stays
 
 1. **The packed-key layout.** Decided 2026-09-25: one layout, under
    2^53, by the bench (section 8).
-2. **Where the exporter lives.** Deferred until the visualizer needs
-   it; `cromulent.export` with a bendix counterpart remains the
-   recommendation.
+2. **Where the exporter lives.** Decided 2026-09-26: `cromulent.export`,
+   `serialize` to the format's data with string keys and `json` to
+   its text, with a JSON printer of its own, thirty lines, so the
+   same text comes out on the JVM, on Jolt and in ClojureScript (one
+   smoke fact pins it) and no runtime prints a ratio; a node is
+   named `class.i` in `compare-nodes` order and a child is the first
+   node of its class, as egg names them; the cost is the cheapest
+   term the node heads, when a number. The bendix counterpart is
+   `bendix.core/class-data` and `serialize`, each class's kind as its
+   type and its polynomial as a term. The page composes its own over
+   the cost in force and the notation (section 3, the export).
 3. **Where lesson prose lives.** Decided: hiccup data in
    `orrery.lessons` (section 6).
-4. **The picture at scale.** Decided: the class list is primary; the
-   visualizer comes later, with the exporter.
+4. **The picture at scale.** Decided: the class list is primary. The
+   picture came 2026-09-26, drawn by the page and off by default
+   (decision 9); at lesson 7's thirty-one classes it fits the width
+   as a wall and zooms, which is the lesson.
 5. **Notation display in phase 1.** Decided yes: `orrery.notation`.
 6. **The runner as start/step/finish.** Done 2026-09-25:
    `cromulent.rewrite/start`, `step` and `finish`, with `embiggen` as
@@ -482,6 +528,27 @@ the one the page most wants to welcome. The other mode stays
    (the Captain, 2026-09-26: cite the authors, footnote the papers,
    no history lesson). Links are DOIs where one exists, each checked
    against CrossRef.
+9. **The picture: the egraphs-good visualizer, or the page's own.**
+   Decided 2026-09-26, the page's own (section 3). The Captain asked
+   whether the visualizer still made sense beside the tree panel and
+   which of its interactions were worth having. The tree draws a
+   term, not the graph, and only lessons 1 and 2 show it; the graph
+   itself had no picture, a class with several nodes, a merge and a
+   cycle being text in the list and the opened class. The visualizer
+   was read from source (section 9): its two interactions worth
+   wanting are the filter to what a selection reaches and positions
+   that hold across a history, and both fall out of a layout the
+   page owns, since the opened class already knows its children and
+   the layers and the order are functions of the value. Against
+   embedding it: React in the page, which the Captain has ruled out
+   (section 6); three times the download for a panel the design
+   already limits to small graphs; and no way in or out of it, so
+   the hover, the opened class, the cost picker and the diff would
+   all have stopped at its edge. The layout is a layered one of a
+   hundred and fifty lines, `orrery.graph`, tested like everything
+   else on the JVM and Jolt; dagre (29 KB gzipped) is the fallback
+   if it ever falls short, elkjs (470 KB) the one after. The exporter
+   was wanted either way and is independent of the picture.
 
 ## Status
 
@@ -574,5 +641,31 @@ rows and their marks. `selection.spec.js` now finds the detail in
 of lesson 7's list, and one opened class over lesson 10's two
 panels: 60 specs in the browser.
 
-Next: the later items of section 7, the visualizer with the
-exporter first.
+The picture and the exporter, 2026-09-26 (phase 4, section 7):
+`cromulent.export` (section 12, decision 2) with `export_test` and a
+smoke fact, the JSON text of `2·x + y`, the same on the three
+runtimes; `bendix.core/class-data` and `serialize`; `orrery.graph`,
+the layered layout (section 3), and `orrery.views.graph`, the SVG,
+with the tools row under the replay bar (`orrery.views.lesson/tools`)
+holding the switch and the export's copy and download, the graph's
+state (`:graph?`, `:graph-filter?`, `:graph-zoom`, `:export-status`)
+in the atom, the layout memoized per step, filter, mode and cost in
+`orrery.derived/graph-at`, and the clipboard and the download link
+in `orrery.dispatch`, the only place the DOM is touched.
+`graph_test` checks every lesson at every step, a box per class with
+every node in it, an edge per child slot, every edge downward but
+the ones that close a cycle, no overlap, all inside the picture, and
+pins lesson 2 (four boxes, four edges, the product's two edges into
+one class), lesson 7 (31 boxes, 185 nodes, 360 edges, five layers),
+lesson 9's cycle and lesson 3's merged class with its two parents;
+`export_test` reads the page's JSON for lessons 2, 8 and 9;
+`page_test` builds every lesson at every step with the graph on,
+filtered and zoomed, as well as off; `graph.spec.js` drives the
+switch, the marks, the filter, the zoom, the print mode, the fork
+and both exports in the browser, the download read back and parsed.
+The suites are 55 tests and 25676 assertions on the JVM and Jolt, 65
+facts on node, 108 in the tile, 69 specs in the browser; the release
+bundle is 1.28 MB (319 KB gzipped), the picture and the export adding fifteen kilobytes.
+
+Next: the later items of section 7, per-rule timings at scale and
+static deployment.

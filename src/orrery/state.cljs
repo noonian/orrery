@@ -28,7 +28,8 @@
          :follow? true
          :cost :ast-size
          :repl {:input "" :history []}
-         :ui {:print :notation :playing nil :selected nil :hover nil :drawing? false}}))
+         :ui {:print :notation :playing nil :selected nil :hover nil :drawing? false
+              :graph? false :graph-filter? false :graph-zoom nil :export-status nil}}))
 
 (def lesson derived/lesson)
 
@@ -62,7 +63,8 @@
                          (assoc :step (if (= :running (:status run)) 0 (run/last-step run)))
                          (assoc :follow? true)
                          (assoc-in [:ui :selected] nil)
-                         (assoc-in [:ui :hover] nil))))
+                         (assoc-in [:ui :hover] nil)
+                         (assoc-in [:ui :export-status] nil))))
   run)
 
 (defn start-run!
@@ -232,6 +234,29 @@
       (swap! app-state assoc-in [:ui :selected] id))))
 
 (defn hover! [id] (swap! app-state assoc-in [:ui :hover] id))
+
+;; ---------------------------------------------------------------------------
+;; the graph picture and the export
+
+(defn toggle-graph! [] (swap! app-state update-in [:ui :graph?] not))
+
+(defn toggle-graph-filter! [] (swap! app-state update-in [:ui :graph-filter?] not))
+
+(def zoom-levels [0.25 0.35 0.5 0.75 1 1.5 2 3])
+
+(defn zoom-graph!
+  "The graph's zoom: nil fits the width; :in and :out step through
+  `zoom-levels`, from the fit to the natural size going in and to
+  three quarters going out."
+  [dir]
+  (swap! app-state update-in [:ui :graph-zoom]
+         (fn [z]
+           (case dir
+             :fit nil
+             :in (if (nil? z) 1 (or (first (filter #(> % z) zoom-levels)) z))
+             :out (if (nil? z) 0.75 (or (last (filter #(< % z) zoom-levels)) z))))))
+
+(defn set-export-status! [text] (swap! app-state assoc-in [:ui :export-status] text))
 
 ;; ---------------------------------------------------------------------------
 ;; the REPL

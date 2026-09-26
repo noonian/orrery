@@ -1,8 +1,9 @@
 (ns orrery.page-test
   "The whole page, built on the JVM and Jolt: every live lesson, every
   step of its curated run, in either print mode, with its input class
-  opened and with a REPL history, as the hiccup Replicant renders in
-  the browser. Every event handler in it is data over
+  opened, with and without the graph picture (filtered to what the
+  opened class reaches, zoomed), and with a REPL history, as the
+  hiccup Replicant renders in the browser. Every event handler in it is data over
   orrery.actions and never a function, which is what lets the page
   build here at all."
   (:require [clojure.test :refer [deftest is testing]]
@@ -19,7 +20,8 @@
    :run run :run-id 1 :step step :follow? true
    :cost (or (first (:costs l)) :ast-size)
    :repl {:input "" :history []}
-   :ui {:print :notation :playing nil :selected nil :hover nil :drawing? false}})
+   :ui {:print :notation :playing nil :selected nil :hover nil :drawing? false
+        :graph? false :graph-filter? false :graph-zoom nil :export-status nil}})
 
 (defn- handlers
   "Every event handler in a hiccup tree."
@@ -41,17 +43,24 @@
                 _ (derived/clear-cache!)]
           step (range (count (:timeline run)))
           mode [:notation :native]
+          graph? [false true]
           :let [s (-> (state-for l run step) (assoc-in [:ui :print] mode))
                 s (assoc-in s [:ui :selected] (derived/root-at s))
+                s (cond-> s graph? (update :ui assoc :graph? true :graph-filter? true :graph-zoom 1.5 :export-status "copied"))
                 h (page/page s)
                 hs (vec (handlers h))
-                where (str (:title l) ", step " step ", " (name mode))]]
+                where (str (:title l) ", step " step ", " (name mode) (when graph? ", the graph"))]]
     (is (vector? h) where)
     (is (seq hs) where)
     (is (every? actions/known? hs) (str where ": " (pr-str (remove actions/known? hs))))
     (is (empty? (functions h)) where)
     (is (some #(= [:select (derived/root-at s)] %) hs) (str where ": the class list links the input's class"))
-    (is (some #(= [:deselect] %) hs) (str where ": the opened class can be closed"))))
+    (is (some #(= [:deselect] %) hs) (str where ": the opened class can be closed"))
+    (is (some #(= [:graph/toggle] %) hs) (str where ": the graph can be drawn or hidden"))
+    (is (some #(= [:export/download] %) hs) (str where ": the step can be exported"))
+    (is (= graph? (boolean (some #(= [:graph/zoom :fit] %) hs))) (str where ": the graph's controls are there when it is drawn"))
+    (when graph?
+      (is (some #(= [:tree/open (derived/root-at s)] %) hs) (str where ": the graph draws the input's class")))))
 
 (deftest the-repl-panel-builds-with-a-history
   (let [l lessons/tree

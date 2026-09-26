@@ -11,7 +11,9 @@
             [orrery.normal-test]
             [orrery.exact-test]
             [orrery.generate-test]
-            [orrery.score-test]))
+            [orrery.score-test]
+            [orrery.graph-test]
+            [orrery.export-test]))
 
 (defn -main [& _]
   (let [{:keys [fail error]} (t/run-tests 'orrery.notation-test
@@ -24,5 +26,7 @@
                                           'orrery.normal-test
                                           'orrery.exact-test
                                           'orrery.generate-test
-                                          'orrery.score-test)]
+                                          'orrery.score-test
+                                          'orrery.graph-test
+                                          'orrery.export-test)]
     (System/exit (if (pos? (+ fail error)) 1 0))))
