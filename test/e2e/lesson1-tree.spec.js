@@ -38,4 +38,13 @@ test.describe('1. A term is a tree', () => {
     await expectSnapshot(page, { classes: 5, nodes: 5 });
     await expect(page.locator('.tnode')).toHaveCount(5);
   });
+
+  test('a ratio is exact, a float is refused', async ({ page }) => {
+    await openLesson(page, 1);
+    await submit(page, { term: '[:* 1/2 :x]' });
+    await expectSnapshot(page, { status: 'done', classes: 3, nodes: 3 });
+    await expect(page.locator('.tnode > .tlabel > .top')).toHaveText(['*', '1/2', 'x']);
+    await submit(page, { term: '[:* 0.5 :x]' });
+    await expect(page.locator('.input-area .error')).toContainText('0.5 is not exact; write a ratio such as 1/2');
+  });
 });

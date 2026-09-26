@@ -19,7 +19,7 @@
 
 (defn stop-reason-text [reason]
   (case reason
-    :saturated "saturated: no rule can add anything"
+    :saturated "saturated: the rules merge nothing more"
     :node-limit "stopped at the node limit"
     :iter-limit "stopped at the iteration limit"
     :time-limit "stopped at the time limit"
@@ -29,8 +29,9 @@
     (name reason)))
 
 (defn tiles
-  "The counters: classes, nodes, iteration, and how it ended."
-  [{:keys [classes nodes step iterations status stop-reason ms]}]
+  "The counters: classes, nodes, the step of the timeline (its last
+  entry may follow the last iteration), and how it ended."
+  [{:keys [classes nodes step n status stop-reason ms]}]
   (let [running? (= :running status)]
     [:div.tiles
      [:div.tile {:id "tile-classes" :class (when running? "running")}
@@ -38,8 +39,8 @@
      [:div.tile {:id "tile-nodes" :class (when running? "running")}
       [:div.tile-label "nodes"] [:div.tile-value (str nodes)]]
      [:div.tile {:id "tile-iteration"}
-      [:div.tile-label "iteration"]
-      [:div.tile-value (str step " / " iterations)]
+      [:div.tile-label "step"]
+      [:div.tile-value (str step " / " n)]
       [:div.tile-note (if running? "running…" (stop-reason-text stop-reason))]]
      [:div.tile {:id "tile-ms"}
       [:div.tile-label "engine time"] [:div.tile-value (str (js/Math.round (or ms 0)) " ms")]]]))

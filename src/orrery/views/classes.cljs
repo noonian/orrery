@@ -1,10 +1,22 @@
 (ns orrery.views.classes
   "The class list: every root of the e-graph, its nodes, its parents,
-  and the best term of the class under the cost in force. Diff
-  highlighting marks what the current step added or merged."
+  and the best term of the class under the cost in force, and, when
+  the graph carries bendix's polynomial analysis, the normal form
+  of each class. Diff highlighting marks what the current step added
+  or merged."
   (:require [cromulent.core :as eg]
             [orrery.lay :as lay]
+            [orrery.normal :as normal]
             [orrery.views.common :as common]))
+
+(defn- form-view [g id mode best]
+  (let [{:keys [kind term] atom-id :id} (normal/form g id (when best #(:term (best %))))]
+    (case kind
+      :polynomial (common/term-view term mode)
+      :atom [:span.status (str "its own atom, " (lay/class-ref atom-id))]
+      :too-big [:span.status "too big: the analysis gave up"]
+      :conflict [:span.status "a contradiction"]
+      nil)))
 
 (defn- ref-chip [id on-select]
   [:span.ref {:on {:click #(on-select id)}} (lay/class-ref id)])
@@ -14,7 +26,8 @@
   (let [added (:added diff)
         absorbing (:absorbing diff)
         new-classes (:new-classes diff)
-        dirty? (:dirty? g)]
+        dirty? (:dirty? g)
+        normal? (normal/analysis? g)]
     [:div
      [:div.legend
       [:span [:span.swatch {:style {:background "var(--added)"}}] "node added this step"]
@@ -23,7 +36,7 @@
       [:span [:span.swatch {:style {:background "var(--root)"}}] "the input's class"]
       (when (seq matches) [:span [:span.swatch {:style {:background "var(--match)"}}] "a rule matches here"])]
      [:table.classes
-      [:thead [:tr [:th "class"] [:th "nodes"] [:th "best"] [:th "parents"]]]
+      [:thead [:tr [:th "class"] [:th "nodes"] (when normal? [:th "polynomial"]) [:th "best"] [:th "parents"]]]
       (into [:tbody]
             (for [id (eg/roots g)
                   :let [c (eg/eclass g id)
@@ -42,5 +55,6 @@
                      (for [node (sort-by pr-str (:nodes c))]
                        [:span.node {:class (when (contains? added-here node) "added")}
                         (common/enode-view node mode on-select)]))
+               (when normal? [:td.poly (form-view g id mode best)])
                [:td (when best (common/term-view (:term (best id)) mode))]
                [:td (str (count (:parents c)))]]))]]))

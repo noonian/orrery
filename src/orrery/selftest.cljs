@@ -1,15 +1,16 @@
 (ns orrery.selftest
-  "The self-test tile: cromulent's cross-runtime facts and every
-  lesson's expectation, run in this browser after the page has
-  painted. The same table the JVM and Jolt suites assert."
-  (:require [cromulent.smoke :as smoke]
+  "The self-test tile: cromulent's and bendix's cross-runtime facts
+  and every lesson's expectation, run in this browser after the page
+  has painted. The same table the JVM and Jolt suites assert."
+  (:require [bendix.smoke :as bendix-smoke]
+            [cromulent.smoke :as smoke]
             [orrery.expect :as expect]
             [replicant.dom :as r]))
 
 (defn check! []
   (let [el (js/document.getElementById "selftest")
         t0 (js/performance.now)
-        cs (into (smoke/checks) (expect/checks))
+        cs (-> (smoke/checks) (into (bendix-smoke/checks)) (into (expect/checks)))
         ms (js/Math.round (- (js/performance.now) t0))
         failed (remove :ok? cs)]
     (r/render el

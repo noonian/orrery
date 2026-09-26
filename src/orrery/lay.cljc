@@ -7,7 +7,8 @@
   of a sum stays visible. E-nodes, whose children are class ids, print
   the ids as #7. Pure and the same on every runtime; lay input, the
   parser, is a later addition."
-  (:require [clojure.string :as str]))
+  (:require [bendix.num :as num]
+            [clojure.string :as str]))
 
 ;; Precedence levels: 0 shifts, 1 sums, 2 a function applied to a bare
 ;; atom (sin x) and a derivative (d/dx u), 3 products, 4 unary minus,
@@ -45,6 +46,7 @@
   [x]
   (cond (keyword? x) (name x)
         (number? x) (number-str x)
+        (num/ratio? x) (number-str (str x))
         (symbol? x) (str x)
         (string? x) x
         :else (pr-str x)))
@@ -101,7 +103,7 @@
 
         :else
         [(str (name op) (paren (str/join ", " (map first cs)))) 6]))
-    [(leaf-str t) 6]))
+    [(leaf-str t) (if (num/ratio? t) 3 6)]))   ; 1/2·x, x^(1/2)
 
 (defn- render-term [t] (render t render-term false))
 

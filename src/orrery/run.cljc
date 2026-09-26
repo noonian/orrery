@@ -22,15 +22,30 @@
    {:kind :script :timeline (mapv second steps) :labels (mapv first steps) :root root
     :stats [] :iterations 0 :stop-reason :done :status :done :ms 0}))
 
+(defn- after-steps
+  "The run with its :after steps applied to the last e-graph, each
+  [label f] adding one entry."
+  [run]
+  (reduce (fn [run [label f]]
+            (-> run
+                (update :timeline conj (f (peek (:timeline run))))
+                (update :labels conj label)))
+          run
+          (:after run)))
+
 (defn start
   "A stepped saturation of term under rules: the term is added to an
   empty e-graph, rebuilt, and becomes entry 0; :root is its class.
-  opts as `rw/embiggen` takes them, over `defaults`."
+  opts as `rw/embiggen` takes them, over `defaults`, plus :egraph,
+  the empty e-graph to start from (one carrying an analysis, say),
+  and :after, steps [label f] appended once the engine stops, f
+  taking the last e-graph and returning the next (a materialization)."
   [term rules opts]
-  (let [[g root] (eg/add (eg/egraph) term)
-        opts (merge defaults opts)
+  (let [{:keys [egraph after]} opts
+        [g root] (eg/add (or egraph (eg/egraph)) term)
+        opts (merge defaults (dissoc opts :egraph :after))
         engine (rw/start g rules opts)]
-    {:kind :embiggen :term term :rules rules :opts opts :root root
+    {:kind :embiggen :term term :rules rules :opts opts :root root :after (vec after)
      :engine engine
      :timeline [(:egraph engine)] :labels ["the input"] :stats [] :iterations 0
      :stop-reason nil :status :running :ms 0}))
@@ -51,7 +66,8 @@
                       (assoc :iterations iter))
         stop (-> (assoc :stop-reason stop :status :done)
                  (assoc :ms (:ms (rw/finish engine')))
-                 (dissoc :engine))))))
+                 (dissoc :engine)
+                 after-steps)))))
 
 (defn stop
   "The run, stopped where it is."
@@ -59,7 +75,8 @@
   (if (= :running (:status run))
     (-> run (assoc :status :done :stop-reason :stopped)
         (assoc :ms (if-let [e (:engine run)] (:ms (rw/finish e)) (:ms run)))
-        (dissoc :engine))
+        (dissoc :engine)
+        after-steps)
     run))
 
 (defn run-all

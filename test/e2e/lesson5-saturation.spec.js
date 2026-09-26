@@ -5,7 +5,7 @@ test.describe('5. Saturation', () => {
   test('backoff bans the busy rule, and the run still saturates', async ({ page }) => {
     await openLesson(page, 5);
     await expectSnapshot(page, { stopReason: 'saturated', classes: 15, nodes: 54 });
-    await expect(page.locator('#tile-iteration .tile-note')).toHaveText('saturated: no rule can add anything');
+    await expect(page.locator('#tile-iteration .tile-note')).toHaveText('saturated: the rules merge nothing more');
     const { iterations } = await snapshot(page);
     const stats = page.locator('table.stats');
     await expect(stats.locator('tbody tr')).toHaveCount(iterations);

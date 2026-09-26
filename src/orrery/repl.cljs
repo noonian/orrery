@@ -4,7 +4,13 @@
   the prompt calls the same function the scrubber called. This is the
   one namespace that knows SCI exists; the page hands it a string and
   gets a value or an error back."
-  (:require [cromulent.check]
+  (:require [bendix.analysis]
+            [bendix.core]
+            [bendix.num]
+            [bendix.poly]
+            [bendix.rules]
+            [bendix.term]
+            [cromulent.check]
             [cromulent.core]
             [cromulent.extract]
             [cromulent.pattern]
@@ -26,7 +32,13 @@
    'orrery.lay        (sci/copy-ns orrery.lay (sci/create-ns 'orrery.lay))
    'orrery.run        (sci/copy-ns orrery.run (sci/create-ns 'orrery.run))
    'orrery.lessons    (sci/copy-ns orrery.lessons (sci/create-ns 'orrery.lessons))
-   'orrery.diff       (sci/copy-ns orrery.diff (sci/create-ns 'orrery.diff))})
+   'orrery.diff       (sci/copy-ns orrery.diff (sci/create-ns 'orrery.diff))
+   'bendix.core       (sci/copy-ns bendix.core (sci/create-ns 'bendix.core))
+   'bendix.rules      (sci/copy-ns bendix.rules (sci/create-ns 'bendix.rules))
+   'bendix.analysis   (sci/copy-ns bendix.analysis (sci/create-ns 'bendix.analysis))
+   'bendix.poly       (sci/copy-ns bendix.poly (sci/create-ns 'bendix.poly))
+   'bendix.term       (sci/copy-ns bendix.term (sci/create-ns 'bendix.term))
+   'bendix.num        (sci/copy-ns bendix.num (sci/create-ns 'bendix.num))})
 
 (def prelude
   "The user namespace with the engine's aliases."
@@ -34,7 +46,10 @@
                      [cromulent.rewrite :as rw] [cromulent.extract :as ex]
                      [cromulent.term :as term] [cromulent.check :as check]
                      [orrery.lay :as lay] [orrery.run :as run]
-                     [orrery.lessons :as lessons] [orrery.diff :as diff]))")
+                     [orrery.lessons :as lessons] [orrery.diff :as diff]
+                     [bendix.core :as bx] [bendix.rules :as rules]
+                     [bendix.analysis :as an] [bendix.poly :as poly]
+                     [bendix.term :as bt] [bendix.num :as num]))")
 
 (defonce ^:private ctx
   (let [c (sci/init {:namespaces namespaces

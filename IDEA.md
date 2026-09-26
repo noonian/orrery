@@ -80,9 +80,8 @@ example, and a "try another" that draws from the example bank
 | 10 | What if | assert `x = 2` in a copy of the graph; watch what collapses; the original is untouched | persistence: the fork is a `let` |
 | 11 | Differentiation is simplification | `d/dx sin(2x)` under the derivative rules with a cost that refuses `D` | `differentiate`, `no-D` |
 
-Lessons 1 to 7 and 10 need cromulent only. Lessons 8, 9 and 11 need
-bendix, which fixes the phase in which they become live (section 7);
-before that they run from recorded traces.
+Lessons 1 to 7 and 10 need cromulent only; 8, 9 and 11 need bendix,
+ported in phase 2. All eleven are live.
 
 ## 3. What it shows
 
@@ -236,8 +235,14 @@ REPL panel; the end-to-end check. What remains of the phase is
 polish as the lessons get used: prose, the picture at scale, the
 "surprise me" bank once bendix is live.
 
-**Phase 2, bendix live.** `bendix.num`, the numeric layer (section 8);
-lessons 8, 9 and 11 live; the generator and scorer live.
+**Phase 2, bendix live** (delivered 2026-09-25). `bendix.num`, the
+numeric layer (section 8), and bendix's five namespaces as `.cljc`
+with no other change than routing every coefficient operation
+through it; `bendix.smoke`, its facts on the three runtimes; lessons
+8, 9 and 11 live, with the class list carrying each class's
+polynomial, bendix's two costs in the picker, and a run that ends
+with a materialization step so extraction can choose a normal form.
+Still to come from this phase: the generator and scorer.
 
 **Phase 3, lay input.** The parser; then a pass on the prose in the
 explorable-explanation voice, with the widgets as its figures.
@@ -260,7 +265,7 @@ rename, and cost nothing measurable on the primary runtimes.
 | backoff arithmetic | doubling by multiplication, on all runtimes |
 | exceptions | `(catch #?(:clj Exception :default :default) e …)`, twice in `cromulent.rewrite` |
 | determinism | class and node counts, iterations, stop reasons, per-rule counts and costs are identical on the three runtimes (`cromulent.smoke`). Root ids and tied extractions are stable per runtime only: hash iteration order differs, and the tie falls to child ids. Every arrangement of the five-atom sum costs 9, so lesson 7 asserts the cost, not the spelling |
-| bendix numerics | unchanged: `bendix.num` is the first task of phase 2. The EDN reader turns `1/2` into `0.5` in ClojureScript, so a ratio needs its own reader there |
+| bendix numerics | `bendix.num` (2026-09-25): on the JVM and Jolt the operations are `+'`, `*'` and `/` with bignum promotion; in ClojureScript an integer is a number within 2^53 (past it, the operation throws) and a non-integer rational is a `Ratio` deftype, normalized, hashed and compared by value, printed as `1/2`, never zero and never an integer, so `zero?`, `integer?` and `=` against small literals keep their meaning on plain numbers. Only the sites that add, multiply, divide or compare a coefficient call it; exponents are plain integers. `bendix.num/read-string` is the EDN reader with ratios exact everywhere: ClojureScript's reader turns `1/2` into `0.5`, so the text is scanned for ratio tokens first and each becomes a tagged literal. The one ratio literal in bendix's source, `65/64` in the default cost, is written as a division because the ClojureScript compiler has no ratio constant; it is the exact double 1.015625 there, so costs stay exact and comparable, and the page prints a cost that is a multiple of 1/64 as `k/64`. `cromulent.term/compare-nodes` ranks a `Ratio` leaf after vectors in ClojureScript and among numbers on the JVM, which only moves a tie |
 | performance | compiled: 29 self-test facts in about 40 ms in Chromium; the sum of six atoms (608 nodes, 8 iterations) well under a second; the AC-10 yardstick is still not a browser workload |
 
 ## 9. Relationship to existing tools
@@ -348,15 +353,20 @@ port first and the compiled page as the end state):
   `orrery.views.{common,scrubber,classes,tree,matches,stats,repl,lesson}`,
   `orrery.selftest`, `orrery.app`, `public/index.html`,
   `public/style.css` (light and dark).
-- Lessons 1 to 7 and 10 live, each with a curated example, two or
-  three alternatives, editable inputs (terms, a pattern, rules as
-  `[name lhs rhs]` data) and prose with inline widgets; 8, 9 and 11
-  wait for bendix. The self-test tile runs the 28 engine facts and
-  every lesson's expectation in the browser on load, in about 60 ms;
-  the Playwright suite (`npm run e2e`, 34 specs) drives every live
-  lesson, its alternatives and inputs, the transport and the REPL
-  through the DOM. Writing it found one misreport: a class whose fresh
+- All eleven lessons live, each with a curated example, alternatives,
+  editable inputs (terms, a pattern, rules as `[name lhs rhs]` data,
+  exact numbers) and prose with inline widgets. bendix is `.cljc`
+  behind `bendix.num`; `orrery.normal` renders each class's polynomial
+  beside it; `orrery.run` takes the e-graph to start from and steps to
+  append once the engine stops, which is how a bendix run ends with
+  every normal form written in. The self-test tile runs cromulent's
+  28 and bendix's 25 engine facts and every lesson's expectation in
+  the browser on load, in about 150 ms;
+  the Playwright suite (`npm run e2e`, 43 specs) drives every lesson,
+  its alternatives and inputs, the transport, the cost picker and the
+  REPL through the DOM. Writing it found one misreport: a class whose fresh
   root absorbed an old class was shown as new; `orrery.diff` now calls
   a class new only when it holds nothing of the earlier graph.
 
-Next: phase 2, `bendix.num` and lessons 8, 9 and 11.
+Next: the generator and scorer (the rest of phase 2), then phase 3,
+lay input.

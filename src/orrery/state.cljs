@@ -65,7 +65,8 @@
   (let [{:keys [run run-id step cost]} s]
     (when run
       (cached [run-id step cost]
-              #(ex/extractor (run/egraph-at run step) (costs/cost-fn cost))))))
+              #(let [g (run/egraph-at run step)]
+                 (ex/extractor g (costs/cost-fn cost g)))))))
 
 (defn root-at
   "The input term's class in the current e-graph, when the run has one."
@@ -196,7 +197,8 @@
                             :rules (input/read-rules text))]
                     [key (or (:term r) (:pattern r) (:rules r)) (when (:error r) (str label ": " (:error r)))]))
         error (some (fn [[_ _ e]] e) results)
-        values (into {} (map (fn [[k v _]] [k v])) results)
+        ;; a value with no field (the fixed rule set of a bendix lesson) stays
+        values (into (get-in s [:input :values]) (map (fn [[k v _]] [k v])) results)
         term (:term values)
         limit 10]
     (cond

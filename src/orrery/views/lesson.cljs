@@ -64,7 +64,7 @@
   [:div.panel {:style {:margin-top "16px"}}
    [:h3 "the run"]
    (common/tiles {:classes (eg/class-count g) :nodes (eg/node-count g)
-                  :step (:step s) :iterations (:iterations r)
+                  :step (:step s) :n (run/last-step r)
                   :status (:status r) :stop-reason (:stop-reason r) :ms (:ms r)})
    [:div {:id "run-status" :data-status (name (:status r))
           :data-stop-reason (some-> (:stop-reason r) name)
@@ -85,7 +85,7 @@
      [:h3 "best so far"]
      [:div.term {:id "best-lay"} (common/term-view term :lay)]
      [:div {:id "best-term"} (common/term-view term :native)]
-     [:div.changed (str "cost " (pr-str cost) " under " (costs/label (:cost s)))]
+     [:div.changed (str "cost " (costs/cost-str cost) " under " (costs/label (:cost s)))]
      (when (> (count picker) 1)
        (into [:div.cost-picker]
              (for [c picker]

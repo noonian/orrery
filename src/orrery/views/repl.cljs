@@ -50,7 +50,8 @@
    [:p.hint
     [:code "g"] " is the e-graph you are looking at and " [:code "timeline"] " the whole run; "
     [:code "eg"] ", " [:code "pat"] ", " [:code "rw"] ", " [:code "ex"] ", " [:code "term"] ", "
-    [:code "check"] " are cromulent's namespaces, " [:code "lay"] " and " [:code "run"] " orrery's. "
+    [:code "check"] " are cromulent's namespaces, " [:code "lay"] " and " [:code "run"] " orrery's, "
+    [:code "bx"] ", " [:code "rules"] ", " [:code "an"] ", " [:code "poly"] " and " [:code "num"] " bendix's. "
     "Ctrl-Enter evaluates."]
    (into [:div.history]
          (for [[i {:keys [in error] :as entry}] (map-indexed vector history)]

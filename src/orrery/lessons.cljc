@@ -7,7 +7,9 @@
   page shows. Prose is data so the JVM tests can walk it and the page
   can render it; there is no markdown. Lessons that need bendix carry
   :status :coming."
-  (:require [clojure.walk :as walk]
+  (:require [bendix.core :as bx]
+            [bendix.rules :as rules]
+            [clojure.walk :as walk]
             [cromulent.core :as eg]
             [cromulent.rewrite :as rw]
             [orrery.lay :as lay]
@@ -33,9 +35,10 @@
     ["mul-1" [:* ?a 1] ?a]])
 
 (defn rules-of
-  "Rule maps from [name lhs rhs] data."
+  "Rule maps from [name lhs rhs] data; a rule that is already a map
+  (bendix's normal-form rules) passes through."
   [rule-data]
-  (mapv (fn [[n lhs rhs]] (rw/rule n lhs rhs)) rule-data))
+  (mapv (fn [r] (if (map? r) r (let [[n lhs rhs] r] (rw/rule n lhs rhs)))) rule-data))
 
 (def term-input {:key :term :label "the term" :type :term})
 (def rules-input {:key :rules :label "the rules, as [name pattern replacement]" :type :rules})
@@ -206,6 +209,71 @@
    [[:p "The e-graph is a value. Asserting something in it does not change it; it makes a new one, and the old one is still there. Take " [:lay [:+ [:* :x :x] [:* 2 :x]]] " and ask: what if " [:lay :x] " were 2? Union the classes of " [:lay :x] " and 2 in a copy. " [:lay [:* :x :x]] " and " [:lay [:* 2 :x]] " are now the same node, a product of that class with itself, so " [:step 2 "congruence merges them on rebuild"] ", and the sum becomes a sum of a class with itself."]
     [:p "The original has not moved: it is step 0, side by side with the copy. In a mutable e-graph this needs an undo log or a deep copy; here a fork is a " [:native 'let] "."]]})
 
+;; ---------------------------------------------------------------------------
+;; bendix: the polynomial analysis, a rule over it, differentiation
+
+(def s2 [:expt [:sin :x] 2])
+(def c2 [:expt [:cos :x] 2])
+
+(def materialize-step
+  "The step every bendix lesson ends with: each class's normal form
+  written into the graph as a term, so extraction can choose it."
+  ["the normal forms, written in as terms" bx/materialize-all])
+
+(def bendix-opts
+  {:egraph (bx/egraph) :scheduler :simple :after [materialize-step]})
+
+(def fix
+  {:key :fix :n 8 :title "The fix" :needs :bendix :kind :embiggen
+   :inputs [term-input rules-input]
+   :values {:term (sum-of 5) :rules ac-rules}
+   :opts (assoc bendix-opts :iter-limit 12 :node-limit 5000)
+   :costs [:bendix :ast-size]
+   :alternatives [{:label "another arrangement of the same sum" :values {:term [:+ :a4 [:+ :a3 [:+ :a2 [:+ :a1 :a0]]]] :rules ac-rules}}
+                  {:label "no rules at all" :values {:term (sum-of 5) :rules []}}
+                  {:label "six atoms" :values {:term (sum-of 6) :rules ac-rules}}]
+   :panels #{:stats}
+   :prose
+   [[:p "Lesson 7's sum, " [:lay (sum-of 5)] ", the same two rules, and one addition: this e-graph carries the polynomial analysis. Every class computes what it is worth as a polynomial over the atoms, " [:lay [:+ :a0 :a1 :a2 :a3 :a4]] " for the whole sum and " [:lay [:+ :a0 :a1]] " for its first pair, and two classes with the same polynomial are merged as the node is added, before any rule sees it. The column on the right is that polynomial."]
+    [:p "Run it. " [:step 1 "One iteration"] ", and the rules merge nothing: commutativity proposes " [:lay [:+ :a1 :a0]] " for the class of " [:lay [:+ :a0 :a1]] ", the analysis has already put it there, and a union of a class with itself is not a merge. Associativity adds three classes, the right-nested pairs, and nothing more. Twelve classes and nineteen nodes where lesson 7 needed thirty-one and a hundred and eighty-five, and the runner stops there: an iteration that merges nothing is saturation."]
+    [:p "The arrangement of the sum has stopped mattering. Type any other, " [:native '[:+ :a4 [:+ :a3 [:+ :a2 [:+ :a1 :a0]]]]] " say: the class of the input has the same polynomial, and " [:step 2 "the last step"] " writes every polynomial into the graph as a term, so that the best term under bendix's cost is " [:lay [:+ :a0 :a1 :a2 :a3 :a4]] " whatever was typed. At the REPL, " [:native '(second (eg/add g [:+ :a4 [:+ :a3 [:+ :a2 [:+ :a1 :a0]]]]))] " returns the input's own class: the arrangement was already there."]
+    [:p "This is the fix: commutativity, associativity, distributivity and cancellation are not rules but a decision procedure inside every class, a polynomial normal form, and the blowup never starts. Try six atoms, which needed six hundred nodes in lesson 7."]]})
+
+(def polynomial-rule
+  {:key :polynomial-rule :n 9 :title "A rule over the polynomial" :needs :bendix :kind :embiggen
+   :inputs [term-input]
+   :values {:term [:+ [:+ [:+ :a s2] c2] :b] :rules rules/trig}
+   :opts bendix-opts
+   :costs [:bendix :ast-size]
+   :alternatives [{:label "in another arrangement" :values {:term [:+ [:+ :a c2] [:+ s2 :b]]}}
+                  {:label "1 − cos²x" :values {:term [:- 1 c2]}}
+                  {:label "with a cofactor" :values {:term [:+ [:* :y s2] [:* :y c2]]}}
+                  {:label "sin(x + y) and cos(y + x)" :values {:term [:+ [:expt [:sin [:+ :x :y]] 2] [:expt [:cos [:+ :y :x]] 2]]}}]
+   :panels #{:stats}
+   :prose
+   [[:p [:lay [:+ s2 c2]] " = 1 is not a ring identity. The ring sees " [:lay [:sin :x]] " and " [:lay [:cos :x]] " as two atoms it knows nothing about, and the class of " [:lay [:+ [:+ [:+ :a s2] c2] :b]] " is worth sin²x + cos²x + a + b, nothing less. A pattern rule would need the two squares side by side, and here they are not."]
+    [:p "The pythagoras rule reads the polynomial instead of the nodes. For every class whose polynomial mentions a sine and a cosine of one argument, it reduces the polynomial modulo sin²x = 1 − cos²x, and modulo cos²x = 1 − sin²x, and where the result differs it proposes it as another form of the class: a + b + 1 here. The runner adds that form as a term and unions it in, the analysis keeps the smaller polynomial, and the classes that share one merge. " [:step 1 "Iteration 1"] " proposes a form for five classes, " [:step 2 "iteration 2"] " for two more, and the third finds nothing."]
+    [:p "The arrangement never mattered, because the rule never looked at it. " [:step 4 "The last step"] " writes the polynomials in as terms, and the best term under bendix's cost is " [:lay [:+ :a :b 1]] ". Try 1 − cos²x: the sine of the graph does not exist yet, and the rule's proposal creates it."]]})
+
+(def differentiation
+  {:key :differentiation :n 11 :title "Differentiation is simplification" :needs :bendix :kind :embiggen
+   :inputs [{:key :term :label "the function" :type :term}
+            {:key :var :label "with respect to" :type :term}]
+   :values {:term [:sin [:* 2 :x]] :var :x :rules rules/derivative}
+   :build (fn [{:keys [term var]}] [:D term var])
+   :opts bendix-opts
+   :costs [:no-D :bendix :ast-size]
+   :alternatives [{:label "x·sin x" :values {:term [:* :x [:sin :x]]}}
+                  {:label "sin(x² + 1)" :values {:term [:sin [:+ [:expt :x 2] 1]]}}
+                  {:label "(x + 1)³" :values {:term [:expt [:+ :x 1] 3]}}
+                  {:label "sin(sin(sin x))" :values {:term [:sin [:sin [:sin :x]]]}}
+                  {:label "x·|x|: no rule for abs" :values {:term [:* :x [:abs :x]]}}]
+   :panels #{:stats}
+   :prose
+   [[:p "A derivative is a term like any other: " [:lay [:D [:sin [:* 2 :x]] :x]] " is a node with two children, and differentiating is saturating under rules. The ring part is not a rule at all: for a class worth a polynomial, its derivative is computed from the polynomial, so linearity, the product rule and the power rule are polynomial calculus. The chain rule is one pattern rule per operator: " [:native '[:D [:sin ?u] ?x]] " → " [:native '[:* [:cos ?u] [:D ?u ?x]]] "."]
+    [:p [:step 1 "Iteration 1"] ": d-sin fires, and the class of the derivative gains " [:lay [:* [:cos [:* 2 :x]] [:D [:* 2 :x] :x]]] ". " [:step 2 "Iteration 2"] ": the ring differentiates 2·x to 2, so that product is worth 2·cos(2·x). The third iteration finds nothing, and " [:step 4 "the last step"] " writes the normal forms in."]
+    [:p "Which term is the answer is the cost's decision. Bendix's default cost charges a derivative node no more than a sine, so for sin(sin(sin x)) it keeps the derivative unevaluated: the node is cheaper than the product of three cosines. The no-D cost counts what is still under a derivative before it counts size, so a derivative-free spelling wins whenever one exists, and when none does, x·|x| say, the D stays and the answer says so."]]})
+
 (def all
   [tree
    sharing
@@ -214,10 +282,10 @@
    saturation
    taste
    blowup
-   {:key :fix :n 8 :title "The fix" :needs :bendix :status :coming}
-   {:key :polynomial-rule :n 9 :title "A rule over the polynomial" :needs :bendix :status :coming}
+   fix
+   polynomial-rule
    what-if
-   {:key :differentiation :n 11 :title "Differentiation is simplification" :needs :bendix :status :coming}])
+   differentiation])
 
 (defn by-key [k] (some (fn [l] (when (= k (:key l)) l)) all))
 
@@ -232,5 +300,5 @@
   ([lesson] (make-run lesson (:values lesson) {}))
   ([lesson values opts]
    (case (:kind lesson)
-     :embiggen (run/start (:term values) (rules-of (:rules values)) (merge (:opts lesson) opts))
+     :embiggen (run/start ((or (:build lesson) :term) values) (rules-of (:rules values)) (merge (:opts lesson) opts))
      :script ((:script lesson) values))))

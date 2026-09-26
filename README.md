@@ -28,7 +28,7 @@ npm run release && bin/serve.sh   # http://localhost:8379
 
 ```sh
 clojure -M:test     jolt -M:test     # the pure namespaces, either runtime
-npm run smoke                        # cromulent's cross-runtime facts on node
+npm run smoke                        # cromulent's and bendix's cross-runtime facts on node
 npm run e2e                          # build the release, drive every lesson in a browser
 ```
 
@@ -50,16 +50,18 @@ The page's self-test tile runs them on load.
 5. Saturation
 6. Extraction is taste
 7. The blowup
-8. The fix (waits for bendix)
-9. A rule over the polynomial (waits for bendix)
+8. The fix
+9. A rule over the polynomial
 10. What if
-11. Differentiation is simplification (waits for bendix)
+11. Differentiation is simplification
 
-Each live lesson has a curated example, a "try another" over
-alternatives, and inputs you can edit: terms, a pattern, rules as
-`[name lhs rhs]` data. Every panel shows the engine's real values,
-scrubbed forwards and backwards, and a REPL underneath has `g` bound
-to the e-graph you are looking at.
+Every lesson is live. Each has a curated example, a "try another"
+over alternatives, and inputs you can edit: terms, a pattern, rules
+as `[name lhs rhs]` data, exact numbers such as `1/2`. Every panel
+shows the engine's real values, scrubbed forwards and backwards; for
+the bendix lessons the class list carries each class's polynomial;
+and a REPL underneath has `g` bound to the e-graph you are looking
+at, with cromulent's and bendix's namespaces loaded.
 
 ## Two modes
 

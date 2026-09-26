@@ -1,13 +1,14 @@
 (ns orrery.input
-  "Learner input in the native format, read by the EDN reader, which
-  every runtime has: a term, or rules as [[name lhs rhs] ...]. Each
-  reader returns {:term t}, {:rules [...]} or {:error message}."
-  (:require [clojure.edn :as edn]
+  "Learner input in the native format, read by the EDN reader with
+  ratios exact on every runtime (bendix.num): a term, or rules as
+  [[name lhs rhs] ...]. Each reader returns {:term t}, {:rules [...]}
+  or {:error message}."
+  (:require [bendix.num :as num]
             [cromulent.pattern :as pat]
             [cromulent.rewrite :as rw]))
 
 (defn- read-edn [text]
-  (try {:value (edn/read-string text)}
+  (try {:value (num/read-string text)}
        (catch #?(:clj Exception :default :default) e
          {:error (str "could not read that: " (ex-message e))})))
 
@@ -25,7 +26,8 @@
                       (not (keyword? (first t))) (str "an operator is a keyword, not " (pr-str (first t)))
                       :else (some term-problem (rest t)))
     (keyword? t) nil
-    (number? t) nil
+    (num/rational? t) nil
+    (number? t) (str (pr-str t) " is not exact; write a ratio such as 1/2")
     :else (str (pr-str t) " is not a variable or a number")))
 
 (defn read-term
@@ -41,7 +43,8 @@
     (vector? p) (cond (empty? p) "an empty vector is not a pattern"
                       (not (keyword? (first p))) (str "an operator is a keyword, not " (pr-str (first p)))
                       :else (some pattern-problem (rest p)))
-    (or (keyword? p) (number? p) (pat/variable? p)) nil
+    (or (keyword? p) (num/rational? p) (pat/variable? p)) nil
+    (number? p) (str (pr-str p) " is not exact; write a ratio such as 1/2")
     :else (str (pr-str p) " is not a pattern variable (?x), a keyword or a number")))
 
 (defn read-pattern

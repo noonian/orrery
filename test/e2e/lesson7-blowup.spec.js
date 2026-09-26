@@ -9,7 +9,7 @@ test.describe('7. The blowup', () => {
     await expect(page.locator('#tile-classes .tile-value')).toHaveText('31');
     await expect(page.locator('#tile-nodes .tile-value')).toHaveText('185');
     await expect(page.locator('#tile-iteration .tile-value')).toHaveText('7 / 7');
-    await expect(page.locator('#tile-iteration .tile-note')).toHaveText('saturated: no rule can add anything');
+    await expect(page.locator('#tile-iteration .tile-note')).toHaveText('saturated: the rules merge nothing more');
     const stats = page.locator('table.stats');
     expect(await column(stats, 'nodes')).toEqual(['19', '45', '98', '162', '187', '185', '185']);
     expect(await column(stats, 'classes')).toEqual(['12', '22', '35', '39', '33', '31', '31']);

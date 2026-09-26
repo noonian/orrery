@@ -6,7 +6,8 @@ import { expect } from '@playwright/test';
 // proves the hash landed on the right lesson.
 export const keys = {
   1: 'tree', 2: 'sharing', 3: 'congruence', 4: 'rule',
-  5: 'saturation', 6: 'taste', 7: 'blowup', 10: 'what-if',
+  5: 'saturation', 6: 'taste', 7: 'blowup', 8: 'fix',
+  9: 'polynomial-rule', 10: 'what-if', 11: 'differentiation',
 };
 
 // window.orreryPage.snapshot(): {lesson step steps status iterations
