@@ -24,12 +24,28 @@
       (state/recall-repl! dir)
       true)))
 
+(defn- focus-editor!
+  "Puts the focus back in the editor. Opening or closing the dock
+  moves the editor's element, and a moved element loses the focus."
+  []
+  (some-> (js/document.getElementById "repl-input") .focus))
+
 (def ^:private editor-callbacks
   {:on-change (fn [text]
                 (when (not= text (get-in @state/app-state [:repl :input]))
                   (state/set-repl-input! text)))
    :on-eval state/eval-repl!
-   :on-recall recall!})
+   :on-recall recall!
+   :on-open #(do (state/open-dock!) (focus-editor!))
+   :on-close #(do (state/close-dock!) (focus-editor!))
+   :open? #(boolean (get-in @state/app-state [:ui :repl-open?]))})
+
+(defn- toggle-dock!
+  "Opens the REPL's dock, or closes it, and puts the caret in the
+  editor."
+  []
+  (state/toggle-dock!)
+  (focus-editor!))
 
 (defn- editor-hook!
   "Handles the life cycle of the REPL's editor. The view renders an
@@ -73,12 +89,11 @@
 
 (defn key!
   "Handles a key pressed anywhere on the page. Ctrl-` opens the
-  REPL's dock, or closes it, on a page that has the dock."
+  REPL's dock, or closes it."
   [^js ev]
-  (when (and (.-ctrlKey ev) (= "Backquote" (.-code ev))
-             (not= :beside (:layout (derived/lesson @state/app-state))))
+  (when (and (.-ctrlKey ev) (= "Backquote" (.-code ev)))
     (.preventDefault ev)
-    (state/toggle-dock!)))
+    (toggle-dock!)))
 
 (defn- export-name [s] (str "orrery-" (name (:lesson s)) "-step-" (:step s) ".json"))
 
@@ -133,10 +148,12 @@
     :run (state/submit-input!)
     :surprise (state/surprise!)
     :repl/editor (editor-hook! e (first args))
-    :repl/dock (state/toggle-dock!)
+    :repl/dock (toggle-dock!)
+    :repl/help (state/toggle-repl-help!)
     :repl/resize (resize-dock! e)
     :repl/line-numbers (state/toggle-line-numbers!)
-    :repl/eval (state/eval-repl!)
+    :repl/eval (do (state/eval-repl! (first args) (some-> (js/document.getElementById "repl-input") .-selectionStart))
+                   (focus-editor!))
     :repl/run (state/run-repl! (first args))
     :repl/clear (state/clear-repl!)
     :repl/scroll (let [el (:replicant/node e)] (set! (.-scrollTop el) (.-scrollHeight el)))

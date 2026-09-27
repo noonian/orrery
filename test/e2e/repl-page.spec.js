@@ -1,33 +1,34 @@
-// The REPL's page, after the lessons: the editor beside every panel
+// The REPL's page, after the lessons: the dock open under every panel
 // that reads an e-graph, the documentation as lines to evaluate, the
 // page's state as an atom the REPL holds. Counts, never ids.
 import { test, expect } from '@playwright/test';
 import { openLesson, expectSnapshot, evalRepl, openRepl } from './orrery.js';
 
-const entries = (page) => page.locator('#repl-panel .entry');
+const entries = (page) => page.locator('#repl-dock .entry');
 const result = async (page, code) => (await evalRepl(page, code)).locator('pre.result');
 const curated = { lesson: 'repl', status: 'done', iterations: 3, stopReason: 'saturated', step: 3, classes: 4, nodes: 6 };
 
 test.describe('the REPL\'s page', () => {
-  test('at #repl: the editor beside every panel, over the run of a + a', async ({ page }) => {
+  test('at #repl: the dock open under every panel, over the run of a + a', async ({ page }) => {
     await openLesson(page, 'repl');
     await expectSnapshot(page, curated);
     await expect(page.locator('.lesson h2')).toHaveText('The REPL');
     await expect(page.locator('.lesson-nav a.current')).toHaveText('The REPL');
     await expect(page.locator('.lesson h2')).toBeInViewport();   // the address names no element to scroll to
-    await expect(page.locator('.workbench.beside #repl-panel')).toBeVisible();
+    await expect(page.locator('#repl-dock.open #repl-history')).toBeVisible();
     // no fields: the editor is the input
     await expect(page.locator('#run')).toHaveCount(0);
     await expect(page.locator('.field')).toHaveCount(0);
     await expect(page.locator('textarea')).toHaveCount(1);
     await expect(page.getByRole('textbox', { name: "the REPL's editor" })).toHaveId('repl-input');
-    await expect(page.locator('.prose')).toContainText('type one in the editor and press Ctrl-Enter');
+    await expect(page.locator('.prose')).toContainText('Ctrl-Enter evaluates the form at the caret');
     await expect(page.locator('.lesson')).not.toContainText(/prompt/i);
     await expect(page.locator('.panel h3')).toHaveText(
-      ['names in scope', 'the REPL', 'the classes', 'the run', 'best so far', 'matches in this step', 'the iterations', 'the tree']);
+      ['the tree', 'the classes', 'the run', 'best so far', 'matches in this step', 'the iterations']);
     await expect(page.locator('#graph svg')).toBeVisible();
     await expect(page.locator('.cost-picker input[type=radio]')).toHaveCount(7);
     await expect(page.locator('table.stats tbody tr')).toHaveCount(3);
+    await page.locator('#repl-help-toggle').click();
     for (const name of ['g', 'timeline', 'state', 'show!', 'push!', 'eg', 'rw', 'ex', 'bx', 'wb']) {
       await expect(page.locator('#names dt', { hasText: new RegExp(`^${name.replace('!', '\\!')}$`) })).toHaveCount(1);
     }
@@ -143,11 +144,14 @@ test.describe('the REPL\'s page', () => {
     await expectSnapshot(page, curated);
   });
 
-  test('the up arrow brings back what was evaluated, the down arrow what was being typed', async ({ page }) => {
+  test('closed, the up arrow brings back what was evaluated, the down arrow what was being typed', async ({ page }) => {
     await openLesson(page, 'repl');
-    await evalRepl(page, '(+ 1 1)');
-    await evalRepl(page, '(eg/node-count g)');
+    await page.locator('#repl-toggle').click();
     const editor = page.locator('#repl-input');
+    for (const code of ['(+ 1 1)', '(eg/node-count g)']) {
+      await editor.fill(code);
+      await editor.press('Enter');
+    }
     await editor.fill('(eg/cla');
     await editor.press('ArrowUp');
     await expect(editor).toHaveValue('(eg/node-count g)');
@@ -161,8 +165,7 @@ test.describe('the REPL\'s page', () => {
     await expect(editor).toHaveValue('(eg/cla');
     await editor.press('ArrowUp');
     await editor.press('Control+Enter');
-    await expect(entries(page)).toHaveCount(3);
-    await expect(entries(page).last().locator('pre.result')).toHaveText('6');
+    await expect(page.locator('#repl-last')).toHaveText(/⇒\s+6$/);
     await expect(editor).toHaveValue('');
     // in text of several lines the arrows move the caret until it is in the first
     await editor.fill('(+ 1\n   2)');
@@ -170,24 +173,29 @@ test.describe('the REPL\'s page', () => {
     await expect(editor).toHaveValue('(+ 1\n   2)');
     await editor.press('ArrowUp');
     await expect(editor).toHaveValue('(eg/node-count g)');
+    // open, the arrows only move the caret
+    await page.locator('#repl-toggle').click();
+    await editor.fill('(+ 2 2)');
+    await editor.press('ArrowUp');
+    await expect(editor).toHaveValue('(+ 2 2)');
+    await expect(entries(page)).toHaveCount(3);
   });
 
-  test('the history scrolls inside the panel, the editor staying in view', async ({ page }) => {
+  test('the history scrolls inside the dock, the editor staying in view', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await openLesson(page, 'repl');
-    await page.locator('.workbench').scrollIntoViewIfNeeded();
     for (let i = 0; i < 6; i++) await evalRepl(page, '(eg/add g [:+ :b :b])');
     await expect(page.locator('#repl-input')).toBeInViewport();
     await expect(entries(page).last()).toBeInViewport();
     await expect(entries(page).first()).not.toBeInViewport();
-    const box = await page.locator('#repl-panel').boundingBox();
+    const box = await page.locator('#repl-dock').boundingBox();
     expect(box.height).toBeLessThanOrEqual(900);
   });
 
   test('a lesson\'s REPL links to the page, which opens at its top', async ({ page }) => {
     await openLesson(page, 3);
-    await openRepl(page);
-    await page.locator('#repl-panel .hint a').click();
+    await page.locator('#repl-help-toggle').click();
+    await page.locator('#repl-help a[href="#repl"]').click();
     await expect(page).toHaveURL(/#repl$/);
     await expectSnapshot(page, curated);
     await expect(page.locator('.lesson h2')).toHaveText('The REPL');

@@ -33,6 +33,14 @@
     (is (= (run/last-step (:run done)) (:step done)))
     (is (= (min 2 (run/last-step (:run done))) (:step (wb/page l (:run done) 2))) (:title l))))
 
+(deftest the-repl-page-opens-the-dock
+  (let [s (wb/initial)]
+    (is (false? (get-in s [:ui :repl-open?])))
+    (is (false? (get-in (wb/open s lessons/taste) [:ui :repl-open?])) "a lesson leaves the dock as it is")
+    (is (true? (get-in (wb/open s lessons/repl) [:ui :repl-open?])))
+    (is (true? (get-in (-> s (wb/open lessons/repl) (wb/open lessons/taste)) [:ui :repl-open?]))
+        "and the dock stays open after it")))
+
 (deftest a-lesson-opens-in-the-print-mode-in-force
   (let [native (-> (wb/initial) (assoc-in [:ui :print] :native) (wb/open lessons/rule))
         notation (wb/open (wb/initial) lessons/rule)]

@@ -177,14 +177,14 @@
         s (workbench/page l run)
         h (page/page s)
         hs (set (handlers h))]
-    (testing "the editor beside the e-graph, over it in reading order, where a lesson has it in a dock"
-      (is (< (position h :div.panel.repl) (position h :table.classes)))
-      (is (seq (elements h :div.workbench.beside)))
-      (is (empty? (elements h :section.dock)) "the REPL's page has no dock")
+    (testing "the REPL in the dock, open, where a lesson has it closed"
+      (is (= ["open"] (map (comp :class second) (elements h :section.dock))))
+      (is (seq (elements h :div.history)))
       (let [lesson (page-at-the-end lessons/taste)]
-        (is (empty? (elements lesson :div.panel.repl)) "the dock starts closed")
-        (is (contains? (set (handlers lesson)) [:repl/dock]))
-        (is (empty? (elements lesson :div.workbench.beside)))))
+        (is (= ["closed"] (map (comp :class second) (elements lesson :section.dock))) "the dock starts closed")
+        (is (empty? (elements lesson :div.history)))
+        (is (= 1 (count (elements lesson :div.editor))) "the closed dock has the editor too")
+        (is (contains? (set (handlers lesson)) [:repl/dock]))))
     (testing "no fields: the editor is the input"
       (is (empty? (elements h :textarea)) "prism-code-editor makes the editor's textarea")
       (is (= ["repl-input"] (map #(-> % second :replicant/on-render second :attrs :id) (elements h :div.editor)))
@@ -192,10 +192,9 @@
       (is (empty? (texts h :pre.call)))
       (is (not (contains? hs [:run]))))
     (testing "every panel that reads a run, each saying what it is the work of"
-      (is (= ["names in scope" "the REPL" "the classes" "the run" "best so far" "matches in this step" "the iterations" "the tree"]
+      (is (= ["the tree" "the classes" "the run" "best so far" "matches in this step" "the iterations"]
              (texts h :h3)))
       (is (some #{"rw/saturate"} (texts h :code.of)))
-      (is (some #{"user"} (texts h :code.of)))
       (is (contains? hs [:graph/zoom :fit]) "and the picture, unasked")
       (is (= 7 (count (filter #(and (vector? %) (= :cost (first %))) hs))) "every cost in the picker"))
     (testing "the prose's lines are the REPL's to evaluate, and the names in scope are listed"
@@ -203,10 +202,17 @@
         (is (seq lines))
         (is (every? #(contains? hs [:repl/run %]) lines)))
       (is (contains? hs [:repl/scroll]) "the history scrolls to its last entry")
-      (let [names (first (elements h :aside.panel.names))]
+      (is (empty? (elements h :div.names)) "the names wait for the ? button")
+      (let [names (first (elements (page/page (assoc-in s [:ui :repl-help?] true)) :div.names))]
         (is (every? (set (texts names :code)) ["g" "timeline" "state" "show!" "push!" "eg" "rw" "ex" "bx" "wb"]))))
-    (testing "a lesson's REPL panel links to it"
-      (is (some #{"#repl"} (keep :href (filter map? (tree-seq coll? seq (page-at-the-end lessons/taste)))))))))
+    (testing "the keys and names under a lesson link to the REPL's page, and on that page they do not"
+      (let [hrefs (fn [h] (keep :href (filter map? (tree-seq coll? seq h))))
+            help (fn [s]
+                   (derived/clear-cache!)
+                   (first (elements (page/page (assoc-in s [:ui :repl-help?] true)) :div.repl-help)))
+            taste (workbench/page lessons/taste (run/run-all (lessons/make-run lessons/taste)))]
+        (is (some #{"#repl"} (hrefs (help taste))))
+        (is (not (some #{"#repl"} (hrefs (help s)))))))))
 
 (deftest what-the-repl-puts-on-show-builds
   (let [l lessons/repl
@@ -224,7 +230,7 @@
         base (workbench/page l curated)]
     (testing "an e-graph: the classes, and no panel that needs a root, rules or a term"
       (let [h (page-of (workbench/put base g'))]
-        (is (= ["names in scope" "the REPL" "the classes" "the run"] (texts h :h3)))
+        (is (= ["the classes" "the run"] (texts h :h3)))
         (is (some #{"from the REPL"} (texts h :code.of)))))
     (testing "a [g id] pair: the class to extract for"
       (let [s (workbench/put base [g' id])
@@ -283,9 +289,9 @@
     (is (some #(re-find #"^a run: 1 step, 0 iterations, not run yet; 2 classes, 2 nodes$" %) (texts h :span.summary)))
     (is (contains? hs [:repl/resize]) "the open dock resizes")
     (testing "closed, the dock says what was evaluated last, in a line"
-      (is (= ["user=> inc  ⇒  #function"] (texts (page/page (assoc-in s [:ui :repl-open?] false)) :code.last)))
+      (is (= ["user=> inc  ⇒  #function"] (texts (page/page (assoc-in s [:ui :repl-open?] false)) :button.last)))
       (is (= ["user=> (boom)  ⇒  no such var"]
-             (texts (page/page (-> s (assoc-in [:ui :repl-open?] false) (update-in [:repl :history] subvec 0 5))) :code.last))))
+             (texts (page/page (-> s (assoc-in [:ui :repl-open?] false) (update-in [:repl :history] subvec 0 5))) :button.last))))
     (testing "the text an evaluation printed of its value is the text shown"
       (let [h (page/page (assoc-in s [:repl :history] [{:in "(range 3)" :ok (range 3) :printed "(0 1 2), as printed then"}]))]
         (is (= ["(0 1 2), as printed then"] (texts h :pre.result)))))))

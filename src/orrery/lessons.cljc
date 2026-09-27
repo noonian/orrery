@@ -23,9 +23,9 @@
   before the lessons: the basics, where the page opens, which
   assumes nothing, and the introduction, which says what an e-graph
   is and why it matters. One comes after the lessons: the REPL page.
-  Its prose is the documentation of the REPL, its widgets are lines
-  of code that the reader evaluates, and its workbench is the editor
-  beside every panel that reads an e-graph.
+  Its prose is the documentation of the REPL, and its widgets are
+  lines of code that the reader evaluates. It opens with the REPL's
+  dock open.
 
   `about` says what the site is. It is shown once, above the page
   the site opens on. `colophon` says the same in one line under
@@ -587,7 +587,7 @@
 (def repl
   {:key :repl :nav "The REPL" :title "The REPL" :needs :cromulent :kind :embiggen
    :operation :saturate
-   :layout :beside
+   :dock :open
    :inputs []
    :values {:term [:+ :a :a]
             :rules '[["double" [:+ ?x ?x] [:* ?x 2]]
@@ -596,7 +596,7 @@
    :costs [:ast-size :prefer-add :prefer-mul :prefer-shift :no-shift :bendix :no-D]
    :panels #{:graph :tree :matches :stats}
    :prose
-   [[:p "Every panel on this site shows a value that a Clojure program made. This page is the REPL for that program. It has an editor for typing code, with every panel beside it. " [:code "g"] " is the e-graph on show, and " [:code "timeline"] " holds every step of its run: " [:eval "(eg/class-count g)"] ", " [:eval "(count timeline)"] ". Click a line of code to evaluate it, or type one in the editor and press Ctrl-Enter. The up arrow brings back what you evaluated before, and " [:code "*1"] " is the last value. The engine is loaded under short names, which are listed under names in scope. " [:eval "(doc eg/union)"] " prints the docstring of a function."]
+   [[:p "Every panel on this site shows a value that a Clojure program made. This page is the REPL for that program. The REPL is the dock along the bottom of every page, and on this page it starts open. " [:code "g"] " is the e-graph on show, and " [:code "timeline"] " holds every step of its run: " [:eval "(eg/class-count g)"] ", " [:eval "(count timeline)"] ". Click a line of code to evaluate it, or type code in the editor. Ctrl-Enter evaluates the form at the caret, and Ctrl-Shift-Enter evaluates every form in the editor. Closed, the dock is one line. There Enter evaluates the line, and the up arrow brings back what you evaluated before. " [:code "*1"] " is the last value. The engine is loaded under short names, and the ? button at the end of the dock lists them with the keys. " [:eval "(doc eg/union)"] " prints the docstring of a function."]
     [:p "An e-graph is a value" [:cite :hickey-2020] ", so nothing you evaluate here changes " [:code "g"] ". " [:eval "(eg/add g [:+ :b :b])"] " returns a pair: a new e-graph, and the class of the term in it. The history prints the e-graph as its class list, with that class marked. " [:eval "(eg/class-count g)"] " is still what it was. To see a value in every panel, put it on show. Use the button beside the value, or evaluate " [:eval "(show! (eg/add g [:+ :b :b]))"] "."]
     [:p [:code "push!"] " makes an e-graph the next step of the run on show. This lets you build a run by hand and scrub it like the run of a lesson. To say that " [:notation :b] " equals " [:notation :a] ", evaluate "
      [:eval "(let [[g a] (eg/add g :a)\n      [g b] (eg/add g :b)]\n  (push! (first (eg/union g a b)) \"a = b, rebuild pending\"))"]

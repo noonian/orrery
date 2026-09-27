@@ -9,7 +9,8 @@ test.describe('the REPL', () => {
     await page.locator('#step-first').click();
     await expect((await evalRepl(page, '(eg/class-count g)')).locator('pre.result')).toHaveText('9');
     await expect((await evalRepl(page, '(second (eg/add g [:+ :a0 :a1]))')).locator('pre.result')).toHaveText(/^\d+$/);
-    await expect(page.locator('#repl-input')).toHaveValue('');
+    // the open dock keeps what was typed
+    await expect(page.locator('#repl-input')).toHaveValue('(second (eg/add g [:+ :a0 :a1]))');
   });
 
   test('an e-graph result renders as a class list, and "show it" scrubs to it', async ({ page }) => {
@@ -38,9 +39,9 @@ test.describe('the REPL', () => {
     await openLesson(page, 3);
     await expect((await evalRepl(page, '(nope g)')).locator('pre.error')).toContainText('nope');
     await page.locator('#repl-clear').click();
-    await expect(page.locator('#repl-panel .entry')).toHaveCount(0);
+    await expect(page.locator('#repl-dock .entry')).toHaveCount(0);
     await page.locator('#repl-input').fill('(+ 1 2)');
     await page.locator('#repl-input').press('Control+Enter');
-    await expect(page.locator('#repl-panel .entry pre.result')).toHaveText('3');
+    await expect(page.locator('#repl-dock .entry pre.result')).toHaveText('3');
   });
 });

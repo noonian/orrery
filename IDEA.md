@@ -862,6 +862,40 @@ the one the page most wants to welcome. The other mode stays
     that is not a lesson can arrange them. The Captain wants such a
     page, for playing with e-graphs rather than learning, once this
     layout has settled.
+18. **One dock on every page, an editor of forms.** Decided
+    2026-09-27. This is steps two to four of decision 15, done as
+    one piece of work. The Captain wanted an editor that is always
+    there: one line when the dock is closed, a full editor when it
+    is open, the docs in a popover rather than in prose, and no
+    button that names the REPL. The dock is on every page now, the
+    REPL's page included, and that page opens with it open (`:dock
+    :open` in its lesson data, read by `workbench/open`). The
+    side-by-side layout of the REPL's page is gone, and the page is
+    laid out as a lesson is. Closed, the dock is one line: the
+    editor, what was evaluated last, a ? button and a button that
+    opens the dock. Open, the dock is the editor beside the history,
+    under a row of buttons. The Captain put the history on the right,
+    where the page may later show traces of what its links and
+    buttons run. The editor's text is one buffer (the Captain's
+    choice over two). A single line in the closed dock is a
+    terminal's line: Enter evaluates it and empties the editor. Text
+    of several lines is a buffer that an evaluation never empties,
+    and the closed dock says how many lines it hides. In the open
+    dock, Enter starts a new line indented as Clojure is,
+    Ctrl-Enter evaluates the top-level form at the caret, and
+    Ctrl-Shift-Enter evaluates every form in order and stops at the
+    first error. Each form is its own entry in the history. The
+    closed dock evaluates a line when its brackets are complete, as
+    rebel-readline does. Since the editor closes brackets as they
+    are typed, that is nearly always, and Shift-Enter starts a new
+    line instead. `orrery.forms` (.cljc) reads the text for its
+    shape: the top-level forms, whether a bracket is left open, and
+    the column of a new line. It knows strings, comments, character
+    literals and the reader's prefixes, and is tested on the JVM and
+    Jolt. The ? button shows the keys and the names in scope. A
+    link in the prose no longer opens the dock. The closed dock
+    shows the result in its line, and a click on that line opens the
+    dock.
 ## Status
 
 Phase 1 delivered, 2026-09-25 (the Captain's "make it so", with the
@@ -1075,9 +1109,18 @@ and that nothing hides under it. The suites are 79 tests and 27890
 assertions on the JVM and Jolt, 68 facts on node, 110 specs in the
 browser.
 
-Next: the Captain's judgement of the layout at 1100 pixels; the
-page for playing with e-graphs, routed before the lessons; the
-editor's second step, the handling of lines (Clojure's indentation
-among it) and evaluation at the caret; then the REPL page's layout
-and its documentation; then the later items of section 7, per-rule
-timings at scale and static deployment.
+One dock on every page, 2026-09-27 (section 12, decision 18):
+`orrery.forms` and `forms_test.cljc`; the dock in
+`orrery.views.repl`, its styles in `public/style.css`; the keys in
+`orrery.editor`; `state/eval-repl!` taking :line, :form or :all;
+`[:repl/help]` in `orrery.actions`. `editor.spec.js` checks the
+keys of the closed and the open dock, `layout.spec.js` the dock and
+its popover, and `repl-page.spec.js` the page under the open dock.
+The suites are 84 tests and 27945 assertions on the JVM and Jolt, 68
+facts on node, 116 specs in the browser; the release bundle is 1.48
+MB (369 KB gzipped).
+
+Next: the Captain's judgement of the dock and of the layout at 1100
+pixels; the page for playing with e-graphs, routed before the
+lessons; then the later items of section 7, per-rule timings at
+scale and static deployment.

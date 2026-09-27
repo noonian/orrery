@@ -65,20 +65,22 @@ export async function column(locator, name) {
   return t.rows.map(r => r[i]);
 }
 
-// Open the REPL's dock along the bottom of a lesson, if it is closed.
-// The REPL's page has no dock; its REPL is always open.
+// Open the REPL's dock along the bottom of the page, if it is closed.
+// The editor is there closed or open; open, the history is there too.
 export async function openRepl(page) {
   const toggle = page.locator('#repl-toggle');
-  if (await toggle.count() && (await toggle.getAttribute('aria-expanded')) === 'false') await toggle.click();
+  if ((await toggle.getAttribute('aria-expanded')) === 'false') await toggle.click();
+  await expect(page.locator('#repl-dock')).toHaveClass(/\bopen\b/);
   await expect(page.locator('#repl-input')).toBeVisible();
 }
 
-// Evaluate in the REPL panel, opening the dock first; the entry it appends.
+// Evaluate in the REPL, opening the dock first; the entry it appends.
+// The open dock keeps the editor's text.
 export async function evalRepl(page, code) {
   await openRepl(page);
-  const before = await page.locator('#repl-panel .entry').count();
+  const before = await page.locator('#repl-dock .entry').count();
   await page.locator('#repl-input').fill(code);
-  await page.locator('#repl-eval').click();
-  await expect(page.locator('#repl-panel .entry')).toHaveCount(before + 1);
-  return page.locator('#repl-panel .entry').last();
+  await page.locator('#repl-eval-all').click();
+  await expect(page.locator('#repl-dock .entry')).toHaveCount(before + 1);
+  return page.locator('#repl-dock .entry').last();
 }

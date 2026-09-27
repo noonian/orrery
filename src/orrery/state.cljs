@@ -22,6 +22,7 @@
             [orrery.derived :as derived]
             [orrery.diff :as diff]
             [orrery.eclass :as eclass]
+            [orrery.forms :as forms]
             [orrery.input :as input]
             [orrery.lessons :as lessons]
             [orrery.printed :as printed]
@@ -261,11 +262,20 @@
 
 (defn toggle-dock! [] (swap! app-state update-in [:ui :repl-open?] not))
 
+(defn open-dock! [] (swap! app-state assoc-in [:ui :repl-open?] true))
+
+(defn close-dock! [] (swap! app-state assoc-in [:ui :repl-open?] false))
+
+(defn toggle-repl-help! [] (swap! app-state update-in [:ui :repl-help?] not))
+
 (defn set-dock-height! [px] (swap! app-state assoc-in [:ui :dock-height] px))
 
 (defn toggle-line-numbers! [] (swap! app-state update-in [:ui :line-numbers?] not))
 
-(defn clear-repl! [] (swap! app-state assoc :repl (:repl (workbench/initial))))
+(defn clear-repl!
+  "Empties the history. The editor keeps its text."
+  []
+  (swap! app-state update :repl assoc :history [] :recall nil))
 
 (defn- evaluate!
   "Evaluates `text` and returns its history entry. Before it
@@ -279,26 +289,50 @@
     (repl/bind! (derived/current-egraph s) (:timeline (:run s)))
     (assoc (repl/eval-string text printed/printed) :in text)))
 
+(defn- evaluate-forms!
+  "Evaluates the forms `fs` of `text` in order, each into its own
+  history entry. Stops after the first form that throws. Returns the
+  forms it evaluated."
+  [text fs]
+  (loop [[f & more] fs done []]
+    (if-not f
+      done
+      (let [entry (evaluate! (forms/text-of text f))]
+        (swap! app-state update-in [:repl :history] conj entry)
+        (if (contains? entry :error)
+          (conj done f)
+          (recur more (conj done f)))))))
+
 (defn eval-repl!
-  "Evaluates what is in the editor. Opens the REPL's dock, so that
-  the REPL stays in view when the code opens a lesson."
-  []
-  (let [text (get-in @app-state [:repl :input])]
-    (when (seq (str/trim text))
-      (let [entry (evaluate! text)]
-        (swap! app-state #(-> %
-                              (update :repl (fn [r] (-> r (update :history conj entry) (assoc :input "" :recall nil))))
-                              (assoc-in [:ui :repl-open?] true)))))))
+  "Evaluates what is in the editor, as `how` says:
+
+    - :line evaluates every form, and empties the editor, as a
+      terminal does. The closed dock evaluates its one line this way.
+    - :form evaluates the top-level form at the position `pos`, and
+      the editor keeps its text.
+    - :all evaluates every form in order, and stops at the first
+      error. The editor keeps its text.
+
+  Returns the forms it evaluated, each with its :start and :end."
+  ([how] (eval-repl! how nil))
+  ([how pos]
+   (let [text (get-in @app-state [:repl :input])]
+     (case how
+       :line (when (seq (str/trim text))
+               (let [done (evaluate-forms! text (forms/top-level text))]
+                 (swap! app-state update :repl assoc :input "" :recall nil :draft nil)
+                 done))
+       :form (when-let [f (forms/form-at text (or pos (count text)))]
+               (evaluate-forms! text [f]))
+       :all (evaluate-forms! text (forms/top-level text))))))
 
 (defn run-repl!
   "Evaluates `code` from a link in the prose, as if it had been
-  typed. The editor keeps its text. Opens the REPL's dock, so the
-  result is in view."
+  typed. The editor keeps its text, and the dock stays as it is. The
+  closed dock shows the result in its line."
   [code]
   (let [entry (evaluate! code)]
-    (swap! app-state #(-> %
-                          (update-in [:repl :history] conj entry)
-                          (assoc-in [:ui :repl-open?] true)))))
+    (swap! app-state update-in [:repl :history] conj entry)))
 
 (defn recall-repl!
   "Puts an earlier input into the editor when `dir` is :back, or a

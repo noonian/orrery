@@ -161,23 +161,16 @@
    (tree/tree-view {:g g :term term
                     :hovered (or (get-in s [:ui :hover]) (get-in s [:ui :selected]))})])
 
-(defn repl-panel
-  "Renders the REPL panel. `place` is where it stands: :dock, in the
-  bar along the bottom of a lesson, or :beside, next to the e-graph
-  on the REPL's page."
-  [s place]
-  (repl/repl-panel {:input (get-in s [:repl :input])
-                    :history (get-in s [:repl :history])
-                    :mode (get-in s [:ui :print])
-                    :line-numbers? (get-in s [:ui :line-numbers?])
-                    :place place}))
-
 (defn repl-dock
-  "Renders the REPL in a bar along the bottom of the viewport. Closed,
-  the bar holds a button to open it and the last thing evaluated.
-  Open, it holds the REPL panel too, and a handle along its top edge
-  that resizes it."
+  "Renders the REPL in a dock along the bottom of the viewport. Closed,
+  the dock is one line: the editor and the last thing evaluated. Open,
+  it is the editor beside the history, with a handle along its top
+  edge that resizes it."
   [s]
   (repl/dock {:open? (get-in s [:ui :repl-open?])
-              :last (peek (get-in s [:repl :history]))
-              :panel (repl-panel s :dock)}))
+              :help? (get-in s [:ui :repl-help?])
+              :input (get-in s [:repl :input])
+              :history (get-in s [:repl :history])
+              :mode (get-in s [:ui :print])
+              :line-numbers? (get-in s [:ui :line-numbers?])
+              :here (:lesson s)}))

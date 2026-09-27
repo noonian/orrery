@@ -29,25 +29,41 @@ test.describe('a lesson\'s layout', () => {
     expect(await y('.lesson-grid > .egraph')).toBeLessThan(await y('.lesson-grid > .controls'));
   });
 
-  test('the dock starts closed, opens with the button or Ctrl-`, and stays open across lessons', async ({ page }) => {
+  test('the dock starts closed, one line with the editor; it opens with the button or Ctrl-`, and stays open across lessons', async ({ page }) => {
     await openLesson(page, 3);
     await expect(toggle(page)).toHaveAttribute('aria-expanded', 'false');
-    await expect(page.locator('#repl-input')).toHaveCount(0);
+    await expect(page.locator('#repl-input')).toBeVisible();
+    await expect(page.locator('#repl-history')).toHaveCount(0);
+    expect((await dock(page).boundingBox()).height).toBeLessThan(60);
     await page.keyboard.press('Control+Backquote');
     await expect(toggle(page)).toHaveAttribute('aria-expanded', 'true');
+    await expect(page.locator('#repl-history')).toBeVisible();
     await expect(page.locator('#repl-input')).toBeFocused();
     await page.locator('.lesson-nav a', { hasText: '4. A rule' }).click();
     await expectSnapshot(page, { lesson: 'rule', status: 'done' });
     await expect(toggle(page)).toHaveAttribute('aria-expanded', 'true');
     await toggle(page).click();
-    await expect(page.locator('#repl-input')).toHaveCount(0);
+    await expect(page.locator('#repl-history')).toHaveCount(0);
   });
 
-  test('closed, the dock says what was evaluated last', async ({ page }) => {
+  test('closed, the dock says what was evaluated last, and a click on it opens the dock', async ({ page }) => {
     await openLesson(page, 3);
     await evalRepl(page, '(eg/class-count g)');
     await toggle(page).click();
     await expect(page.locator('#repl-last')).toHaveText(/^user=> \(eg\/class-count g\)\s+⇒\s+5$/);
+    await page.locator('#repl-last').click();
+    await expect(toggle(page)).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  test('the ? button shows the keys and the names in scope, and hides them', async ({ page }) => {
+    await openLesson(page, 3);
+    await expect(page.locator('#repl-help')).toHaveCount(0);
+    await page.locator('#repl-help-toggle').click();
+    await expect(page.locator('#repl-help')).toBeVisible();
+    await expect(page.locator('#repl-help dt kbd')).toContainText(['Enter', 'Ctrl-Enter', 'Ctrl-Shift-Enter']);
+    await expect(page.locator('#names dt', { hasText: /^g$/ })).toHaveCount(1);
+    await page.locator('#repl-help-close').click();
+    await expect(page.locator('#repl-help')).toHaveCount(0);
   });
 
   test('the dock resizes from its top edge, and nothing hides under it', async ({ page }) => {
@@ -71,8 +87,8 @@ test.describe('a lesson\'s layout', () => {
     expect(col.y + col.height).toBeLessThanOrEqual((await dock(page).boundingBox()).y + 1);
   });
 
-  test('the REPL\'s page has no dock', async ({ page }) => {
+  test('the REPL\'s page opens with the dock open', async ({ page }) => {
     await openLesson(page, 'repl');
-    await expect(dock(page)).toHaveCount(0);
+    await expect(toggle(page)).toHaveAttribute('aria-expanded', 'true');
   });
 });

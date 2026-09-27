@@ -210,18 +210,7 @@ table.classes td.poly .notation, table.classes td.best .notation, table.classes 
 .selftest .bad { color: var(--bad); }
 .loading { color: var(--muted); padding: 24px; }
 
-/* the REPL's page: the editor beside the e-graph and staying in view, its history scrolling inside the panel */
-@media (min-width: 900px) {
-  .workbench.beside { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); }
-  .beside .repl-column { position: sticky; top: 8px; align-self: start; }
-  .beside .repl { display: flex; flex-direction: column; max-height: calc(100vh - 16px); }
-  .beside .repl .history { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
-  .beside .repl .editor, .beside .repl .row, .beside .repl .hint, .beside .repl .panel-head { flex: 0 0 auto; }
-}
-.beside .replay { top: 0; }
-.docs { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; margin-bottom: 16px; }
-@media (min-width: 1100px) { .docs { grid-template-columns: minmax(0, 720px) minmax(0, 1fr); } }
-.names { font-size: 14px; color: var(--ink-2); max-height: 70vh; overflow: auto; }
+.names { font-size: 14px; color: var(--ink-2); }
 .names dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 3px 12px; margin: 0; }
 .names dt { font-family: var(--mono); color: var(--ink); }
 .names dd { margin: 0; }
@@ -233,30 +222,26 @@ a.act[data-act=eval] code { color: var(--accent); cursor: pointer; white-space: 
 a.act[data-act=eval]:hover code { border-color: var(--accent); }
 .prose a.act[data-act=eval] code.block { display: block; white-space: pre; overflow-x: auto; margin: 6px 0; padding: 6px 10px; line-height: 1.4; }
 
-.repl .hint { font-size: 14px; color: var(--ink-2); margin: 0 0 8px; }
-.repl pre.out { color: var(--ink-2); border-left: 2px solid var(--border); padding-left: 8px; margin: 2px 0; }
-.repl .history { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
-.repl .entry { border-left: 3px solid var(--hairline); padding-left: 10px; }
-.repl pre { margin: 0; white-space: pre-wrap; word-break: break-word; font-size: 14px; }
-.repl pre.in { color: var(--ink-2); }
-.repl pre.error { color: var(--bad); }
-.repl pre.result { background: var(--surface-2); padding: 6px 8px; border-radius: 6px; }
-.repl .row { display: flex; gap: 8px; align-items: center; margin: 6px 0; flex-wrap: wrap; }
-.repl .summary { font-size: 14px; color: var(--ink-2); }
-.repl .editor { margin-top: 4px; }
-.repl .check { font-size: 14px; color: var(--ink-2); display: inline-flex; gap: 4px; align-items: center; margin-left: auto; }
+.dock pre.out { color: var(--ink-2); border-left: 2px solid var(--border); padding-left: 8px; margin: 2px 0; }
+.dock .history { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
+.dock .entry { border-left: 3px solid var(--hairline); padding-left: 10px; }
+.dock pre { margin: 0; white-space: pre-wrap; word-break: break-word; font-size: 14px; }
+.dock pre.in { color: var(--ink-2); }
+.dock pre.error { color: var(--bad); }
+.dock pre.result { background: var(--surface-2); padding: 6px 8px; border-radius: 6px; }
+.dock .row { display: flex; gap: 8px; align-items: center; margin: 6px 0; flex-wrap: wrap; }
+.dock .summary { font-size: 14px; color: var(--ink-2); }
+.dock .check { font-size: 14px; color: var(--ink-2); display: inline-flex; gap: 4px; align-items: center; margin-left: auto; }
 
 /* the REPL's editor (prism-code-editor), coloured from the page's variables */
 .prism-code-editor {
   font-family: var(--mono); font-size: 15px; color: var(--ink);
   border: 1px solid var(--border); border-radius: 6px;
-  min-height: 4.8em; max-height: 40vh;
   --pce-bg: var(--surface); --pce-cursor: var(--ink); --pce-selection: var(--match);
   --pce-selection-match: var(--selected); --pce-line-number: var(--muted);
   --pce-bg-highlight: transparent; --pce-border-highlight: none;
 }
 .prism-code-editor.pce-focus { border-color: var(--accent); }
-.editor.tall .prism-code-editor { min-height: 7.5em; }
 .pce-textarea::placeholder { color: var(--muted); }
 .prism-code-editor .token.comment { color: var(--muted); font-style: italic; }
 .prism-code-editor .token.string, .prism-code-editor .token.char { color: var(--good); }
@@ -336,20 +321,59 @@ table.stats td.applied { color: var(--added-ink); font-weight: 600; }
 .graph marker path { fill: var(--ink-2); }
 .graph marker#arrow-lit path { fill: var(--accent); }
 
-/* the REPL's dock along the bottom of a lesson: one bar when closed; open, the REPL under the bar, resized from its top edge.
+/* the REPL's dock along the bottom of every page. Closed, it is one line: the editor, the last evaluation and the buttons.
+   Open, it is the editor beside the history, under the buttons, resized from its top edge.
    Its height is --dock-h, which the page's padding and the e-graph column read, so nothing is hidden under it */
-.page.has-dock { --dock-h: 44px; padding-bottom: calc(var(--dock-h) + 16px); }
-.dock { position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; display: flex; flex-direction: column;
+.page.has-dock { --dock-h: 48px; padding-bottom: calc(var(--dock-h) + 16px); }
+.dock { position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; height: var(--dock-h); box-sizing: border-box;
+        display: flex; flex-direction: column;
         background: var(--page); border-top: 1px solid var(--border); box-shadow: 0 -4px 12px rgba(0, 0, 0, .08); }
-.dock.open { height: var(--dock-h); }
 .dock-handle { flex: 0 0 auto; height: 6px; margin-top: -3px; cursor: ns-resize; touch-action: none; }
 .dock-handle:hover { background: var(--accent); }
-.dock-bar, .dock .repl { width: 100%; max-width: 1500px; margin: 0 auto; box-sizing: border-box; }
-.dock-bar { flex: 0 0 auto; height: 43px; display: flex; align-items: center; gap: 12px; padding: 0 16px; min-width: 0; }
-.dock-bar button { flex: 0 0 auto; }
-.dock-bar .last { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; color: var(--ink-2); }
-.dock-bar .key { margin-left: auto; flex: 0 0 auto; font-size: 12px; color: var(--muted); white-space: nowrap; }
-@media (max-width: 600px) { .dock-bar .key { display: none; } }
-.dock .repl { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; margin-bottom: 8px; border-radius: 0; border-left: 0; border-right: 0; }
-.dock .repl .history { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
-.dock .repl .editor, .dock .repl .row { flex: 0 0 auto; }
+.dock.closed .dock-handle { visibility: hidden; }
+.dock-row { flex: 1 1 auto; min-height: 0; width: 100%; max-width: 1500px; margin: 0 auto; box-sizing: border-box; padding: 0 16px 8px;
+            display: grid; gap: 6px 12px; }
+.dock.closed .dock-row { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr) auto; align-items: center; padding-bottom: 5px; }
+.dock.open .dock-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr);
+                       grid-template-areas: "tools tools" "editor history"; }
+.dock.open .dock-editor { grid-area: editor; }
+.dock.open .history { grid-area: history; }
+.dock.open .dock-tools { grid-area: tools; }
+@media (max-width: 800px) {
+  .dock.closed .dock-row { grid-template-columns: minmax(0, 1fr) auto; }
+  .dock.closed .last { display: none; }
+  .dock.open .dock-row { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) minmax(0, 1fr);
+                         grid-template-areas: "tools" "editor" "history"; }
+}
+.dock-editor { min-width: 0; min-height: 0; position: relative; display: flex; }
+.dock-editor .editor { flex: 1 1 auto; min-width: 0; min-height: 0; }
+.dock .prism-code-editor { height: 100%; box-sizing: border-box; }
+.dock.closed .prism-code-editor { height: 34px; overflow: hidden; }
+.dock.closed .pce-wrapper { margin: 6px 0; }
+.dock-editor .more { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); font-size: 12px; padding: 1px 8px;
+                     border-radius: 999px; color: var(--ink-2); background: var(--surface-2); }
+.dock .history { min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+.dock.open .history { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; }
+.dock .history .empty { color: var(--muted); font-size: 14px; margin: 4px 0; }
+.dock-tools { display: flex; gap: 8px; align-items: center; justify-content: flex-end; flex-wrap: wrap; }
+.dock.open .dock-tools { padding-top: 4px; }
+.dock.open .dock-tools .check { margin: 0 auto 0 0; order: -1; }
+.dock-tools .icon { width: 30px; height: 30px; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
+.dock .last { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left;
+              font-family: var(--mono); font-size: 13px; color: var(--ink-2); background: none; border: 0; padding: 4px 0; cursor: pointer; }
+.dock .last.error { color: var(--bad); }
+.dock .last:hover { color: var(--ink); background: none; }
+.prism-code-editor .pce-line.evaluated { background: var(--match); transition: background .3s; }
+
+/* the keys and the names in scope, over the dock's right end */
+.repl-help { position: absolute; right: 16px; bottom: calc(100% + 8px); width: min(560px, calc(100vw - 32px)); max-height: 70vh; overflow: auto;
+             box-sizing: border-box; padding: 12px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+             box-shadow: 0 8px 24px rgba(0, 0, 0, .15); font-size: 14px; color: var(--ink-2); }
+.repl-help h3 { margin: 12px 0 6px; }
+.repl-help .help-head { display: flex; align-items: center; }
+.repl-help .help-head h3 { margin-top: 0; }
+.repl-help .close { margin-left: auto; border: 0; background: none; font-size: 18px; padding: 0 6px; }
+.repl-help .note { margin: 4px 0 8px; }
+.repl-help dl.keys { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 12px; margin: 0; }
+.repl-help dd { margin: 0; }
+.repl-help kbd { font-family: var(--mono); font-size: 12px; padding: 1px 6px; border: 1px solid var(--border); border-radius: 4px; background: var(--surface-2); color: var(--ink); white-space: nowrap; }

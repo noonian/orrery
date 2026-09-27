@@ -34,9 +34,10 @@
    ;; lesson decides (see derived/graph?).
    :graph? nil :graph-filter? false :graph-zoom nil :export-status nil
    :line-numbers? false
-   ;; The REPL's dock along the bottom of a lesson: open or closed,
-   ;; and its height in pixels, nil for the height it opens at.
-   :repl-open? false :dock-height nil})
+   ;; The REPL's dock along the bottom of the page: open or closed,
+   ;; its height in pixels, nil for the height it opens at, and
+   ;; whether it shows its keys and the names in scope.
+   :repl-open? false :dock-height nil :repl-help? false})
 
 (defn initial
   "Returns the page before it has opened anything."
@@ -113,13 +114,14 @@
 (defn open
   "Returns `s` with lesson `l` opened over its curated values. The
   fields are printed in the print mode in force, and the lesson's
-  first cost is in force. Leaves the run alone: `start` makes the
-  lesson's run."
+  first cost is in force. A lesson whose `:dock` is :open opens the
+  REPL's dock. Leaves the run alone: `start` makes the lesson's run."
   [s l]
-  (assoc s
-         :lesson (:key l)
-         :input (input-for (print-mode s) l (:values l) {} nil)
-         :cost (or (first (:costs l)) :ast-size)))
+  (cond-> (assoc s
+                 :lesson (:key l)
+                 :input (input-for (print-mode s) l (:values l) {} nil)
+                 :cost (or (first (:costs l)) :ast-size))
+    (= :open (:dock l)) (assoc-in [:ui :repl-open?] true)))
 
 (defn start
   "Returns `s` with the lesson's run on show. The run is made over

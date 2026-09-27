@@ -1,10 +1,13 @@
 // The REPL's editor, prism-code-editor over a textarea: the colours,
-// the brackets, the keys, the undo and the line numbers.
+// the brackets, the keys of the closed and the open dock, the undo
+// and the line numbers.
 import { test, expect } from '@playwright/test';
 import { openLesson, evalRepl, openRepl } from './orrery.js';
 
 const editor = (page) => page.locator('#repl-input');
-const code = (page) => page.locator('#repl-panel .prism-code-editor');
+const code = (page) => page.locator('#repl-dock .prism-code-editor');
+const dock = (page) => page.locator('#repl-dock');
+const entries = (page) => page.locator('#repl-dock .entry');
 
 test.describe('the REPL\'s editor', () => {
   test('colours the code and its brackets by depth', async ({ page }) => {
@@ -29,20 +32,97 @@ test.describe('the REPL\'s editor', () => {
     await expect(editor(page)).toHaveValue("'");
   });
 
-  // Enter indents only between a pair of brackets for now; the
-  // indentation of Clojure is for later.
-  test('Enter between brackets indents, and Tab indents with spaces', async ({ page }) => {
+  test('open, Enter starts a new line indented as Clojure is, and Tab indents with spaces', async ({ page }) => {
     await openLesson(page, 'repl');
     await editor(page).click();
-    await editor(page).pressSequentially('(let [');
+    await editor(page).pressSequentially('(let [x 1');
     await editor(page).press('Enter');
-    await expect(editor(page)).toHaveValue('(let [\n  \n])');
+    await expect(editor(page)).toHaveValue('(let [x 1\n      ])');
+    await editor(page).fill('(let [x 1]');
+    await editor(page).press('Enter');
+    await expect(editor(page)).toHaveValue('(let [x 1]\n  ');
+    await editor(page).fill('(eg/add g');
+    await editor(page).press('Enter');
+    await expect(editor(page)).toHaveValue('(eg/add g\n        ');
     await editor(page).fill('(let [x 1]\nx)');
     await editor(page).press('Tab');
     await expect(editor(page)).toHaveValue('(let [x 1]\n  x)');
     await editor(page).press('Shift+Tab');
     await expect(editor(page)).toHaveValue('(let [x 1]\nx)');
     await expect(editor(page)).toBeFocused();
+  });
+
+  test('closed, Enter evaluates the line and empties the editor', async ({ page }) => {
+    await openLesson(page, 3);
+    await expect(dock(page)).toHaveClass(/\bclosed\b/);
+    await editor(page).click();
+    await editor(page).pressSequentially('(eg/class-count g');
+    await editor(page).press('Enter');
+    await expect(page.locator('#repl-last')).toHaveText(/^user=> \(eg\/class-count g\)\s+⇒\s+5$/);
+    await expect(editor(page)).toHaveValue('');
+    await expect(dock(page)).toHaveClass(/\bclosed\b/);
+    // two forms on the line are two entries
+    await editor(page).fill('(def n 2) (* n 3)');
+    await editor(page).press('Enter');
+    await expect(page.locator('#repl-last')).toHaveText(/⇒\s+6$/);
+    await openRepl(page);
+    await expect(entries(page)).toHaveCount(3);
+  });
+
+  test('closed, Enter in an open bracket and Shift-Enter open the dock on a new line', async ({ page }) => {
+    await openLesson(page, 3);
+    await editor(page).fill('(let [x 1]');
+    await editor(page).press('Enter');
+    await expect(dock(page)).toHaveClass(/\bopen\b/);
+    await expect(editor(page)).toHaveValue('(let [x 1]\n  ');
+    await expect(entries(page)).toHaveCount(0);
+    await editor(page).press('Escape');
+    await expect(dock(page)).toHaveClass(/\bclosed\b/);
+    await expect(editor(page)).toBeFocused();
+    await editor(page).fill('(+ 1 2)');
+    await editor(page).press('Shift+Enter');
+    await expect(dock(page)).toHaveClass(/\bopen\b/);
+    await expect(editor(page)).toHaveValue('(+ 1 2)\n');
+  });
+
+  test('closed over several lines, the dock says how many, and Enter opens it without evaluating', async ({ page }) => {
+    await openLesson(page, 3);
+    await editor(page).fill('(+ 1\n   2)\n(* 3 4)');
+    await expect(page.locator('#repl-more')).toHaveText('+2 lines');
+    await editor(page).press('Enter');
+    await expect(dock(page)).toHaveClass(/\bopen\b/);
+    await expect(editor(page)).toHaveValue('(+ 1\n   2)\n(* 3 4)');
+    await expect(entries(page)).toHaveCount(0);
+    await expect(page.locator('#repl-more')).toHaveCount(0);
+  });
+
+  test('Ctrl-Enter evaluates the form at the caret, and the editor keeps its text', async ({ page }) => {
+    await openLesson(page, 'repl');
+    const text = '(def a 20)\n\n(+ a\n   1)\n(* a 2)';
+    await editor(page).fill(text);
+    await editor(page).evaluate(t => { t.setSelectionRange(0, 0); });
+    await editor(page).press('Control+Enter');
+    await expect(entries(page).last().locator('pre.in')).toHaveText('user=> (def a 20)');
+    await editor(page).evaluate(t => { t.setSelectionRange(17, 17); });   // inside (+ a 1)
+    await editor(page).press('Control+Enter');
+    await expect(entries(page).last().locator('pre.in')).toHaveText('user=> (+ a\n   1)');
+    await expect(entries(page).last().locator('pre.result')).toHaveText('21');
+    await expect(entries(page)).toHaveCount(2);
+    await expect(editor(page)).toHaveValue(text);
+  });
+
+  test('Ctrl-Shift-Enter evaluates every form in order, and stops at the first error', async ({ page }) => {
+    await openLesson(page, 'repl');
+    await editor(page).fill('(def b 1)\n(nope)\n(def b 2)');
+    await editor(page).press('Control+Shift+Enter');
+    await expect(entries(page)).toHaveCount(2);
+    await expect(entries(page).last().locator('pre.error')).toContainText('nope');
+    await editor(page).fill('b');
+    await editor(page).press('Control+Enter');
+    await expect(entries(page).last().locator('pre.result')).toHaveText('1');
+    await page.locator('#repl-clear').click();
+    await expect(entries(page)).toHaveCount(0);
+    await expect(editor(page)).toHaveValue('b');
   });
 
   test('undoes what was typed', async ({ page }) => {
@@ -54,9 +134,11 @@ test.describe('the REPL\'s editor', () => {
     await expect(editor(page)).not.toHaveValue('abc');
   });
 
-  test('a recalled input puts the caret at its end', async ({ page }) => {
-    await openLesson(page, 'repl');
-    await evalRepl(page, '(+ 1 1)');
+  test('closed, a recalled input puts the caret at its end', async ({ page }) => {
+    await openLesson(page, 3);
+    await editor(page).fill('(+ 1 1)');
+    await editor(page).press('Enter');
+    await expect(editor(page)).toHaveValue('');
     await editor(page).press('ArrowUp');
     await expect(editor(page)).toHaveValue('(+ 1 1)');
     await editor(page).pressSequentially(' ;x');
@@ -67,7 +149,7 @@ test.describe('the REPL\'s editor', () => {
     await openLesson(page, 'repl');
     await editor(page).fill('(+ 1 2)');
     await page.locator('.prose a.act[data-act=eval]').first().click();
-    await expect(page.locator('#repl-panel .entry')).toHaveCount(1);
+    await expect(entries(page)).toHaveCount(1);
     await expect(editor(page)).toHaveValue('(+ 1 2)');
   });
 

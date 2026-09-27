@@ -16,7 +16,7 @@
             [orrery.score :as score]
             [orrery.views.common :as common]
             [orrery.views.panels :as panels]
-            [orrery.views.repl :as repl]))
+))
 
 (defn- work-link
   "Renders a work of the reading list as a link to the paper, or as
@@ -178,8 +178,11 @@
    [:div.text (text s l)]
    (when (and r g)
      [:div.egraph
-      (when (contains? panels :tree)
-        (panels/tree-panel s g (get-in s [:input :values :term])))
+      ;; the term of the run, or of the input when the run knows none;
+      ;; a run from the REPL that knows no term has no tree
+      (when-let [t (and (contains? panels :tree)
+                        (or (:term r) (when-not (= :repl (:from r)) (get-in s [:input :values :term]))))]
+        (panels/tree-panel s g t))
       (panels/replay-bar s r g)
       (panels/tools s)
       (panels/graph-panel s matches)
@@ -191,48 +194,11 @@
       (when (seq (:inputs l)) (input-area s l))
       (panels/run-panel s r g (:fn (lessons/operation l)))
       (when (derived/root-at s) (panels/best-panel s (:costs l)))
-      (when (contains? panels :matches) (panels/matches-panel matches))
-      (when (contains? panels :stats) (panels/stats-panel s r))])])
-
-(defn- beside
-  "Renders the panels of the REPL's page. The editor is on the left
-  and stays in view. On the right is every panel that reads the run
-  on show, whatever put the run there.
-
-  A panel with nothing to read is left out. The best term and the
-  matches need a run that knows its root and its rules. The tree
-  needs a run that knows the term it started from."
-  [s l r g panels matches]
-  [:div.workbench.beside
-   [:div.repl-column (panels/repl-panel s :beside)]
-   [:div.stack
-    [:div.egraph
-     (panels/replay-bar s r g)
-     (panels/tools s)
-     (panels/graph-panel s matches)
-     (panels/classes-panel s g matches)]
-    (panels/run-panel s r g (:fn (lessons/operation l)))
-    (when (derived/root-at s) (panels/best-panel s (:costs l)))
-    (when (and (contains? panels :matches) matches) (panels/matches-panel matches))
-    (when (and (contains? panels :stats) (seq (:stats r))) (panels/stats-panel s r))
-    (when (and (contains? panels :tree) (:term r))
-      (panels/tree-panel s g (:term r)))]])
-
-(defn- repl-page
-  "Renders the REPL's page: its words beside the names in scope, and
-  under them the REPL beside the e-graph."
-  [s l r g panels matches]
-  (list
-   [:div.docs
-    [:div
-     (into [:div.prose] (map #(prose s %) (:prose l)))
-     (reading-view l)]
-    (repl/names-view)]
-   (when (and r g)
-     (beside s l r g panels matches))))
+      (when (and (contains? panels :matches) matches) (panels/matches-panel matches))
+      (when (and (contains? panels :stats) (seq (:stats r))) (panels/stats-panel s r))])])
 
 (defn page
-  "Renders the page. A lesson has the REPL in a dock along the
+  "Renders the page. Every page has the REPL in a dock along the
   bottom of the viewport. The dock's height is the style variable
   `--dock-h`, which the page's padding and the e-graph column read,
   so nothing is hidden under the dock."
@@ -243,11 +209,10 @@
         mode (get-in s [:ui :print])
         panels (or (:panels l) #{})
         matches (derived/matches-at s)
-        beside? (= :beside (:layout l))
         {:keys [repl-open? dock-height]} (:ui s)]
-    [:main.page {:class (when-not beside? "has-dock")
-                      :style (when (and repl-open? (not beside?))
-                               {:--dock-h (if dock-height (str dock-height "px") "40vh")})}
+    [:main.page {:class "has-dock"
+                 :style (when repl-open?
+                          {:--dock-h (if dock-height (str dock-height "px") "40vh")})}
      [:header.masthead
       [:h1 "orrery"]
       [:span.tagline "an e-graph explorer, for understanding"]
@@ -255,12 +220,6 @@
       (common/print-toggle mode)]
      (nav (:key l))
      (when l
-       [:section.lesson
-        (if beside?
-          (list (about-view s l)
-                [:h2 (lessons/heading l)]
-                (repl-page s l r g panels matches))
-          (lesson-layout s l r g panels matches))])
+       [:section.lesson (lesson-layout s l r g panels matches)])
      (colophon-view s)
-     (when (and l (not beside?))
-       (panels/repl-dock s))]))
+     (panels/repl-dock s)]))
