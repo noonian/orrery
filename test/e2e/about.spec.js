@@ -20,7 +20,8 @@ test.describe('what this is', () => {
     await expect(about).toContainText('bendix, a nascent computer algebra system built on it');
     await expect(about).toContainText('widgets over what those libraries really compute');
     await expect(about).toContainText(`It is ${disclosure}.`);
-    await expect(about.locator('a')).toHaveCount(0);
+    await expect(about.locator('a.act')).toHaveCount(0);
+    await expect(about.locator('a[href^="https://github.com/noonian/"]')).toHaveText(['cromulent', 'bendix']);
 
     const y = async (locator) => (await locator.boundingBox()).y;
     const [a, h, first] = [await y(about), await y(page.locator('.lesson h2')), await y(page.locator('.prose a.act').first())];
