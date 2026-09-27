@@ -13,7 +13,11 @@
   like them and without a number: the basics, from nothing, where
   the page opens, and the introduction, what an e-graph is and why.
   Before those, `about`: what the site is, said once, over the page
-  it opens on, and in a line under every page (`colophon`)."
+  it opens on, and in a line under every page (`colophon`). After
+  the lessons comes one more page shaped like them, the REPL's: its
+  prose is the REPL's documentation, its figures lines the reader
+  evaluates, and its workbench every panel that reads an e-graph,
+  beside the editor."
   (:require [bendix.core :as bx]
             [bendix.rules :as rules]
             [clojure.string :as str]
@@ -162,12 +166,13 @@
   [:select t label k] scrubs to k first; [:cost key label] sets the
   cost; [:alternative label text] chooses one of the lesson's
   alternatives; [:print mode label] switches the print mode; [:lesson
-  key label] goes to another lesson; [:cite key …] cites works of
-  `reading` on the idea it follows, as short author-year links. The
-  prose is written in the explorable voice: each paragraph says what
-  is on the page and hands the reader one of these to pull, and
-  cites rather than recounts."
-  #{:notation :native :step :select :cost :alternative :print :lesson :cite})
+  key label] goes to another lesson; [:eval code] evaluates code at
+  the REPL as if the reader had typed it, the code being the link;
+  [:cite key …] cites works of `reading` on the idea it follows, as
+  short author-year links. The prose is written in the explorable
+  voice: each paragraph says what is on the page and hands the reader
+  one of these to pull, and cites rather than recounts."
+  #{:notation :native :step :select :cost :alternative :print :lesson :eval :cite})
 
 (def reading
   "The works the prose cites, by key: who, what, where, the year, the
@@ -537,6 +542,30 @@
     [:p [:step 1 "Iteration 1"] ": d-sin fires, and the class of the derivative gains " [:notation [:* [:cos [:* 2 :x]] [:D [:* 2 :x] :x]]] ". " [:step 2 "Iteration 2"] ": the ring differentiates 2·x to 2, so that product is worth 2·cos(2·x). The third iteration finds nothing, and " [:step 4 "the last step"] " writes the normal forms in. " [:select [:D [:sin [:* 2 :x]] :x] "Open the derivative's class" 4] ": the derivative node and the two products it equals, each with its cost, the derivative dearest under no-D."]
     [:p "Which term is the answer is the cost's decision. Bendix's default cost charges a derivative node no more than a sine, so for " [:alternative "sin(sin(sin x))" "sin(sin(sin x))"] " under " [:cost :bendix "bendix's default"] " it keeps the derivative unevaluated: the node is cheaper than the product of three cosines. The " [:cost :no-D "no-D cost"] " counts what is still under a derivative before it counts size, so a derivative-free spelling wins whenever one exists, and when none does, " [:alternative "x·|x|: no rule for abs" "x·|x|"] " say, the D stays and the answer says so."]]})
 
+;; ---------------------------------------------------------------------------
+;; the page after the lessons: the REPL
+
+(def repl
+  {:key :repl :nav "The REPL" :title "The REPL" :needs :cromulent :kind :embiggen
+   :operation :saturate
+   :layout :beside
+   :inputs []
+   :values {:term [:+ :a :a]
+            :rules '[["double" [:+ ?x ?x] [:* ?x 2]]
+                     ["shift" [:* ?x 2] [:<< ?x 1]]]}
+   :opts {:scheduler :simple}
+   :costs [:ast-size :prefer-add :prefer-mul :prefer-shift :no-shift :bendix :no-D]
+   :panels #{:graph :tree :matches :stats}
+   :prose
+   [[:p "Every panel on this site shows a value that a Clojure program made. This is its REPL: an editor to type that program in, a line at a time, with every panel beside it. " [:code "g"] " is the e-graph on show and " [:code "timeline"] " every step of its run: " [:eval "(eg/class-count g)"] ", " [:eval "(count timeline)"] ". Click a line to evaluate it, or type one in the editor and press Ctrl-Enter; the up arrow brings back what was evaluated before, and " [:code "*1"] " is the last value. The engine is loaded under short names, in the list of names in scope, and " [:eval "(doc eg/union)"] " prints what a function says of itself."]
+    [:p "An e-graph is a value" [:cite :hickey-2020] ", so nothing evaluated here changes " [:code "g"] ". " [:eval "(eg/add g [:+ :b :b])"] " returns a pair, a new e-graph and the class of the term in it; the history prints an e-graph as its class list, that class marked, and " [:eval "(eg/class-count g)"] " is what it was. To see a value in every panel, put it on show, with the button beside it or with " [:eval "(show! (eg/add g [:+ :b :b]))"] "."]
+    [:p [:code "push!"] " makes an e-graph the next step of the run on show, so a run can be made by hand and scrubbed like a lesson's. Say that " [:notation :b] " is " [:notation :a] ": "
+     [:eval "(let [[g a] (eg/add g :a)\n      [g b] (eg/add g :b)]\n  (push! (first (eg/union g a b)) \"a = b, rebuild pending\"))"]
+     " Then " [:eval "(push! (eg/rebuild g) \"rebuilt\")"] ", and the class of " [:notation [:+ :b :b]] " has joined the class of " [:notation [:+ :a :a]] ", which nobody asserted: lesson 3's congruence, typed."]
+    [:p "The page is a value too, in an atom, " [:code "state"] ". " [:eval "(:step @state)"] " is the step on show, and scrubbing is a swap: " [:eval "(swap! state wb/scrub 0)"] ". " [:code "wb"] " holds the steps the page's own buttons take, " [:code "show!"] " and " [:code "push!"] " being two of them with the swap written in, and the rest is keys: " [:eval "(swap! state assoc :cost :prefer-shift)"] ". The atom refuses a value the page could not draw, and says why: " [:eval "(swap! state assoc :step 99)"] "."]
+    [:p "A run is a value as well. Equality saturation" [:cite :tate-2009 :willsey-2021] " is one call, " [:eval "(rw/saturate (first (eg/add (eg/egraph) [:+ :a :b]))\n             (lessons/rules-of lessons/ac-rules)\n             {:timeline? true})"] " and the button beside what it returns puts its timeline on show. " [:eval "(show! (run/start [:+ [:+ :a :b] :c]\n                  (lessons/rules-of lessons/ac-rules)\n                  {}))"] " hands the page a run that has not run yet, and the page steps it as it steps a lesson's. bendix is loaded beside cromulent: " [:eval "(bx/simplify [:+ [:* 2 :x] [:* 3 :x]])"] ", and an e-graph that carries its analysis shows each class's polynomial in the list, as in lesson 9: " [:eval "(show! (bx/saturate [:+ [:expt [:sin :x] 2] [:expt [:cos :x] 2]]\n                     {:rules rules/trig :timeline? true}))"]]
+    [:p "Terms are typed in the native spelling, " [:native [:+ [:* 2 :x] :y]] "; " [:eval "(input/read-term \"2·x + y\")"] " reads the notation. What is typed here is interpreted, and every function it calls is the compiled one the page runs, so the engine is as fast as in a lesson. There is no interrupt: an evaluation that never ends takes the tab with it."]]})
+
 (def all
   [basics
    intro
@@ -550,7 +579,8 @@
    fix
    polynomial-rule
    what-if
-   differentiation])
+   differentiation
+   repl])
 
 (defn by-key [k] (some (fn [l] (when (= k (:key l)) l)) all))
 

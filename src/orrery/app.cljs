@@ -18,11 +18,17 @@
   (let [l (lessons/by-address (subs (or js/location.hash "") 1))]
     (if (and l (lessons/live? l)) (:key l) lessons/start)))
 
-(defn ^:dev/after-load reload! [] (render!))
+(defn- watch!
+  "The page follows its state: what the change asks of the browser
+  first, the run loop among it, then the render."
+  []
+  (add-watch state/app-state :render (fn [_ _ old new] (state/changed! old new) (render!))))
+
+(defn ^:dev/after-load reload! [] (watch!) (render!))
 
 (defn init! []
   (r/set-dispatch! dispatch/dispatch)
-  (add-watch state/app-state :render (fn [_ _ _ _] (render!)))
+  (watch!)
   ;; a read-only hook for the Playwright specs in test/e2e. Not
   ;; window.orrery: that global is the object every orrery.* namespace
   ;; lives on, and assigning it erases them all.

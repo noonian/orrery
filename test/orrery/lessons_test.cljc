@@ -1,10 +1,12 @@
 (ns orrery.lessons-test
-  (:require [clojure.test :refer [deftest is testing]]
+  (:require [clojure.string :as str]
+            [clojure.test :refer [deftest is testing]]
             [cromulent.core :as eg]
             [orrery.eclass :as eclass]
             [orrery.expect :as expect]
             [orrery.notation :as notation]
             [orrery.lessons :as lessons]
+            [orrery.names :as names]
             [orrery.run :as run]))
 
 (deftest every-live-lesson-meets-its-expectation
@@ -16,6 +18,18 @@
     (is (map? (get expect/runs (:key l))) (:title l))
     (doseq [a (:alternatives l)]
       (is (contains? (get expect/runs (:key l)) (:label a)) (str (:title l) " · " (:label a))))))
+
+(defn- balanced?
+  "Do the brackets of code close, strings aside?"
+  [code]
+  (let [bare (str/replace code #"\"(?:[^\"\\]|\\.)*\"" "")
+        closes {\) \( \] \[ \} \{}]
+    (empty? (reduce (fn [open c]
+                      (cond (#{\( \[ \{} c) (conj open c)
+                            (closes c) (if (= (closes c) (peek open)) (pop open) (reduced [:unbalanced]))
+                            :else open))
+                    []
+                    bare))))
 
 (deftest prose-widgets-hold-for-the-curated-run
   (doseq [l lessons/all
@@ -40,9 +54,17 @@
       :lesson (do (is (string? b) (where w))
                   (is (some-> (lessons/by-key a) lessons/live?) (where w))
                   (is (not= a (:key l)) (where w)))
+      :eval (do (is (and (string? a) (seq a)) (where w))
+                (is (= 2 (count w)) (str (where w) ": the code is the link"))
+                (is (balanced? a) (where w))
+                (is (every? names/aliases (names/qualifiers a)) (str (where w) ": every namespace it names is in scope")))
       :cite (do (is (seq (rest w)) (where w))
                 (is (every? #(contains? lessons/reading %) (rest w)) (where w)))))
-  (is (seq (lessons/widgets lessons/tree))))
+  (is (seq (lessons/widgets lessons/tree)))
+  (testing "the check on a line to evaluate"
+    (is (balanced? "(push! (eg/rebuild g) \"a ) in a string\")"))
+    (is (not (balanced? "(eg/add g [:+ :a :b)")))
+    (is (not (balanced? "(eg/add g :a))")))))
 
 (deftest every-citation-resolves-and-every-work-is-cited
   (doseq [l lessons/all :when (lessons/live? l)]
@@ -59,8 +81,10 @@
 
 (deftest the-page-opens-on-the-basics
   (let [l (lessons/by-key lessons/start)
-        [before numbered] (split-with (comp nil? :n) lessons/all)]
+        [before others] (split-with (comp nil? :n) lessons/all)
+        [numbered after] (split-with :n others)]
     (is (= [lessons/basics lessons/intro] before) "two pages before the lessons, the basics first")
+    (is (= [lessons/repl] after) "and one after them, the REPL's")
     (is (= lessons/basics l))
     (is (lessons/live? l))
     (is (= (range 1 12) (map :n numbered)) "the lessons are 1 to 11, in order")
@@ -69,7 +93,9 @@
       (is (= "Start here" (lessons/nav-label l)))
       (is (= "What is an e-graph?" (lessons/heading lessons/intro) (lessons/nav-label lessons/intro)))
       (is (= "7. The blowup" (lessons/heading lessons/blowup) (lessons/nav-label lessons/blowup)))
-      (is (= ["basics" "intro" "1" "11"] (map lessons/address [l lessons/intro lessons/tree lessons/differentiation]))))
+      (is (= "The REPL" (lessons/heading lessons/repl) (lessons/nav-label lessons/repl)))
+      (is (= ["basics" "intro" "1" "11" "repl"]
+             (map lessons/address [l lessons/intro lessons/tree lessons/differentiation lessons/repl]))))
     (testing "every address finds its lesson, and nothing else finds one"
       (doseq [x lessons/all]
         (is (= x (lessons/by-address (lessons/address x)))))
@@ -112,7 +138,10 @@
         (is (string? (lessons/input-says input :notation)) where)
         (is (some #(re-find (re-pattern (str "(^|[ (\\[])" arg "($|[ ),\\]])")) %) lines)
             (str where ": " arg " is an argument of " (pr-str lines)))))
-    (is (apply distinct? (map :arg (:inputs l))) where))
+    (is (or (empty? (:inputs l)) (apply distinct? (map :arg (:inputs l)))) where))
+  (testing "the REPL's page has no fields: its editor is the input"
+    (is (empty? (:inputs lessons/repl)))
+    (is (= [lessons/repl] (remove (comp seq :inputs) lessons/all))))
   (testing "the options in force are the lesson's under the alternative's"
     (is (= ["(eg/add (eg/egraph) term)"
             "(rw/saturate g rules"

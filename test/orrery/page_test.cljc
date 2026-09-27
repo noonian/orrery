@@ -12,24 +12,28 @@
             [orrery.actions :as actions]
             [orrery.derived :as derived]
             [orrery.lessons :as lessons]
+            [cromulent.rewrite :as rw]
             [orrery.run :as run]
-            [orrery.views.lesson :as page]))
+            [orrery.views.lesson :as page]
+            [orrery.printed :as printed]
+            [orrery.workbench :as workbench]))
 
-(defn- state-for [l run step]
-  {:lesson (:key l)
-   :input {:fields {} :values (:values l) :error nil :alternative nil :opts {}}
-   :run run :run-id 1 :step step :follow? true
-   :cost (or (first (:costs l)) :ast-size)
-   :repl {:input "" :history []}
-   :ui {:print :notation :playing nil :selected nil :hover nil :drawing? false
-        :graph? false :graph-filter? false :graph-zoom nil :export-status nil}})
+(defn- state-for
+  "The page of l over run at step, as the browser's atom would hold
+  it, with the picture switched off."
+  [l run step]
+  (assoc-in (workbench/page l run step) [:ui :graph?] false))
+
+(def ^:private hooks
+  [:replicant/on-render :replicant/on-mount :replicant/on-unmount :replicant/on-update])
 
 (defn- handlers
-  "Every event handler in a hiccup tree."
+  "Every event handler in a hiccup tree, and every life-cycle hook,
+  which Replicant routes through the same dispatch."
   [hiccup]
   (for [x (tree-seq coll? seq hiccup)
-        :when (and (map? x) (contains? x :on))
-        [_ h] (:on x)]
+        :when (map? x)
+        h (concat (vals (:on x)) (keep x hooks))]
     h))
 
 (defn- functions
@@ -100,6 +104,7 @@
 
 (deftest the-panels-say-what-they-are-the-work-of
   (doseq [l lessons/all
+          :when (seq (:inputs l))
           mode [:notation :native]
           :let [run (run/run-all (lessons/make-run l))
                 _ (derived/clear-cache!)
@@ -160,6 +165,90 @@
         (str (:title l) ": every page says it in a line"))
     (is (re-find #"largely written using LLMs" (first (texts h :footer.colophon))) (:title l))))
 
+(defn- elements
+  "Every element of hiccup with this tag."
+  [hiccup tag]
+  (filter #(and (vector? %) (= tag (first %))) (tree-seq coll? seq hiccup)))
+
+(deftest the-repl-has-a-page-of-its-own
+  (let [l lessons/repl
+        run (run/run-all (lessons/make-run l))
+        _ (derived/clear-cache!)
+        s (workbench/page l run)
+        h (page/page s)
+        hs (set (handlers h))]
+    (testing "the editor beside the e-graph, over it in reading order, where a lesson has it under"
+      (is (< (position h :div.panel.repl) (position h :table.classes)))
+      (is (seq (elements h :div.workbench.beside)))
+      (let [lesson (page-at-the-end lessons/taste)]
+        (is (> (position lesson :div.panel.repl) (position lesson :table.classes)))
+        (is (empty? (elements lesson :div.workbench.beside)))))
+    (testing "no fields: the editor is the input"
+      (is (= ["repl-input"] (map (comp :id second) (elements h :textarea))) "the one place to type")
+      (is (empty? (texts h :pre.call)))
+      (is (not (contains? hs [:run]))))
+    (testing "every panel that reads a run, each saying what it is the work of"
+      (is (= ["names in scope" "the REPL" "the classes" "the run" "best so far" "matches in this step" "the iterations" "the tree"]
+             (texts h :h3)))
+      (is (some #{"rw/saturate"} (texts h :code.of)))
+      (is (some #{"user"} (texts h :code.of)))
+      (is (contains? hs [:graph/zoom :fit]) "and the picture, unasked")
+      (is (= 7 (count (filter #(and (vector? %) (= :cost (first %))) hs))) "every cost in the picker"))
+    (testing "the prose's lines are the REPL's to evaluate, and the names in scope are listed"
+      (let [lines (map second (filter #(= :eval (first %)) (lessons/widgets l)))]
+        (is (seq lines))
+        (is (every? #(contains? hs [:repl/run %]) lines)))
+      (is (contains? hs [:repl/scroll]) "the history scrolls to its last entry")
+      (let [names (first (elements h :aside.panel.names))]
+        (is (every? (set (texts names :code)) ["g" "timeline" "state" "show!" "push!" "eg" "rw" "ex" "bx" "wb"]))))
+    (testing "a lesson's REPL panel links to it"
+      (is (some #{"#repl"} (keep :href (filter map? (tree-seq coll? seq (page-at-the-end lessons/taste)))))))))
+
+(deftest what-the-repl-puts-on-show-builds
+  (let [l lessons/repl
+        curated (run/run-all (lessons/make-run l))
+        g (peek (:timeline curated))
+        [g' id] (eg/add g [:+ :b :b])
+        [merged _] (eg/union g' (second (eg/add g' :a)) (second (eg/add g' :b)))
+        page-of (fn [s]
+                  (derived/clear-cache!)
+                  (let [h (page/page s)]
+                    (is (nil? (workbench/problem s)))
+                    (is (empty? (functions h)))
+                    (is (every? actions/known? (handlers h)))
+                    h))
+        base (workbench/page l curated)]
+    (testing "an e-graph: the classes, and no panel that needs a root, rules or a term"
+      (let [h (page-of (workbench/put base g'))]
+        (is (= ["names in scope" "the REPL" "the classes" "the run"] (texts h :h3)))
+        (is (some #{"from the REPL"} (texts h :code.of)))))
+    (testing "a [g id] pair: the class to extract for"
+      (let [s (workbench/put base [g' id])
+            h (page-of s)]
+        (is (= id (derived/root-at s)))
+        (is (some #{"best so far"} (texts h :h3)))))
+    (testing "steps pushed by hand, the second dirty until the third rebuilds it"
+      (let [s (-> (workbench/put base [g' id])
+                  (workbench/push merged "a = b, rebuild pending")
+                  (workbench/push (eg/rebuild merged) "rebuilt"))]
+        (is (= [2 3] [(:step s) (count (:timeline (:run s)))]))
+        (is (= [6 5 4] (mapv eg/class-count (:timeline (:run s)))))
+        (doseq [k (range 3)]
+          (page-of (assoc-in (workbench/scrub s k) [:ui :selected] id)))))
+    (testing "a runner's result: its timeline, and the rules its iterations counted as the table's columns"
+      (let [res (rw/embiggen (first (eg/add (eg/egraph) [:+ :a :b])) (lessons/rules-of lessons/ac-rules)
+                             {:scheduler :simple :timeline? true})
+            s (workbench/put base res)
+            h (page-of s)]
+        (is (= 3 (count (:timeline (:run s)))))
+        (is (every? (set (texts h :th)) ["assoc" "comm"]))))
+    (testing "a run that has not run: on show at its input, to be stepped"
+      (let [s (workbench/put base (run/start [:+ [:+ :a :b] :c] (lessons/rules-of lessons/ac-rules) {}))
+            h (page-of s)]
+        (is (= [:running 0] [(:status (:run s)) (:step s)]))
+        (is (contains? (set (handlers h)) [:stop]))
+        (is (some #{"the tree"} (texts h :h3)) "it knows the term it started from")))))
+
 (deftest the-repl-panel-builds-with-a-history
   (let [l lessons/tree
         run (run/run-all (lessons/make-run l))
@@ -170,15 +259,45 @@
                                           {:in "[g 0]" :ok [g 0]}
                                           {:in "(rw/embiggen g [])" :ok {:egraph g :stats [] :iterations 0 :stop-reason :saturated}}
                                           {:in "(+ 1 1)" :ok 2}
-                                          {:in "(boom)" :error "no such var"}]))
+                                          {:in "(boom)" :error "no such var"}
+                                          {:in "(println 1)" :ok nil :out "1\n"}
+                                          {:in "(run/start t rules {})" :ok (lessons/make-run lessons/taste)}
+                                          {:in "@state" :ok (state-for l run 0)}
+                                          {:in "inc" :ok inc}]))
         h (page/page s)
         hs (set (handlers h))]
-    (is (empty? (functions h)))
+    (is (empty? (functions h)) "a function in the history is printed, not put in the page")
     (is (every? actions/known? hs))
     (is (contains? hs [:adopt 0]))
     (is (contains? hs [:adopt 1]))
     (is (contains? hs [:adopt 2]))
-    (is (not (contains? hs [:adopt 3])) "a printed value has no button")))
+    (is (not (contains? hs [:adopt 3])) "a printed value has no button")
+    (is (contains? hs [:adopt 6]) "a run has one")
+    (is (= ["1\n"] (texts h :pre.out)) "what was printed stands over the value")
+    (is (= ["2" "nil" "#function"] (remove #(re-find #"^\{" %) (texts h :pre.result))))
+    (is (some #(re-find #"^a run: 1 step, 0 iterations, not run yet; 2 classes, 2 nodes$" %) (texts h :span.summary)))
+    (testing "the text an evaluation printed of its value is the text shown"
+      (let [h (page/page (assoc-in s [:repl :history] [{:in "(range 3)" :ok (range 3) :printed "(0 1 2), as printed then"}]))]
+        (is (= ["(0 1 2), as printed then"] (texts h :pre.result)))))))
+
+(deftest a-value-is-printed-abridged
+  (let [run (run/run-all (lessons/make-run lessons/blowup))
+        g (peek (:timeline run))
+        s (-> (workbench/page lessons/blowup run)
+              (assoc-in [:repl :history] [{:in "g" :ok g} {:in "1" :ok 1}]))]
+    (is (= "[#egraph[31 classes, 185 nodes]]" (printed/printed [g])) "an e-graph inside a value, by its counts")
+    (is (re-find #"^\(0 1 2 .* 47 …\)$" (printed/printed (range))) "an endless sequence, cut")
+    (is (= (inc printed/most) (count (re-seq #"[^ ()]+" (printed/printed (range))))) "at `most` elements and the mark")
+    (is (= "[[[[[[…]]]]]]" (printed/printed [[[[[[[1]]]]]]])) "and one nested deep, closed")
+    (is (= "(atom {:a 1})" (printed/printed (atom {:a 1}))))
+    (is (= "#function" (printed/printed inc)))
+    (is (= "{:term [:+ :a 1/2]}" (printed/printed {:term [:+ :a 1/2]})))
+    (testing "the state of the page: its run in a line, its history by its length"
+      (let [text (printed/printed s)]
+        (is (< (count text) 1200))
+        (is (re-find #":run #run\[8 steps, 7 iterations, saturated" text))
+        (is (re-find #":history #history\[2\]" text))
+        (is (re-find #":lesson :blowup" text))))))
 
 (deftest the-snapshot-reads-the-same-here
   (let [l lessons/blowup

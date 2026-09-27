@@ -4,11 +4,12 @@ import { expect } from '@playwright/test';
 
 // A lesson's address, what follows # → the key the page reports, so
 // opening it also proves the hash landed on the right lesson. The two
-// pages before the lessons have no number and go by their key.
+// pages before the lessons and the REPL's after them have no number
+// and go by their key.
 export const keys = {
   basics: 'basics', intro: 'intro', 1: 'tree', 2: 'sharing', 3: 'congruence', 4: 'rule',
   5: 'saturation', 6: 'taste', 7: 'blowup', 8: 'fix',
-  9: 'polynomial-rule', 10: 'what-if', 11: 'differentiation',
+  9: 'polynomial-rule', 10: 'what-if', 11: 'differentiation', repl: 'repl',
 };
 
 // window.orreryPage.snapshot(): {lesson step steps status iterations
@@ -66,9 +67,9 @@ export async function column(locator, name) {
 
 // Evaluate in the REPL panel; the entry it appends.
 export async function evalRepl(page, code) {
-  const before = await page.locator('#repl .entry').count();
+  const before = await page.locator('#repl-panel .entry').count();
   await page.locator('#repl-input').fill(code);
   await page.locator('#repl-eval').click();
-  await expect(page.locator('#repl .entry')).toHaveCount(before + 1);
-  return page.locator('#repl .entry').last();
+  await expect(page.locator('#repl-panel .entry')).toHaveCount(before + 1);
+  return page.locator('#repl-panel .entry').last();
 }

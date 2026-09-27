@@ -7,7 +7,8 @@ to start from, the basics for a reader who has met none of this and
 an introduction to what an e-graph is and why it is interesting, and
 eleven lessons from "a term is a tree" to "differentiation is
 simplification", each a real execution you can scrub forwards and
-backwards, with a REPL underneath.
+backwards, with a REPL underneath; and a page for the REPL itself,
+its editor beside every panel.
 
 What it is: an interactive tool for exploring e-graphs and learning
 how they work, its author's learning included. It embeds cromulent,
@@ -46,7 +47,7 @@ npm run e2e                          # build the release, drive every lesson in 
 ```
 
 The browser suite is Playwright, in `test/e2e/`: one spec per live
-lesson, plus the REPL and the self-test tile. `npx playwright test`
+lesson, plus the REPL, its page and the self-test tile. `npx playwright test`
 reruns it over the last build, and with `ORRERY_URL=http://localhost:8379`
 it drives the watcher's page instead of starting a server.
 
@@ -84,6 +85,8 @@ used; and a link to every lesson.
 9. A rule over the polynomial
 10. What if
 11. Differentiation is simplification
+
+After them, the REPL's page (`#repl`, see below).
 
 Every lesson is live. Each has a curated example, a "try another"
 over alternatives, a "surprise me" that draws a dozen random terms
@@ -129,6 +132,73 @@ pages before the lessons, and once you touch the switch the choice
 is yours on every page. The same row copies
 or downloads the step as egraph-serialize JSON, the format egg's and
 egglog's tools read, every node costed under the cost in force.
+
+## The REPL
+
+Every lesson has a REPL under it, and `#repl`, "The REPL" at the
+end of the navigation, is a page for it: the editor on the left,
+staying in view, and on the right every panel that reads an e-graph,
+over whatever the REPL puts on show. The page's prose is the
+REPL's documentation, and each line of code in it is a link that
+evaluates it.
+
+What is in scope, which the page lists from the same table the REPL
+is made from (`orrery.names`):
+
+| name | what it is |
+| --- | --- |
+| `g` | the e-graph on show: the run's, at the step on show |
+| `timeline` | every step of the run on show, a vector of e-graphs |
+| `state` | the page, an atom; a swap of it is a change of the page |
+| `(show! v)` | puts `v` on show: an e-graph, a `[g id]` pair, a runner's result or a run |
+| `(push! g label)` | makes `g` the next step of the run on show |
+| `*1` `*2` `*3` `*e` | the last values and the last error |
+| `doc` `dir` `apropos` `find-doc` | `clojure.repl`'s |
+| `eg` `pat` `rw` `ex` `term` `check` `export` | cromulent's namespaces |
+| `bx` `rules` `an` `poly` `bt` `num` | bendix's |
+| `wb` `run` `lessons` `eclass` `costs` `diff` `notation` `input` | orrery's |
+
+```clojure
+(eg/class-count g)                        ; the e-graph on show is a value
+(show! (eg/add g [:+ :b :b]))             ; a pair: the e-graph, and the class to extract for
+(let [[g a] (eg/add g :a)
+      [g b] (eg/add g :b)]
+  (push! (first (eg/union g a b)) "a = b, rebuild pending"))
+(push! (eg/rebuild g) "rebuilt")          ; a run made by hand, scrubbed like a lesson's
+(show! (run/start [:+ [:+ :a :b] :c]      ; a run that has not run: the page steps it
+                  (lessons/rules-of lessons/ac-rules) {}))
+(swap! state wb/scrub 0)                  ; the page is a value in an atom
+(swap! state assoc :cost :prefer-shift)
+(swap! state #(-> % (wb/open lessons/blowup) wb/start))
+```
+
+A value is shown by what it is: an e-graph as its class list, a
+`[g id]` pair with the class marked, a runner's result or a run in a
+line with a button that puts its timeline on show, anything else
+printed, abridged (an e-graph inside a value as its counts, a
+collection cut at 48 elements, so `(range)` prints). What an
+evaluation prints stands over its value. Ctrl-Enter or Cmd-Enter
+evaluates; the up arrow in the editor's first line brings back what
+was evaluated before, the down arrow in its last what was being
+typed.
+
+The state is a value (`orrery.workbench`, `.cljc`): `(wb/page
+lesson)` is the page of a lesson, and `open`, `start`, `show`,
+`scrub`, `put` and `push` are the steps its buttons take, the same
+functions the tests build their pages with on the JVM and Jolt. The
+atom refuses a value that is not a state of the page, and says what
+is wrong with it (`wb/problem`), so a line at the REPL cannot leave
+the page with nothing to draw. The run loop follows the value: a run
+still running is stepped whoever swapped it in.
+
+What is typed is interpreted, by SCI; every function it calls is the
+compiled one the page runs. There is no interrupt: an evaluation
+that never ends takes the tab with it.
+
+To load another namespace into the REPL, copy it in `orrery.repl`
+(`sci/copy-ns`) and give it a row in `orrery.names`; the prelude,
+the page's list and the check on the documented lines follow from
+the row.
 
 ## Two modes
 

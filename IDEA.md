@@ -112,6 +112,15 @@ prose hands over; the e-graph keeps the shift beside the product,
 saturates in four iterations to four classes and eight nodes, and
 extraction reads off `a`. Its last paragraph links every lesson.
 
+After them comes one more page (2026-09-26; section 12, decision
+14), lesson data again and without a number: **the REPL's**, `#repl`,
+"The REPL" at the end of the navigation. Its prose is the REPL's
+documentation and its figures are lines of code, each a link that
+evaluates it (`[:eval code]`); it has no fields, the editor being
+the input; and its workbench is the editor beside every panel that
+reads an e-graph, over the run of `a + a` under lesson 6's two rules
+until the REPL puts something else on show.
+
 ## 3. What it shows
 
 The panels, each mapped to what exists:
@@ -214,8 +223,29 @@ The panels, each mapped to what exists:
   values and can show them side by side.
 - **The REPL.** A Clojure REPL with the engine loaded, SCI embedded
   as a library with the compiled engine namespaces copied into its
-  context: `(eg/add g [:+ :x 1])` at a prompt, the page rendering the
-  value returned. This is what the native mode is.
+  context: `(eg/add g [:+ :x 1])` at the REPL, the page rendering the
+  value returned. This is what the native mode is. Every lesson has
+  the REPL under it, and the REPL has a page of its own (section
+  2; section 12, decision 14), the editor on the left, staying in
+  view with its history scrolling inside the panel, and every panel
+  on the right. In scope (`orrery.names`, one table that the prelude
+  is made from and the page prints): `g` and `timeline`, bound anew
+  before every evaluation; `state`, the page's own atom; `show!` and
+  `push!`, which put a value on show and make an e-graph the next
+  step of the run on show; `*1`, `*2`, `*3` and `*e`; `doc`, `dir`,
+  `apropos` and `find-doc`; and twenty-one namespaces under short
+  names, `wb` the steps of the page's state among them. A value is
+  shown by what it is, an e-graph as a class list, a `[g id]` pair
+  with the class marked and kept as the class to extract for, a
+  runner's result or a run in a line with a button, and anything
+  else printed, abridged (`orrery.printed`): an e-graph inside a
+  value as its counts, a run as its steps, a collection cut at 48
+  elements, which is what lets `(range)` print, and the state of
+  the page in a few lines, since a swap of `state` returns it. The
+  value is printed while its evaluation still holds, so what a lazy
+  sequence prints when walked stands over it and what it throws is
+  the evaluation's error, not the next render's. The up arrow in the
+  editor's first line recalls the inputs, as a terminal does.
 
 ## 4. Proactive examples
 
@@ -320,9 +350,10 @@ Decided 2026-09-25, replacing the first draft's scittle route.
   off the JVM where the compiler is a small multiple: the self-test's
   29 facts run in about 40 ms in Chromium and 54 ms on node.
 - **SCI as a library, for the REPL only.** The one thing an
-  interpreter is needed for. `orrery.repl` will hold the SCI context
+  interpreter is needed for. `orrery.repl` holds the SCI context
   with the engine namespaces copied in; nothing else may know it is
-  there.
+  there. It is handed a string and the function that prints a value,
+  and hands back the value, its text and what was printed.
 - **No React.** The page is Replicant: one hiccup tree computed from
   one atom (`orrery.state`), rendered on every change. Views are
   functions of values (`orrery.views.*`); only `orrery.views.lesson`
@@ -341,6 +372,21 @@ Decided 2026-09-25, replacing the first draft's scittle route.
   modes, with the input's class opened and a REPL history, checking
   every handler against the table and that no function is in the
   tree.
+- **The state is a value, and the atom takes no other**
+  (2026-09-26; section 12, decision 14). `orrery.workbench`, `.cljc`,
+  is the page's state and the steps over it that need no browser:
+  `initial`, `open` a lesson, `start` its run, `show` a run,
+  `advance` and `scrub`, `put` and `push` for the values of the
+  REPL, `recall` for the editor, and `page`, the constructor the
+  suites build every page with. `orrery.state` keeps the atom, the
+  timers and what reads the DOM's clock, and swaps those steps in.
+  The atom has a validator, `workbench/problem`, which says in words
+  what is wrong with a value that is not a state; and the run loop
+  follows the value, not the action: the page's one watch calls
+  `state/changed!` with the state before and after, which drops the
+  derived values of the last run and steps a run still running when
+  the run id is another, and then renders. So `(swap! state wb/show
+  run)` at the REPL is everything a button does.
 - **The run is the data model.** `orrery.run`: `{:timeline [g0 g1 …]
   :labels :stats :stop-reason :status :root}`, produced by a script of
   engine calls (lessons 1, 2, 3, 10) or by stepping `rw/embiggen` one
@@ -687,6 +733,88 @@ the one the page most wants to welcome. The other mode stays
     address yet. Its last line hands the reader who knew none of its
     words to the basics under it.
 
+14. **A page for the REPL, and the state as a value.** Decided
+    2026-09-26. The Captain: the REPL wants documentation, and
+    perhaps a page of its own with every widget that applies to an
+    e-graph, some atoms for the state, and the lesson's state behind
+    a constructor if that would let it be used again. It would, in
+    three places. The suites built their pages from a map written
+    out by hand beside the atom's; the REPL's page needed the same
+    state over a run no lesson made; and the REPL, given the atom,
+    needed the steps the buttons take as functions it could swap in.
+    So the state is `orrery.workbench` (section 6), and the atom is
+    in scope as `state`. Two things make that safe to hand over. The
+    atom refuses what is not a state and says why, since the page
+    renders on every swap and a step past the timeline or a cost
+    that does not exist would otherwise be an exception in the
+    render, with the page gone. And stepping follows the value, so a
+    run put on show with a swap runs like any other; the tick
+    counter that the actions kept is gone, the run id doing its
+    work. The page is lesson data, as decision 10 made the
+    introduction, and for its reasons: it gets the navigation, the
+    address, the suites and every panel for nothing. What it does
+    that a lesson does not is say `:layout :beside` and have no
+    inputs. Its documentation is prose in the explorable voice, and
+    its figures are `[:eval code]`, a line the reader evaluates by
+    clicking it; the JVM and Jolt suites check that every such line
+    closes its brackets and names only namespaces in scope, and the
+    browser suite clicks each in reading order and reads what came
+    back, so a line in the documentation cannot rot. The lines are
+    written to work in any order, which is why the union is a `let`
+    over two `eg/add`s and not two lookups. The panel's element is
+    `#repl-panel`, not `#repl`: that is the page's address now, and
+    a browser scrolls to the element an address names. `show!` and
+    `push!` are functions of `orrery.state`, compiled like the rest,
+    which hands their vars to `orrery.repl` to intern with what they
+    say of themselves; `orrery.repl` cannot require them, being
+    required by the namespace that holds them. They were text for a
+    few hours, evaluated by the REPL at load, which no editor could
+    check, no build would refuse and no suite but the browser's
+    could reach, and which said a second time what the button beside
+    a value already did.
+15. **What the editor is made of.** Open; surveyed and measured
+    2026-09-26. The editor is a textarea. The Captain asked what
+    exists that would make it better to type in, light if possible,
+    not built from CodeMirror by hand, with a preference for
+    Clojure's own ergonomics of evaluation. Anything on React is out
+    (section 6):
+    Portal, Clerk's viewers, re-console, replete-web, Maria's editor
+    and 4ever-clojure are applications on it, not libraries. Two
+    candidates remain, both run in a scratch release build with SCI
+    and no React. `nextjournal/clojure-mode` on CodeMirror 6 is the
+    only one with structural editing, a syntax tree and the form at
+    the cursor as shipped; it is a git dependency with nine npm
+    packages installed by hand, its `eval-region` finds and
+    highlights the form but evaluates nothing, the keys being ten
+    lines of the host's, and it cost 481 KB minified, 158 KB
+    gzipped, over a build that already had SCI, nearly all of it
+    CodeMirror, which would take this page from 342 KB gzipped to
+    about 500 unless it were a module loaded when the editor is
+    first used. `prism-code-editor` lays highlighted code over a
+    real textarea: highlighting, matched and coloured brackets,
+    closing brackets, undo, and its bracket matcher hands the host
+    every pair with its depth, from which the form at the caret and
+    the top-level form are twenty-five lines; no structural editing,
+    and its indentation knows brackets, not Clojure. It cost 40 KB
+    minified, 16 KB gzipped, in the same build. Beside the editor:
+    `me.flowthing/pp` would lay a printed value out over lines for 2
+    KB gzipped; `sci.nrepl`'s completions run in process for 1.3 KB;
+    and the same library connects an editor to the page's own SCI
+    context through a babashka relay, as a development preload that
+    a release leaves out. Dataspex renders with Replicant and can
+    follow an atom, but in the page it takes the global dispatch and
+    styles `html` and `body`; it is a tool for beside the page, not
+    in it.
+16. **What the place to type is called.** Decided 2026-09-26: the
+    editor. It was the prompt, in the page's prose and in the code.
+    The Captain: to the general public that word now means what is
+    typed to a language model, so the page wants one that is
+    distinct. The editor is where a line is typed; what happens
+    there happens "at the REPL"; the `user=>` that heads a line of
+    the history stays, being the REPL's own mark and not the word.
+    The textarea says so to a screen reader (`aria-label`), and the
+    browser suite checks that the REPL's page does not say "prompt".
+
 ## Status
 
 Phase 1 delivered, 2026-09-25 (the Captain's "make it so", with the
@@ -854,5 +982,31 @@ browser by where the elements are. The suites are 62 tests and 27009
 assertions on the JVM and Jolt, 67 facts on node, 120 in the tile,
 88 specs in the browser.
 
-Next: the later items of section 7, per-rule timings at scale and
-static deployment.
+The REPL's page and the state as a value, 2026-09-26 (section 2;
+section 3; section 6; section 12, decision 14): `orrery.workbench`,
+with `orrery.state` swapping its steps in, a validator on the atom
+and the run loop behind `state/changed!`; `orrery.names`, the table
+of what is in scope; `orrery.printed`; `orrery.repl` printing what
+an evaluation prints, keeping `*1` to `*3` and `*e`, referring
+`clojure.repl`, and holding the page's atom with `show!` and `push!`
+over it; `orrery.lessons/repl`, last in `all`, and the `:eval`
+widget; the `beside` layout in `orrery.views.lesson`, the names and
+a run's summary in `orrery.views.repl`, the stats table naming its
+columns from the iterations when the run names no rules; the
+editor's recall and the history's scroll in `orrery.dispatch`.
+`workbench_test` checks the constructor over every lesson, the
+steps, the values of the REPL as runs, a run made by hand, the
+recall and everything the atom refuses; `names_test` that every row
+is a namespace that loads and names something in it; `page_test`
+builds the REPL's page, and the page over each kind of value the
+REPL can put on show, and reads what a value prints as;
+`lessons_test` checks the lines the prose evaluates;
+`repl-page.spec.js` drives the page in the browser, every line of
+the documentation among it. The suites are 78 tests and 27864
+assertions on the JVM and Jolt, 68 facts on node, 122 in the tile,
+97 specs in the browser; the release bundle is 1.41 MB (342 KB
+gzipped), ten kilobytes of it this.
+
+Next: what the editor is made of (section 12, question 15), and
+the later items of section 7, per-rule timings at scale and static
+deployment.

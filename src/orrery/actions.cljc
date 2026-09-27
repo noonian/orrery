@@ -30,10 +30,12 @@
    :field "[:field key]: the input field's text, from the event target"
    :run "[:run]: read every field and run"
    :surprise "[:surprise]: draw, score and run a candidate"
-   :repl/input "[:repl/input]: the REPL prompt's text, from the event target"
-   :repl/keydown "[:repl/keydown]: evaluate on Ctrl-Enter or Cmd-Enter"
-   :repl/eval "[:repl/eval]"
+   :repl/input "[:repl/input]: the text of the REPL's editor, from the event target"
+   :repl/keydown "[:repl/keydown]: evaluate on Ctrl-Enter or Cmd-Enter; on the up arrow in the editor's first line an earlier input, on the down arrow in its last a later one"
+   :repl/eval "[:repl/eval]: evaluate what is in the editor"
+   :repl/run "[:repl/run code]: evaluate code from a link in the prose, as if it had been typed"
    :repl/clear "[:repl/clear]"
+   :repl/scroll "[:repl/scroll]: a life-cycle hook, not an event: the history, rendered, scrolls to its last entry"
    :adopt "[:adopt i]: make the value of REPL history entry i the run on show"})
 
 (defn known?

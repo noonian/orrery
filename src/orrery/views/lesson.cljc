@@ -40,7 +40,8 @@
   "Lesson prose with its widgets resolved (orrery.lessons/widget-kinds):
   a term in either spelling, links that scrub to a step, open the
   class of a term (at a step, if one is named), set a cost, choose an
-  alternative, switch the print mode or go to another lesson, and
+  alternative, switch the print mode, go to another lesson or
+  evaluate a line at the REPL, and
   citations as superscript author-year links to the papers. A class
   link whose term the e-graph on show does not hold, because the
   input was edited, is plain text."
@@ -59,6 +60,7 @@
         :alternative (act :alternative [:alternative a] b)
         :print (act :print [:print a] b)
         :lesson [:a {:href (str "#" (lessons/address (lessons/by-key a)))} b]
+        :eval (act :eval [:repl/run a] [:code {:class (when (str/includes? a "\n") "block")} a])
         :cite (into [:sup.cite] (interpose ", " (for [k (rest x)] (work-link k (:short (get lessons/reading k))))))))
     (vector? x) (into [(first x)] (map #(prose s %) (rest x)))
     :else x))
@@ -106,7 +108,9 @@
      [:p.says says]
      [:pre.call {:id "call"} (str/join "\n" (lessons/call l (get-in s [:input :opts])))]]))
 
-(defn- input-area [s l]
+(defn- input-area
+  "The operation and its arguments, for a page that has any to edit."
+  [s l]
   (let [{:keys [fields error alternative drawn]} (:input s)
         drawing? (get-in s [:ui :drawing?])
         mode (get-in s [:ui :print])]
@@ -237,14 +241,88 @@
                                :detail (derived/detail-at s k)}
                               opts))])
 
+(defn- matches-view [matches]
+  [:div {:style {:margin-top "16px"}}
+   (matches/matches-panel {:matches matches})])
+
+(defn- stats-panel [s r]
+  [:div.panel {:style {:margin-top "16px"}}
+   (common/title "the iterations" ":stats")
+   (stats/stats-table {:stats (:stats r) :rules (:rules r) :step (:step s)})])
+
+(defn- tree-panel
+  "The term as a tree over the e-graph on show."
+  [s g term style]
+  [:div.panel {:style style}
+   (common/title "the tree" "term")
+   (tree/tree-view {:g g :term term
+                    :hovered (or (get-in s [:ui :hover]) (get-in s [:ui :selected]))})])
+
+(defn- classes-view [s r g matches]
+  (class-panel "the classes" "g at this step" g s (:step s)
+               {:diff (derived/diff-at s) :best (derived/best-at s) :root (derived/root-at s)
+                :matches (derived/matched-classes matches)}))
+
+(defn- repl-view [s beside?]
+  (repl/repl-panel {:input (get-in s [:repl :input])
+                    :history (get-in s [:repl :history])
+                    :mode (get-in s [:ui :print])
+                    :beside? beside?}))
+
+(defn- workbench
+  "A lesson's panels: what the operation is given and what it made on
+  the left, the e-graph on the right."
+  [s l r g panels matches]
+  [:div.workbench
+   [:div
+    (when (seq (:inputs l)) (input-area s l))
+    (run-panel s l r g)
+    (when (derived/root-at s) (best-panel s l))
+    (when (contains? panels :matches) (matches-view matches))
+    (when (contains? panels :stats) (stats-panel s r))]
+   [:div
+    (when (contains? panels :tree)
+      (tree-panel s g (get-in s [:input :values :term]) {:margin-bottom "16px"}))
+    (replay-bar s r g)
+    (tools s)
+    (graph-panel s matches)
+    (if (contains? panels :fork)
+      [:div.fork
+       (class-panel "the original, step 0" "(first timeline)" (derived/egraph-at s 0) s 0 {:root (:root r)})
+       (class-panel (str "this step: " (nth (:labels r) (:step s) "")) "g at this step" g s (:step s)
+                    {:diff (derived/diff-at s) :best (derived/best-at s) :root (derived/root-at s)})]
+      (classes-view s r g matches))]])
+
+(defn- beside
+  "The REPL's page: the editor on the left, staying in view, and on
+  the right every panel that reads the run on show, whatever put it
+  there. A panel with nothing to read is left out: the best term and
+  the matches need a run that knows its root and its rules, the tree
+  one that knows the term it started from."
+  [s l r g panels matches]
+  [:div.workbench.beside
+   [:div.repl-column (repl-view s true)]
+   [:div
+    (replay-bar s r g)
+    (tools s)
+    (graph-panel s matches)
+    (classes-view s r g matches)
+    (run-panel s l r g)
+    (when (derived/root-at s) (best-panel s l))
+    (when (and (contains? panels :matches) matches) (matches-view matches))
+    (when (and (contains? panels :stats) (seq (:stats r))) (stats-panel s r))
+    (when (and (contains? panels :tree) (:term r))
+      (tree-panel s g (:term r) {:margin-top "16px"}))]])
+
 (defn page [s]
   (let [l (derived/lesson s)
         r (:run s)
         g (derived/current-egraph s)
         mode (get-in s [:ui :print])
         panels (or (:panels l) #{})
-        matches (derived/matches-at s)]
-    [:main.page
+        matches (derived/matches-at s)
+        beside? (= :beside (:layout l))]
+    [:main.page {:class (when beside? "wide")}
      [:header.masthead
       [:h1 "orrery"]
       [:span.tagline "an e-graph explorer, for understanding"]
@@ -255,41 +333,19 @@
        [:section.lesson
         (about-view s l)
         [:h2 (lessons/heading l)]
-        (into [:div.prose] (map #(prose s %) (:prose l)))
-        (reading-view l)
+        (if beside?
+          [:div.docs
+           [:div
+            (into [:div.prose] (map #(prose s %) (:prose l)))
+            (reading-view l)]
+           (repl/names-view)]
+          (list (into [:div.prose] (map #(prose s %) (:prose l)))
+                (reading-view l)))
         (when (and r g)
-          [:div.workbench
-           [:div
-            (input-area s l)
-            (run-panel s l r g)
-            (when (derived/root-at s) (best-panel s l))
-            (when (contains? panels :matches)
-              [:div {:style {:margin-top "16px"}}
-               (matches/matches-panel {:matches matches})])
-            (when (contains? panels :stats)
-              [:div.panel {:style {:margin-top "16px"}}
-               (common/title "the iterations" ":stats")
-               (stats/stats-table {:stats (:stats r) :rules (:rules r) :step (:step s)})])]
-           [:div
-            (when (contains? panels :tree)
-              [:div.panel {:style {:margin-bottom "16px"}}
-               (common/title "the tree" "term")
-               (tree/tree-view {:g g :term (get-in s [:input :values :term])
-                                :hovered (or (get-in s [:ui :hover]) (get-in s [:ui :selected]))})])
-            (replay-bar s r g)
-            (tools s)
-            (graph-panel s matches)
-            (if (contains? panels :fork)
-              [:div.fork
-               (class-panel "the original, step 0" "(first timeline)" (derived/egraph-at s 0) s 0 {:root (:root r)})
-               (class-panel (str "this step: " (nth (:labels r) (:step s) "")) "g at this step" g s (:step s)
-                            {:diff (derived/diff-at s) :best (derived/best-at s) :root (derived/root-at s)})]
-              (class-panel "the classes" "g at this step" g s (:step s)
-                           {:diff (derived/diff-at s) :best (derived/best-at s) :root (derived/root-at s)
-                            :matches (derived/matched-classes matches)}))]])
-        (when r
+          (if beside?
+            (beside s l r g panels matches)
+            (workbench s l r g panels matches)))
+        (when (and r (not beside?))
           [:div {:style {:margin-top "16px"}}
-           (repl/repl-panel {:input (get-in s [:repl :input])
-                             :history (get-in s [:repl :history])
-                             :mode mode})])])
+           (repl-view s false)])])
      (colophon-view s)]))

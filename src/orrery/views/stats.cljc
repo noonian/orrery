@@ -1,11 +1,15 @@
 (ns orrery.views.stats
   "Per-iteration statistics of a saturation: matches and applications
-  per rule, the counts, the bans, the time."
+  per rule, the counts, the bans, the time. The rules are the run's,
+  in its order; a runner's result put on show from the REPL names
+  none, and its columns are the names its first iteration counted."
   (:require [clojure.string :as str]
             [orrery.views.common :as common]))
 
 (defn stats-table [{:keys [stats rules step]}]
-  (let [names (mapv :name rules)]
+  (let [names (if (seq rules)
+                (mapv :name rules)
+                (vec (sort (keys (:matches (first stats))))))]
     [:div
      [:div.legend [:span "per rule: applied / matched"] [:span "click a row to scrub to it"]]
      [:table.stats

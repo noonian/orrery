@@ -1,120 +1,98 @@
 (ns orrery.state
-  "One atom holds the page: the lesson, the learner's input, the run
-  (a timeline of e-graph values), the scrub position, the cost in
-  force, the REPL, and a few UI flags. The actions here swap it, from
-  orrery.dispatch, and a watch in orrery.app re-renders; what the
-  page shows is derived from the value by orrery.derived.
+  "One atom holds the page, a value of orrery.workbench: the lesson,
+  the learner's input, the run (a timeline of e-graph values), the
+  scrub position, the cost in force, the REPL, and a few UI flags.
+  The actions here swap it, from orrery.dispatch, with the steps of
+  orrery.workbench, and a watch in orrery.app re-renders; what the
+  page shows is derived from the value by orrery.derived. The REPL
+  holds the same atom as `state`, and the atom refuses a value that
+  is not a state of the page (`workbench/problem`).
 
   A saturation is stepped one iteration per timer tick, so the page
   repaints between iterations, the counters climb, and a stop button
-  works between iterations. Per-lesson limits bound the worst tick."
+  works between iterations. Per-lesson limits bound the worst tick.
+  The stepping follows the value, not the action that put it there:
+  `changed!` starts it whenever the run on show is another and still
+  running, whoever swapped it in."
   (:require [clojure.string :as str]
             [orrery.derived :as derived]
             [orrery.diff :as diff]
             [orrery.eclass :as eclass]
             [orrery.input :as input]
             [orrery.lessons :as lessons]
-            [orrery.notation :as notation]
+            [orrery.printed :as printed]
             [orrery.repl :as repl]
             [orrery.run :as run]
-            [orrery.score :as score]))
+            [orrery.score :as score]
+            [orrery.workbench :as workbench]))
 
-(defonce app-state
-  (atom {:lesson lessons/start
-         :input {:fields {} :values {} :error nil :alternative nil :opts {}}
-         :run nil
-         :run-id 0
-         :step 0
-         :follow? true
-         :cost :ast-size
-         :repl {:input "" :history []}
-         :ui {:print :notation :playing nil :selected nil :hover nil :drawing? false
-              ;; :graph? is nil until the switch is touched: the lesson decides (derived/graph?)
-              :graph? nil :graph-filter? false :graph-zoom nil :export-status nil}}))
+(defn- state?
+  "The atom's validator: true, or an error that says what is wrong."
+  [s]
+  (if-let [p (workbench/problem s)]
+    (throw (ex-info (str "not a state of the page: " p) {:problem p}))
+    true))
 
-(def lesson derived/lesson)
+(defonce app-state (atom (workbench/initial) :validator state?))
+
+(def lesson workbench/lesson)
 
 ;; ---------------------------------------------------------------------------
 ;; the run loop
 
-(defonce ^:private tick-id (atom 0))
-
-(defn- tick! [id]
-  (let [{:keys [run]} @app-state]
-    (when (and (= id @tick-id) run (= :running (:status run)))
+(defn- tick!
+  "One more iteration of run id, while it is the run on show and
+  still running."
+  [id]
+  (let [{:keys [run run-id]} @app-state]
+    (when (and (= id run-id) run (= :running (:status run)))
       (let [run' (run/step run)]
-        (swap! app-state (fn [s]
-                           (cond-> (assoc s :run run')
-                             (:follow? s) (assoc :step (run/last-step run')))))
+        (swap! app-state workbench/advance run')
         (when (= :running (:status run'))
           (js/setTimeout #(tick! id) 0))))))
 
-(defn- install-run!
-  "run becomes the run on show, in one swap, with the scrub position
-  at the start of a running run and at the end of a finished one: the
-  watch renders after every swap, so the step must never point past
-  the timeline."
-  [run]
-  (swap! tick-id inc)
-  (derived/clear-cache!)
-  (swap! app-state (fn [s]
-                     (-> s
-                         (assoc :run run)
-                         (update :run-id inc)
-                         (assoc :step (if (= :running (:status run)) 0 (run/last-step run)))
-                         (assoc :follow? true)
-                         (assoc-in [:ui :selected] nil)
-                         (assoc-in [:ui :hover] nil)
-                         (assoc-in [:ui :export-status] nil))))
-  run)
+(defn changed!
+  "What a change of the state asks of the browser, from the state
+  before and the state after: when the run on show is another, the
+  values derived from the last one are dropped, and a run still
+  running is stepped. The page's watch calls it before it renders."
+  [old new]
+  (when (not= (:run-id old) (:run-id new))
+    (derived/clear-cache!)
+    (when (= :running (:status (:run new)))
+      (let [id (:run-id new)]
+        (js/setTimeout #(tick! id) 0)))))
 
 (defn start-run!
   "Start the lesson's run over the current input values."
   []
-  (let [s @app-state
-        l (lesson s)
-        {:keys [values opts]} (:input s)
-        run (install-run! (lessons/make-run l values (or opts {})))
-        id @tick-id]
-    (when (= :running (:status run))
-      (js/setTimeout #(tick! id) 0))))
+  (swap! app-state workbench/start))
 
 (defn stop! []
-  (swap! tick-id inc)
   (swap! app-state update :run run/stop))
 
 ;; ---------------------------------------------------------------------------
 ;; input
 
-(defn- field-text
-  "What a field shows for a value, in the print mode in force."
-  [mode type v]
-  (if (= :notation mode)
-    (if (= :rules type) (notation/rules->str v) (notation/term->str v))
-    (case type
-      :rules (str "[" (str/join "\n " (map pr-str v)) "]")
-      (pr-str v))))
+(def ^:private field-text workbench/field-text)
 
-(defn- input-for [mode l values opts alternative]
-  {:fields (into {} (for [{:keys [key type]} (:inputs l)] [key (field-text mode type (get values key))]))
-   :values values :error nil :alternative alternative :opts opts})
+(def ^:private input-for workbench/input-for)
 
-(defn- print-mode [s] (get-in s [:ui :print]))
+(def ^:private print-mode workbench/print-mode)
 
 (defn load-lesson! [k]
   (when-let [l (lessons/by-key k)]
     (when (lessons/live? l)
-      (swap! app-state assoc
-             :lesson k
-             :input (input-for (print-mode @app-state) l (:values l) {} nil)
-             :cost (or (first (:costs l)) :ast-size))
-      (start-run!))))
+      (swap! app-state #(-> % (workbench/open l) workbench/start)))))
 
 (defn choose-alternative! [alt]
-  (let [l (lesson @app-state)
-        values (merge (:values l) (:values alt))]
-    (swap! app-state assoc :input (input-for (print-mode @app-state) l values (or (:opts alt) {}) (:label alt)))
-    (start-run!)))
+  (swap! app-state
+         (fn [s]
+           (let [l (lesson s)
+                 values (merge (:values l) (:values alt))]
+             (-> s
+                 (assoc :input (input-for (print-mode s) l values (or (:opts alt) {}) (:label alt)))
+                 workbench/start)))))
 
 (defn choose-alternative-by-label!
   "The lesson's alternative with this label, from a link in the prose."
@@ -176,11 +154,7 @@
 ;; ---------------------------------------------------------------------------
 ;; scrubbing and the rest of the UI
 
-(defn set-step! [k]
-  (swap! app-state (fn [s]
-                     (let [n (run/last-step (:run s))
-                           k (max 0 (min n k))]
-                       (assoc s :step k :follow? (= k n))))))
+(defn set-step! [k] (swap! app-state workbench/scrub k))
 
 (defn pause! []
   (when-let [id (get-in @app-state [:ui :playing])]
@@ -266,39 +240,63 @@
 ;; ---------------------------------------------------------------------------
 ;; the REPL
 
-(defn set-repl-input! [text] (swap! app-state assoc-in [:repl :input] text))
+(defn set-repl-input! [text] (swap! app-state update :repl assoc :input text :recall nil))
 
-(defn clear-repl! [] (swap! app-state assoc :repl {:input "" :history []}))
+(defn clear-repl! [] (swap! app-state assoc :repl (:repl (workbench/initial))))
+
+(defn- evaluate!
+  "The entry for text, evaluated with g bound to the e-graph on show
+  and timeline to the run's. What it evaluates may swap the state
+  itself, so the state is read again by whoever appends the entry."
+  [text]
+  (let [s @app-state]
+    (repl/bind! (derived/current-egraph s) (:timeline (:run s)))
+    (assoc (repl/eval-string text printed/printed) :in text)))
 
 (defn eval-repl!
-  "Evaluate the prompt with g bound to the e-graph on show."
+  "Evaluate what is in the editor."
   []
-  (let [s @app-state
-        text (get-in s [:repl :input])]
+  (let [text (get-in @app-state [:repl :input])]
     (when (seq (str/trim text))
-      (repl/bind! (derived/current-egraph s) (:timeline (:run s)))
-      (let [r (repl/eval-string text)]
-        (swap! app-state (fn [s]
-                           (-> s
-                               (update-in [:repl :history] conj (assoc r :in text))
-                               (assoc-in [:repl :input] ""))))))))
+      (let [entry (evaluate! text)]
+        (swap! app-state update :repl
+               (fn [r] (-> r (update :history conj entry) (assoc :input "" :recall nil))))))))
 
-(defn adopt!
-  "Make a REPL value the run on show: an e-graph becomes a one-entry
-  timeline, a [g id] pair its e-graph, a runner result its timeline
-  (or its final e-graph)."
+(defn run-repl!
+  "Evaluate code from a link in the prose, as if it had been typed;
+  the editor keeps what is in it."
+  [code]
+  (let [entry (evaluate! code)]
+    (swap! app-state update-in [:repl :history] conj entry)))
+
+(defn recall-repl!
+  "An earlier input into the editor (:back), or a later one (:forward)."
+  [dir]
+  (swap! app-state update :repl workbench/recall dir))
+
+(defn show!
+  "Put v on show: an e-graph, a [g id] pair, a runner's result or a run."
   [v]
-  (let [v (if (and (vector? v) (diff/egraph? (first v))) (first v) v)
-        steps (cond
-                (diff/egraph? v) [["from the REPL" v]]
-                (:timeline v) (map-indexed (fn [i g] [(if (zero? i) "the input" (str "iteration " i)) g]) (:timeline v))
-                :else [["from the REPL" (:egraph v)]])
-        run (assoc (run/script steps) :stats (or (:stats v) []) :iterations (or (:iterations v) 0)
-                   :stop-reason (or (:stop-reason v) :done) :from :repl)]
-    (install-run! run)))
+  (when-not (workbench/run-of v)
+    (throw (ex-info "show! takes an e-graph, a [g id] pair, a runner's result or a run" {:value v})))
+  (swap! app-state workbench/put v)
+  nil)
+
+(defn push!
+  "Make the e-graph g the next step of the run on show, under label."
+  ([g] (push! g "from the REPL"))
+  ([g label]
+   (when-not (diff/egraph? g)
+     (throw (ex-info "push! takes an e-graph" {:value g})))
+   (swap! app-state workbench/push g label)
+   nil))
 
 (defn adopt-entry!
   "Make the value of REPL history entry i the run on show."
   [i]
   (when-let [v (:ok (get-in @app-state [:repl :history i]))]
-    (adopt! v)))
+    (show! v)))
+
+;; the REPL holds the atom as `state`, and show! and push! as its own;
+;; on every load, so that a reload hands over the functions as they are now
+(repl/bind-page! app-state [#'show! #'push!])

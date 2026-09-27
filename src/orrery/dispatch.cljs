@@ -4,12 +4,36 @@
   dispatch (replicant.dom/set-dispatch!, in orrery.app) routes it
   here with the DOM event beside it. This is the only place a DOM
   event is read."
-  (:require [orrery.derived :as derived]
+  (:require [clojure.string :as str]
+            [orrery.derived :as derived]
             [orrery.state :as state]))
 
 (defn- dom-event [e] (:replicant/dom-event e))
 
 (defn- target-value [e] (.. (dom-event e) -target -value))
+
+(defn- editor-key!
+  "A key in the REPL's editor: Ctrl-Enter or Cmd-Enter evaluates; the
+  up arrow with the caret in the first line brings back an earlier
+  input and the down arrow in the last line a later one, as a
+  terminal does, and inside text of several lines the arrows
+  move the caret."
+  [d]
+  (let [el (.-target d)
+        text (.-value el)
+        plain? (not (or (.-shiftKey d) (.-altKey d) (.-ctrlKey d) (.-metaKey d)))
+        {:keys [history recall]} (:repl @state/app-state)]
+    (cond
+      (and (= "Enter" (.-key d)) (or (.-ctrlKey d) (.-metaKey d)))
+      (do (.preventDefault d) (state/eval-repl!))
+
+      (and plain? (= "ArrowUp" (.-key d)) (seq history)
+           (not (str/includes? (subs text 0 (.-selectionStart el)) "\n")))
+      (do (.preventDefault d) (state/recall-repl! :back))
+
+      (and plain? (= "ArrowDown" (.-key d)) recall
+           (not (str/includes? (subs text (.-selectionEnd el)) "\n")))
+      (do (.preventDefault d) (state/recall-repl! :forward)))))
 
 (defn- export-name [s] (str "orrery-" (name (:lesson s)) "-step-" (:step s) ".json"))
 
@@ -62,11 +86,10 @@
     :run (state/submit-input!)
     :surprise (state/surprise!)
     :repl/input (state/set-repl-input! (target-value e))
-    :repl/keydown (let [d (dom-event e)]
-                    (when (and (= "Enter" (.-key d)) (or (.-ctrlKey d) (.-metaKey d)))
-                      (.preventDefault d)
-                      (state/eval-repl!)))
+    :repl/keydown (editor-key! (dom-event e))
     :repl/eval (state/eval-repl!)
+    :repl/run (state/run-repl! (first args))
     :repl/clear (state/clear-repl!)
+    :repl/scroll (let [el (:replicant/node e)] (set! (.-scrollTop el) (.-scrollHeight el)))
     :adopt (state/adopt-entry! (first args))
     (js/console.warn "orrery: no such action" (pr-str handler))))

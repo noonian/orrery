@@ -38,9 +38,9 @@ test.describe('the REPL', () => {
     await openLesson(page, 3);
     await expect((await evalRepl(page, '(nope g)')).locator('pre.error')).toContainText('nope');
     await page.locator('#repl-clear').click();
-    await expect(page.locator('#repl .entry')).toHaveCount(0);
+    await expect(page.locator('#repl-panel .entry')).toHaveCount(0);
     await page.locator('#repl-input').fill('(+ 1 2)');
     await page.locator('#repl-input').press('Control+Enter');
-    await expect(page.locator('#repl .entry pre.result')).toHaveText('3');
+    await expect(page.locator('#repl-panel .entry pre.result')).toHaveText('3');
   });
 });

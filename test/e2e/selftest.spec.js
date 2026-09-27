@@ -1,15 +1,16 @@
 import { test, expect } from '@playwright/test';
 import { expectSelfTest, expectSnapshot } from './orrery.js';
 
-test('the engine self-test tile is green: 120 facts hold in this browser', async ({ page }) => {
+test('the engine self-test tile is green: 122 facts hold in this browser', async ({ page }) => {
   await page.goto('/');
-  await expectSelfTest(page, 120);
+  await expectSelfTest(page, 122);
 });
 
-test('no hash opens the basics; the navigation lists the two pages before the lessons and all eleven lessons', async ({ page }) => {
+test('no hash opens the basics; the navigation lists the two pages before the lessons, all eleven lessons and the REPL', async ({ page }) => {
   await page.goto('/');
   await expectSnapshot(page, { lesson: 'basics' });
-  await expect(page.locator('.lesson-nav a')).toHaveCount(13);
+  await expect(page.locator('.lesson-nav a')).toHaveCount(14);
+  await expect(page.locator('.lesson-nav a').nth(13)).toHaveText('The REPL');
   await expect(page.locator('.lesson-nav .coming')).toHaveCount(0);
   await expect(page.locator('.lesson-nav a').nth(0)).toHaveText('Start here');
   await expect(page.locator('.lesson-nav a').nth(1)).toHaveText('What is an e-graph?');

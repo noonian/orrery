@@ -125,7 +125,11 @@
                                     :bendix [:D [:sin [:sin [:sin :x]]] :x]}}
     "x·|x|: no rule for abs" {:iterations 2 :stop-reason :saturated :classes 6 :nodes 7
                               :best-terms {:no-D [:+ [:* :x [:D [:abs :x] :x]] [:abs :x]]
-                                           :bendix [:D [:* :x [:abs :x]] :x]}}}})
+                                           :bendix [:D [:* :x [:abs :x]] :x]}}}
+   :repl
+   {nil {:steps 4 :iterations 3 :stop-reason :saturated :classes-per-step [2 3 4 4] :classes 4 :nodes 6
+         :nodes-per-iteration [4 6 6]
+         :best-terms {:prefer-add [:+ :a :a] :prefer-mul [:* :a 2] :prefer-shift [:<< :a 1]}}}})
 
 (defn observe
   "Everything `runs` may assert about a finished run of lesson."
