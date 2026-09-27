@@ -129,7 +129,7 @@ test.describe('the REPL\'s page', () => {
     const show = await evalRepl(page, '(doc show!)');
     await expect(show.locator('pre.out')).toContainText('user/show!');
     await expect(show.locator('pre.out')).toContainText('([v])');
-    await expect(show.locator('pre.out')).toContainText("Put v on show: an e-graph, a [g id] pair, a runner's result or a run.");
+    await expect(show.locator('pre.out')).toContainText('Puts `v` on show. `v` is an e-graph, a [g id] pair');
     await expect((await evalRepl(page, '(doc push!)')).locator('pre.out')).toContainText('([g] [g label])');
     await expect(await result(page, '(range)')).toHaveText(/^\(0 1 2 .* 47 …\)$/);
     await expect(await result(page, 'timeline')).toHaveText(

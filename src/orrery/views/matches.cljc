@@ -1,6 +1,7 @@
 (ns orrery.views.matches
-  "The matches of each pattern rule in the e-graph on show: the class
-  and the bindings, which the next iteration will apply."
+  "Renders the matches of each pattern rule in the e-graph on show.
+  Each match shows its class and its bindings. The next iteration
+  will apply these matches."
   (:require [orrery.notation :as notation]
             [orrery.views.common :as common]))
 

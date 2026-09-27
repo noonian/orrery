@@ -1,13 +1,19 @@
 (ns orrery.score
-  "Interestingness, our score and nothing deeper (IDEA.md section 4):
-  features the engine reports about a finished run, each a raw value
-  and a score in [0, 1]; a lesson's wants, weights on the features it
-  teaches; and the bank, candidates drawn for a lesson, run, scored,
-  one kept per shape of result, one picked at random weighted by
-  score. Counts, iterations, stop reasons and costs are the same on
-  every runtime; the terms a tie falls to are not, so a feature that
-  reads a best term (:disagreement, :derivative-free) can score a
-  candidate differently per runtime, which only moves a pick."
+  "Scores how interesting a run is. The score is our own measure and
+  nothing deeper (IDEA.md section 4). It has three parts:
+
+    - Features are what the engine reports about a finished run.
+      Each feature has a raw value and a score in [0, 1].
+    - The wants of a lesson are weights on the features the lesson
+      teaches.
+    - The bank is the candidates drawn for a lesson. Each candidate
+      is run and scored. One candidate is kept per shape of result,
+      and one is picked at random, weighted by score.
+
+  Counts, iterations, stop reasons and costs are the same on every
+  runtime. The terms a tie falls to are not. So a feature that reads
+  a best term (`:disagreement`, `:derivative-free`) can score a
+  candidate differently per runtime. That only moves a pick."
   (:require [clojure.string :as str]
             [cromulent.core :as eg]
             [cromulent.extract :as ex]
@@ -23,12 +29,13 @@
 (defn- ratio [a b] (/ (* 1.0 a) (max 1 b)))
 
 (defn- squash
-  "raw in [0, ∞) to [0, 1): half a point at raw = k."
+  "Maps `raw` from [0, ∞) to [0, 1). Returns 0.5 when `raw` = `k`."
   [raw k]
   (/ (* 1.0 raw) (+ raw k)))
 
 (defn- visible
-  "1 − 1/r for a ratio r ≥ 1: nothing at 1, half at 2, most past 10."
+  "Returns 1 − 1/r for a ratio `r` ≥ 1. That is 0 at 1, 0.5 at 2,
+  and more than 0.9 past 10."
   [r]
   (max 0.0 (- 1.0 (/ 1.0 r))))
 
@@ -54,10 +61,13 @@
    :derivative-free "a derivative-free answer"})
 
 (defn features
-  "Every feature of a finished run of lesson over values, {feature
-  {:raw x :score s}}. The last e-graph the engine made is entry
-  :iterations of the timeline; a bendix run's materialization comes
-  after it, and the best terms are read after it."
+  "Returns every feature of a finished run of `lesson` over
+  `values`, as `{feature {:raw x :score s}}`.
+
+  The last e-graph the engine made is entry `:iterations` of the
+  timeline. The materialization of a bendix run comes after that
+  entry. The best terms are read from the last entry of the
+  timeline, after the materialization."
   [lesson values run]
   (let [{:keys [timeline stats iterations stop-reason]} run
         g0 (first timeline)
@@ -101,7 +111,8 @@
      :derivative-free {:raw d-free? :score (if d-free? 1.0 0.0)}}))
 
 (defn score
-  "The weighted mean of the wanted features' scores, in [0, 1]."
+  "Returns the weighted mean of the scores of the wanted features,
+  in [0, 1]."
   [wants features]
   (if (empty? wants)
     0.0
@@ -112,8 +123,12 @@
 ;; the bank
 
 (defn candidate
-  "One candidate for lesson: the values drawn over those in force,
-  its run to the end, its features and its score."
+  "Returns one candidate for `lesson`. The candidate holds:
+
+    - the values drawn, merged over the values in force
+    - its run to the end
+    - its features
+    - its score"
   [lesson values opts s]
   (let [drawn (generate/draw lesson s values)
         values (merge values drawn)
@@ -123,15 +138,16 @@
      :score (score (get-in lesson [:surprise :wants]) fs)}))
 
 (defn shape
-  "The shape of a run's result: what two candidates must differ in to
-  both be worth offering."
+  "Returns the shape of the result of a run. Two candidates must
+  differ in shape for both to be worth offering."
   [run]
   (let [g (peek (:timeline run))]
     [(eg/class-count g) (eg/node-count g) (:iterations run) (:stop-reason run)]))
 
 (defn bank
-  "n candidates for lesson over the values and opts in force, drawn
-  from the stream, the first of each shape kept."
+  "Draws `n` candidates for `lesson` from the stream `s`, over the
+  values and opts in force. Returns the first candidate of each
+  shape."
   [lesson values opts s n]
   (loop [i 0 seen #{} out []]
     (if (= i n)
@@ -141,9 +157,9 @@
         (recur (inc i) (conj seen k) (if (seen k) out (conj out c)))))))
 
 (defn pick
-  "One of the bank at random, weighted by the cube of its score, so
-  the strong candidates share most of the draw and a weak one keeps
-  a small chance."
+  "Returns one candidate of `bank` at random, weighted by the cube
+  of its score. The strong candidates then share most of the draw,
+  and a weak candidate keeps a small chance."
   [bank s]
   (let [ws (mapv #(max 0.01 (* (:score %) (:score %) (:score %))) bank)
         x (* (reduce + 0.0 ws) (/ (s 1000) 1000.0))]
@@ -154,10 +170,11 @@
           (recur (inc i) acc))))))
 
 (defn surprise
-  "The pick from a bank drawn from seed for lesson over the values
-  and opts in force: a candidate, with :of the bank's size before and
-  :shapes after deduplication. n is the lesson's :surprise :n, twelve
-  unless said."
+  "Returns the pick from a bank drawn from `seed` for `lesson`, over
+  the values and opts in force. The pick is a candidate with two
+  more keys. `:of` is the size of the bank before deduplication, and
+  `:shapes` is its size after. The bank draws `n` candidates, where
+  `n` is `:n` under the lesson's `:surprise`, or twelve by default."
   [lesson values opts seed]
   (let [s (generate/stream seed)
         n (get-in lesson [:surprise :n] 12)
@@ -168,7 +185,8 @@
 ;; in words
 
 (defn- decimals
-  "x to places decimals, as a string, on every runtime."
+  "Returns `x` as a string with `places` decimals. The string is the
+  same on every runtime."
   [x places]
   (let [scale (reduce * 1 (repeat places 10))
         k (long (+ 0.5 (* scale x)))
@@ -179,8 +197,9 @@
 (def ^:private ratios #{:sharing :merges-per-node :shrink :growth})
 
 (defn- raw-str
-  "A raw value in words: a ratio to one decimal (1.0 is an integer
-  in JavaScript, so the feature decides, not the number)."
+  "Returns a raw value in words. A ratio is written to one decimal.
+  The feature `k` decides what is a ratio, and not the number,
+  because 1.0 is an integer in JavaScript."
   [k x]
   (cond (keyword? x) (name x)
         (true? x) "yes"
@@ -191,8 +210,9 @@
         :else (pr-str x)))
 
 (defn explain
-  "Why this candidate: the bank it came from, its score, and each
-  wanted feature's value and score, the heaviest want first."
+  "Returns a string that says why this candidate was picked: the
+  bank it came from, its score, and the value and score of each
+  wanted feature, with the heaviest want first."
   [{:keys [of shapes score features]} wants]
   (str "drawn from " of " candidates, " shapes " shapes of result; score " (decimals score 2) ": "
        (str/join " · "

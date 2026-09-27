@@ -1,8 +1,12 @@
 (ns orrery.selftest
-  "The self-test tile: cromulent's and bendix's cross-runtime facts,
-  every lesson's expectation, and every lesson's values read back from
-  their notation, run in this browser after the page has painted. The
-  same table the JVM and Jolt suites assert."
+  "The self-test tile. It runs these checks in this browser, after
+  the page has painted:
+
+    - cromulent's and bendix's cross-runtime facts
+    - every lesson's expectation
+    - every lesson's values, read back from their notation
+
+  The JVM and Jolt suites assert the same table."
   (:require [bendix.smoke :as bendix-smoke]
             [cromulent.smoke :as smoke]
             [orrery.expect :as expect]

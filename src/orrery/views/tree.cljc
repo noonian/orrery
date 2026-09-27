@@ -1,15 +1,16 @@
 (ns orrery.views.tree
-  "A term as a tree, each node annotated with its class in the
-  e-graph; hovering a node lights every node of the same class, in
-  the tree and in the class list, which is how sharing shows without
-  drawing an edge; clicking one opens the class. The tree handlers
-  stop propagation, since the nodes nest."
+  "Renders a term as a tree. Each node is annotated with its class in
+  the e-graph. Hovering a node lights every node of the same class,
+  in the tree and in the class list. That is how sharing shows
+  without drawing an edge. Clicking a node opens its class. The tree
+  handlers stop propagation, because the nodes nest."
   (:require [cromulent.core :as eg]
             [orrery.notation :as notation]))
 
 (defn annotate
-  "The term with the class id of every subterm. `eg/add` on a term the
-  graph holds adds nothing and returns its class."
+  "Returns the term `t` with the class id of every subterm. Calling
+  `eg/add` on a term that the graph holds adds nothing and returns
+  the class of the term."
   [g t]
   (let [[_ id] (eg/add g t)]
     {:term t :id id

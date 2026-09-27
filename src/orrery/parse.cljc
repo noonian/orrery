@@ -1,26 +1,41 @@
 (ns orrery.parse
-  "The notation parser: mathematics as the learner types it, read into
-  the canonical tagged vectors; the inverse of orrery.notation, so
-  what the page prints reads back as the term it printed. A Pratt
-  parser over the printer's precedence table: shifts below sums, sums
-  below products and quotients, then unary minus, then powers; a
-  function applied to a bare operand (sin x, sin²x, d/dx u) takes an
-  operand of at least the level of a negation, so sin x² is sin(x²)
-  and sin x·y is (sin x)·y. Typed spellings are read beside the
-  printed ones: * or × for ·, - for −, ^ or ** for a superscript, pi
-  for π, -> or => for →; f(a, b) is the node [:f a b] for any name.
+  "Parses the notation. Reads mathematics, as the learner types it,
+  into the canonical tagged vectors. The parser is the inverse of
+  `orrery.notation`, so what the page prints reads back as the term
+  it printed.
 
-  A numeral's spelling absorbs a leading minus and a slash between
-  integers, as the EDN reader's does and as bendix writes its
-  coefficients: 1/2 and -3 are the numbers, one leaf each, while
-  1/(2) and -(3) are the quotient and negation nodes over them.
-  Otherwise the parser never computes: 2·3 is a product node, as 2·x
-  is. a + b + c is the left-nested binary chain, as the printer prints
-  it; bendix's n-ary sums print the same and read back nested, which
-  its polynomial cannot tell apart. Unary minus reads as :neg, the
-  spelling of the page's own terms, and d/dx as [:D u :x].
+  This is a Pratt parser over the precedence table of the printer.
+  Shifts are below sums, and sums are below products and quotients.
+  Unary minus comes next, and then powers. A function applied to a
+  bare operand (sin x, sin²x, d/dx u) takes an operand of at least
+  the level of a negation, so sin x² is sin(x²) and sin x·y is
+  (sin x)·y.
 
-  `term` and `rules` return {:value v} or {:error message}; blank
+  The parser reads the typed spellings as well as the printed ones:
+
+    * or ×    for ·
+    -         for −
+    ^ or **   for a superscript
+    pi        for π
+    -> or =>  for →
+
+  f(a, b) is the node `[:f a b]` for any name f.
+
+  The spelling of a numeral absorbs a leading minus and a slash
+  between integers. The EDN reader does the same, and bendix writes
+  its coefficients that way. So 1/2 and -3 are the numbers, one leaf
+  each, while 1/(2) is the quotient node over 1 and 2, and -(3) is
+  the negation node over 3. Apart from that, the parser never
+  computes: 2·3 is a product node, just as 2·x is.
+
+  a + b + c reads as the left-nested binary chain, which is how the
+  printer prints it. The n-ary sums of bendix print the same way and
+  read back nested. Its polynomial cannot tell the two apart.
+
+  Unary minus reads as `:neg`, which is how the page spells it in its
+  own terms. d/dx u reads as `[:D u :x]`.
+
+  `term` and `rules` return `{:value v}` or `{:error message}`. Blank
   text has the value nil."
   (:require [bendix.num :as num]
             [clojure.string :as str]
@@ -35,11 +50,15 @@
   {\⁰ "0" \¹ "1" \² "2" \³ "3" \⁴ "4" \⁵ "5" \⁶ "6" \⁷ "7" \⁸ "8" \⁹ "9" \⁻ "-"})
 
 (def ^:private token-rules
-  "[regex kind], tried in order at each position; the kind's value is
-  read from the match. A derivative d/dx is one token, ahead of the
-  identifiers d and dx; a decimal is one token so it can be refused;
-  a ratio is two integers and a slash, folded by the grammar, so that
-  1/2³ is still 1 over 2³."
+  "The token rules, each a `[regex kind]` pair. The tokenizer tries
+  them in order at each position, and reads the value of a token
+  from the match.
+
+  - A derivative d/dx is one token. Its rule comes ahead of the rule
+    for identifiers, which would read d and dx.
+  - A decimal is one token, so that it can be refused.
+  - A ratio is two integers and a slash. The grammar folds them, so
+    that 1/2³ is still 1 over 2³."
   [[#"^\s+" :space]
    [#"^d/d([A-Za-z_Ͱ-Ͽ][A-Za-z0-9_Ͱ-Ͽ]*)" :deriv]
    [#"^\d+\.\d+" :decimal]
@@ -61,13 +80,16 @@
    [#"^:" :colon]])
 
 (defn- integer-of
-  "The integer the digits spell, exact on every runtime; leading
-  zeros are dropped so the reader does not take them for octal."
+  "Returns the integer that `digits` spells, exact on every runtime.
+  Drops leading zeros so that the reader does not take the digits
+  for octal."
   [digits]
   (num/read-string (str/replace digits #"^0+(?=\d)" "")))
 
 (defn- ratio-of
-  "n/d exact, an integer when d divides n."
+  "Returns the exact ratio of `n` to `d`, which is an integer when
+  `d` divides `n`. Fails with a message that quotes `text` and says
+  division by zero when the ratio cannot be made."
   [n d text]
   (try (num/ratio n d)
        (catch #?(:clj Exception :default :default) _
@@ -84,8 +106,8 @@
              nil))))
 
 (defn- tokens
-  "The tokens of text, ending in :end; throws at a character no token
-  starts with."
+  "Returns the tokens of `text`, ending with an `:end` token. Throws
+  at a character that no token starts with."
   [text]
   (loop [i 0, acc []]
     (if (>= i (count text))
@@ -101,12 +123,14 @@
 ;; the grammar
 
 (def ^:private infix
-  "Binding power and operator of every infix token kind."
+  "A map from every infix token kind to its binding power and its
+  operator."
   {:<< [10 :<<] :>> [10 :>>] :+ [20 :+] :- [20 :-] :* [30 :*] :div [30 :/] :pow [50 :expt] :sup [50 nil]})
 
 (def ^:private negation
-  "The binding power of unary minus, and what a function or d/dx
-  takes as a bare operand: atoms, powers and negations, not products."
+  "The binding power of unary minus. It is also the level of what a
+  function or d/dx takes as a bare operand: atoms, powers and
+  negations, but not products."
   40)
 
 (def ^:private operand-starts #{:number :decimal :ident :pvar :deriv :open :-})
@@ -122,11 +146,13 @@
 (declare expression)
 
 (defn- continue
-  "Apply the infix and postfix operators binding tighter than min-bp
-  to left: {:value v :next j :bare? b}, bare? still true only when
-  nothing was applied to a numeral. A slash between two bare
-  integers is the ratio, not a quotient node. Stops, without
-  complaint, at anything that is not an operator."
+  "Applies to `left` the infix and postfix operators that bind
+  tighter than `min-bp`. Returns `{:value v :next j :bare? b}`.
+
+  `:bare?` is still true only when the value is a numeral and
+  nothing was applied to it. A slash between two bare integers makes
+  the ratio, not a quotient node. Stops without an error at anything
+  that is not an operator."
   [ts i left bare? min-bp]
   (let [t (nth ts i)
         k (:kind t)
@@ -144,15 +170,17 @@
               (recur ts (:next r) [op left (:value r)] false min-bp)))))
 
 (defn- operand
-  "An expression at min-bp, or the failure message when none starts here."
+  "Reads the expression at `min-bp` that starts at `i`. Fails with
+  the message `missing` when no expression starts there."
   [ts i min-bp missing]
   (if (contains? operand-starts (:kind (nth ts i)))
     (expression ts i min-bp)
     (fail missing)))
 
 (defn- arguments
-  "The comma-separated arguments of name after its (, and the index
-  past the )."
+  "Reads the comma-separated arguments of `name`, starting after its
+  opening parenthesis. Returns the arguments and the index past the
+  closing parenthesis."
   [ts i name]
   (if (= :close (:kind (nth ts i)))
     [[] (inc i)]
@@ -166,8 +194,12 @@
           (fail (at (str "missing ) after the arguments of " name ", found " (:text t)) (:pos t))))))))
 
 (defn- identifier
-  "A variable, a constant, a function applied to a bare operand (sin x,
-  sin²x, sin^2 x), or any name applied to parenthesized arguments."
+  "Reads what the identifier at `i` starts. That is one of:
+
+  - a variable;
+  - a constant;
+  - a function applied to a bare operand (sin x, sin²x, sin^2 x);
+  - any name applied to parenthesized arguments."
   [ts i]
   (let [t (nth ts i), name (:text t), op (keyword name), j (inc i), following (:kind (nth ts j))]
     (cond
@@ -192,7 +224,8 @@
       :else {:value op :next j :bare? false})))
 
 (defn- prefix
-  "The operand starting at i: {:value v :next j :bare? b}."
+  "Reads the operand that starts at `i`. Returns
+  `{:value v :next j :bare? b}`."
   [ts i]
   (let [t (nth ts i), j (inc i)]
     (case (:kind t)
@@ -209,7 +242,8 @@
                            (when (not= :end (:kind close)) (at (str ", found " (:text close)) (:pos close))))))
               {:value (:value r) :next (inc (:next r)) :bare? false})
       :- (if (= :number (:kind (nth ts j)))
-           ;; −3 is the number, −3² the negation of a power, −3·x the number times x
+           ;; −3 is the number. −3² is the negation of a power.
+           ;; −3·x is the number times x.
            (let [r (continue ts (inc j) (:value (nth ts j)) true negation)]
              (if (:bare? r)
                (assoc r :value (num/neg (:value r)))
@@ -219,13 +253,15 @@
       (unexpected ts i))))
 
 (defn- expression
-  "The expression from i whose operators bind tighter than min-bp."
+  "Reads the expression that starts at `i` and whose operators bind
+  tighter than `min-bp`."
   [ts i min-bp]
   (let [{:keys [value next bare?]} (prefix ts i)]
     (continue ts next value bare? min-bp)))
 
 (defn- leftover
-  "Why the tokens from i were not read."
+  "Returns the message that says why the tokens from `i` on were not
+  read."
   [ts i]
   (let [t (nth ts i)]
     (if (contains? operand-starts (:kind t))
@@ -233,7 +269,8 @@
       (at (str "unexpected " (:text t)) (:pos t)))))
 
 (defn- read-all
-  "The one expression the whole text is; throws."
+  "Reads the whole of `text` as one expression and returns it.
+  Throws when the text does not read."
   [text]
   (let [ts (tokens text)]
     (when-not (= :end (:kind (first ts)))
@@ -243,8 +280,9 @@
           (fail (leftover ts (:next r))))))))
 
 (defn as-read
-  "t as `term` reads its printing: n-ary sums and products left-nested,
-  unary :- as :neg. The round trip is exact up to this."
+  "Returns `t` as `term` reads it back from its printed form. N-ary
+  sums and products are left-nested, and unary `:-` is `:neg`. The
+  round trip is exact up to these two changes."
   [t]
   (if (vector? t)
     (let [[op & args] t, args (map as-read args)]
@@ -254,9 +292,14 @@
     t))
 
 (defn term
-  "{:value t} for the notation text, a term or a pattern; {:value nil}
-  for blank text; {:error message} when it does not read. Where a
-  product is meant, the message says how to write one."
+  "Parses `text`, a term or a pattern in the notation. Returns:
+
+  - `{:value t}` when the text reads;
+  - `{:value nil}` for blank text;
+  - `{:error message}` when the text does not read.
+
+  When the text is missing an operator, the message also says how
+  to write a product, since that is the likely intent."
   [text]
   (try {:value (read-all text)}
        (catch #?(:clj Exception :default :default) e
@@ -271,17 +314,23 @@
 (def ^:private rule-shape "a rule is written name: pattern -> replacement")
 
 (defn rules
-  "{:value [[name lhs rhs] …]} for one rule per line, each written
-  name: pattern -> replacement (→ and => are arrows too); {:value nil}
-  for blank text; {:error message}, naming the line, otherwise."
+  "Parses `text` as rules, one rule per line. Each rule is written
+  name: pattern -> replacement, and → and => are arrows too.
+  Returns:
+
+  - `{:value [[name lhs rhs] ...]}` when every line reads;
+  - `{:value nil}` for blank text;
+  - `{:error message}` otherwise. The message names the line."
   [text]
   (let [lines (keep-indexed (fn [i line] (when-not (str/blank? line) [(inc i) line])) (str/split-lines text))]
     (if (empty? lines)
       {:value nil}
       (reduce (fn [acc [n line]]
                 (let [problem (fn [m] (reduced {:error (str "line " n ": " m)}))
-                      ;; anchored at both ends: in JavaScript re-matches only checks that the
-                      ;; first match is the whole line, and a lazy group would stop short
+                      ;; The regex is anchored at both ends. In
+                      ;; JavaScript, re-matches only checks that the
+                      ;; first match is the whole line, and a lazy
+                      ;; group would stop short.
                       [_ name body] (re-matches #"^\s*([^:]*?)\s*:\s*(.*?)\s*$" line)
                       sides (when body (str/split body arrow -1))]
                   (cond

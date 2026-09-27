@@ -1,10 +1,13 @@
 (ns orrery.views.lesson
-  "The page for one lesson: navigation, prose, the inputs, and the
-  panels the lesson asks for. This is the one view that reads the
-  state value (through orrery.derived); the other views take values.
-  Every handler is data over orrery.actions, so the page builds on
-  the JVM and Jolt too, which orrery.page-test does for every lesson
-  at every step."
+  "Renders the page for one lesson: the navigation, the prose, the
+  inputs, and the panels that the lesson asks for. This is the one
+  view that reads the state value, which it does through
+  `orrery.derived`. The other views take values.
+
+  Every handler is data: an `[action & args]` vector over the
+  actions in `orrery.actions`. So the page builds on the JVM and on
+  Jolt too. `orrery.page-test` builds it there for every lesson at
+  every step."
   (:require [clojure.string :as str]
             [cromulent.core :as eg]
             [orrery.costs :as costs]
@@ -24,27 +27,34 @@
             [orrery.views.tree :as tree]))
 
 (defn- work-link
-  "A work of the reading list as a link to the paper, or as text when
-  it has none."
+  "Renders a work of the reading list as a link to the paper, or as
+  text when the work has no link. `k` is the key of the work and
+  `text` is the text to show."
   [k text]
   (if-let [url (:url (get lessons/reading k))]
     [:a {:href url :target "_blank" :rel "noreferrer"} text]
     [:span text]))
 
 (defn- act
-  "A link in the prose that does something to the page."
+  "Renders a link in the prose that does something to the page."
   [kind handler label]
   [:a.act {:data-act (name kind) :on {:click handler}} label])
 
 (defn- prose
-  "Lesson prose with its widgets resolved (orrery.lessons/widget-kinds):
-  a term in either spelling, links that scrub to a step, open the
-  class of a term (at a step, if one is named), set a cost, choose an
-  alternative, switch the print mode, go to another lesson or
-  evaluate a line at the REPL, and
-  citations as superscript author-year links to the papers. A class
-  link whose term the e-graph on show does not hold, because the
-  input was edited, is plain text."
+  "Renders lesson prose with its widgets resolved
+  (`orrery.lessons/widget-kinds`). The widgets are:
+
+  - a term in either spelling;
+  - links that scrub to a step, open the class of a term (at a step,
+    if one is named), set a cost, choose an alternative, switch the
+    print mode, go to another lesson, or evaluate a line at the
+    REPL;
+  - citations, as superscript author-year links to the papers.
+
+  A link to a class renders as plain text when the e-graph it would
+  open the class in does not hold the term of the link. That e-graph
+  is the one at the step the link names, or the one on show when
+  the link names no step. This happens when the input was edited."
   [s x]
   (cond
     (and (vector? x) (contains? lessons/widget-kinds (first x)))
@@ -66,20 +76,23 @@
     :else x))
 
 (defn- about-view
-  "What the site is, on the page it opens on: over the heading, so
-  before any prose that links into the widgets."
+  "Renders what the site is, but only on the page that the site
+  opens on. It goes over the heading, so it comes before any prose
+  that links into the widgets."
   [s l]
   (when (= lessons/start (:key l))
     (into [:aside.about {:id "about"} [:span.label "what this is"]]
           (map #(prose s %) lessons/about))))
 
 (defn- colophon-view
-  "The site in a line, under every page."
+  "Renders the one-line description of the site that goes under
+  every page."
   [s]
   [:footer.colophon {:id "colophon"} (prose s lessons/colophon)])
 
 (defn- reading-view
-  "The works the lesson's prose cites, with links: its footnotes."
+  "Renders the works that the prose of the lesson cites, with links.
+  These are the footnotes of the lesson."
   [l]
   (when-let [ks (seq (lessons/credits l))]
     (into [:div.reading [:span.label "reading"]]
@@ -98,9 +111,10 @@
              [:span.coming (str (lessons/nav-label l) " · coming")])])))
 
 (defn- operation-view
-  "What the workbench runs, over the fields that are its arguments:
-  the algorithm in a word and the function that is it, what it does,
-  and the call under the runner options in force."
+  "Renders what the workbench runs, over the fields that are its
+  arguments. Shows the algorithm in a word, the function that
+  implements it, what it does, and the call with the runner options
+  in force."
   [s l]
   (when-let [{:keys [name says] f :fn} (lessons/operation l)]
     [:div.operation {:id "operation"}
@@ -109,7 +123,8 @@
      [:pre.call {:id "call"} (str/join "\n" (lessons/call l (get-in s [:input :opts])))]]))
 
 (defn- input-area
-  "The operation and its arguments, for a page that has any to edit."
+  "Renders the operation and its arguments, for a page that has
+  arguments to edit."
   [s l]
   (let [{:keys [fields error alternative drawn]} (:input s)
         drawing? (get-in s [:ui :drawing?])
@@ -126,8 +141,8 @@
       [:button.primary {:id "run" :on {:click [:run]}} "run"]
       [:span.status {:id "input-help"}
        (if (= :notation mode)
-         "notation as the page prints it: 2·x + y, x^2 or x², sin x, 1/2 exact, ?x in a pattern; native [:+ [:* 2 :x] :y] reads too"
-         "native format: tagged vectors, keyword operators and variables; notation such as 2·x + y reads too")]]
+         "Type notation as the page prints it: 2·x + y, x^2 or x², sin x, 1/2 for an exact half, ?x in a pattern. The native format, [:+ [:* 2 :x] :y], is read too."
+         "Type the native format: tagged vectors with keyword operators and variables. Notation such as 2·x + y is read too.")]]
      (when error [:div.error error])
      (when (seq (:alternatives l))
        [:div
@@ -143,13 +158,15 @@
         [:div.row
          [:button {:id "surprise" :disabled drawing? :on {:click [:surprise]}}
           (if drawing? "drawing…" "surprise me")]
-         [:span.status "a dozen random terms, run and scored; one picked, weighted by score"]]
+         [:span.status "Draws a dozen random terms, runs and scores them, and picks one, weighted by its score."]]
         (when drawn
           [:div.drawn {:id "drawn"} (score/explain drawn (get-in l [:surprise :wants]))])])]))
 
 (defn- run-panel
-  "The counters and how the run ended, under the function whose run
-  it is; the transport is the replay bar over the class list."
+  "Renders the counters and how the run ended. The heading names the
+  function that made the run, or says \"from the REPL\" when the
+  REPL put the run on show. The transport is not in this panel. It
+  is in the replay bar, over the class list."
   [s l r g]
   [:div.panel {:style {:margin-top "16px"}}
    (common/title "the run" (if (= :repl (:from r)) "from the REPL" (:fn (lessons/operation l))))
@@ -163,10 +180,11 @@
      [:div.status [:span.badge.dirty "rebuild pending: the invariants are not restored yet"]])])
 
 (defn- replay-bar
-  "The transport and, under it, the opened class at the step on show,
-  directly above the class list and stuck to the top of the viewport
-  while the list scrolls under it, so the classes change in view as
-  you scrub and the opened class never scrolls away."
+  "Renders the replay bar: the transport and, under it, the opened
+  class at the step on show. The bar sits directly above the class
+  list and sticks to the top of the viewport while the list scrolls
+  under it. So the classes change in view as you scrub, and the
+  opened class never scrolls away."
   [s r g]
   [:div.replay {:id "replay"}
    (scrubber/scrubber {:step (:step s) :n (run/last-step r) :labels (:labels r)
@@ -179,8 +197,9 @@
                             :root-id (derived/root-at s)}))])
 
 (defn- tools
-  "The row under the replay bar: the graph picture's switch, and the
-  e-graph on show as egraph-serialize JSON, copied or downloaded."
+  "Renders the row under the replay bar. The row holds the switch
+  for the graph picture, and the buttons that copy or download the
+  e-graph on show as egraph-serialize JSON."
   [s]
   (let [graph? (derived/graph? s)]
     [:div.tools {:id "tools"}
@@ -218,8 +237,8 @@
      [:div {:id "best-term"} (common/term-view term :native)]
      [:div.changed (str "cost " (costs/cost-str cost) " under " (costs/label (:cost s)))]
      [:p.says {:id "extract-says"}
-      [:code "(ex/extract g root cost)"] ": the cheapest term of " [:code "root"] ", the input's class, in "
-      [:code "g"] ", the e-graph at this step"]
+      [:code "(ex/extract g root cost)"] " returns the cheapest term of " [:code "root"] " in " [:code "g"] ". "
+      [:code "root"] " is the class of the input, and " [:code "g"] " is the e-graph at this step."]
      (when (> (count picker) 1)
        (into [:div.cost-picker [:code.arg "cost"]]
              (for [c picker]
@@ -229,9 +248,10 @@
                 " " (:label c)])))]))
 
 (defn- class-panel
-  "The class list over the e-graph at step k, under what the REPL
-  calls that e-graph; the opened class there marks its own row and
-  its relatives' rows."
+  "Renders the class list over `g`, the e-graph at step `k`. The
+  heading is `title`, with `of` beside it, which is what the REPL
+  calls that e-graph. The class that is open at that step marks its
+  own row and the rows of its relatives."
   [title of g s k opts]
   [:div.panel
    (common/title title of)
@@ -251,7 +271,7 @@
    (stats/stats-table {:stats (:stats r) :rules (:rules r) :step (:step s)})])
 
 (defn- tree-panel
-  "The term as a tree over the e-graph on show."
+  "Renders the term as a tree over the e-graph on show."
   [s g term style]
   [:div.panel {:style style}
    (common/title "the tree" "term")
@@ -270,8 +290,9 @@
                     :beside? beside?}))
 
 (defn- workbench
-  "A lesson's panels: what the operation is given and what it made on
-  the left, the e-graph on the right."
+  "Renders the panels of a lesson. The left column holds what the
+  operation is given and what it made. The right column holds the
+  e-graph."
   [s l r g panels matches]
   [:div.workbench
    [:div
@@ -294,11 +315,13 @@
       (classes-view s r g matches))]])
 
 (defn- beside
-  "The REPL's page: the editor on the left, staying in view, and on
-  the right every panel that reads the run on show, whatever put it
-  there. A panel with nothing to read is left out: the best term and
-  the matches need a run that knows its root and its rules, the tree
-  one that knows the term it started from."
+  "Renders the panels of the REPL's page. The editor is on the left
+  and stays in view. On the right is every panel that reads the run
+  on show, whatever put the run there.
+
+  A panel with nothing to read is left out. The best term and the
+  matches need a run that knows its root and its rules. The tree
+  needs a run that knows the term it started from."
   [s l r g panels matches]
   [:div.workbench.beside
    [:div.repl-column (repl-view s true)]

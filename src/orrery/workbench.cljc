@@ -2,15 +2,24 @@
   "The page's state as a value, and the steps over it that need no
   browser. One map holds the page: the lesson, the learner's input,
   the run on show (a timeline of e-graph values), the scrub position,
-  the cost in force, the REPL, and a few UI flags. `initial` is the
-  page before it has opened anything, `open` a lesson over its
-  curated values, `start` its run, `show` any run put on show, and
-  `page` the three at once. orrery.state holds the atom and the
-  timers and swaps these in; the REPL swaps them into the same atom,
-  as `wb`; the suites build their pages from them on the JVM and
-  Jolt. `problem` says what is wrong with a value that is not a
-  state, which the atom's validator asks of every value it is given,
-  so a line at the REPL cannot leave the page with nothing to draw."
+  the cost in force, the REPL, and a few UI flags.
+
+  The steps:
+
+    - `initial` returns the page before it has opened anything.
+    - `open` opens a lesson over its curated values.
+    - `start` starts the lesson's run.
+    - `show` puts any run on show.
+    - `page` returns the page of a lesson: `initial`, then `open`,
+      then `start`, or `show` when it is given a run.
+
+  orrery.state holds the atom and the timers, and swaps these steps
+  in. The REPL swaps them into the same atom, under the alias `wb`.
+  The suites build their pages from them on the JVM and Jolt.
+
+  `problem` says what is wrong with a value that is not a state. The
+  atom's validator asks this of every value the atom is given, so a
+  line at the REPL cannot leave the page with nothing to draw."
   (:require [clojure.string :as str]
             [orrery.costs :as costs]
             [orrery.diff :as diff]
@@ -21,11 +30,12 @@
 (def ui
   "The flags a page starts with."
   {:print :notation :playing nil :selected nil :hover nil :drawing? false
-   ;; :graph? is nil until the switch is touched: the lesson decides (derived/graph?)
+   ;; :graph? is nil until the switch is touched. While it is nil the
+   ;; lesson decides (see derived/graph?).
    :graph? nil :graph-filter? false :graph-zoom nil :export-status nil})
 
 (defn initial
-  "The page before it has opened anything."
+  "Returns the page before it has opened anything."
   []
   {:lesson lessons/start
    :input {:fields {} :values {} :error nil :alternative nil :opts {}}
@@ -45,7 +55,8 @@
 ;; the input
 
 (defn field-text
-  "What a field shows for a value, in the print mode in force."
+  "Returns the text a field shows for the value `v`, in the print
+  mode `mode`. `type` is the type of the field's input."
   [mode type v]
   (if (= :notation mode)
     (if (= :rules type) (notation/rules->str v) (notation/term->str v))
@@ -54,8 +65,8 @@
       (pr-str v))))
 
 (defn input-for
-  "The input area of lesson l over values: a field per input, in the
-  print mode."
+  "Returns the input area of lesson `l` over `values`. The area has
+  one field per input, printed in the print mode `mode`."
   [mode l values opts alternative]
   {:fields (into {} (for [{:keys [key type]} (:inputs l)] [key (field-text mode type (get values key))]))
    :values values :error nil :alternative alternative :opts opts})
@@ -64,10 +75,12 @@
 ;; a run on show
 
 (defn show
-  "s with run on show: the scrub position at the start of a run still
-  running and at the end of a finished one, following, nothing
-  opened. The run id is new, which is what the derived values are
-  cached under and how the page knows to step a run that is still
+  "Returns `s` with `run` on show. The scrub position is the start of
+  a run that is still running, and the end of one that has finished.
+  The page follows the run, and no class is open.
+
+  Increments the run id. The derived values are cached under it, and
+  a new id is how the page knows to step a run that is still
   running."
   [s run]
   (-> s
@@ -78,24 +91,26 @@
       (update :ui assoc :selected nil :hover nil :export-status nil)))
 
 (defn advance
-  "s with its run a step further, run', the scrub position following
-  when it was."
+  "Returns `s` with `run'` as its run. `run'` is the run of `s`, one
+  step further. The scrub position moves to the last step when the
+  page was following the run."
   [s run']
   (cond-> (assoc s :run run')
     (:follow? s) (assoc :step (run/last-step run'))))
 
 (defn scrub
-  "s at step k of its run, clamped to the timeline; at the last step
-  it follows the run again."
+  "Returns `s` at step `k` of its run. `k` is clamped to the
+  timeline. At the last step the page follows the run again."
   [s k]
   (let [n (run/last-step (:run s))
         k (max 0 (min n k))]
     (assoc s :step k :follow? (= k n))))
 
 (defn open
-  "s with lesson l opened over its curated values, its fields in the
-  print mode in force and its first cost in force. The run is
-  `start`'s."
+  "Returns `s` with lesson `l` opened over its curated values. The
+  fields are printed in the print mode in force, and the lesson's
+  first cost is in force. Leaves the run alone: `start` makes the
+  lesson's run."
   [s l]
   (assoc s
          :lesson (:key l)
@@ -103,15 +118,16 @@
          :cost (or (first (:costs l)) :ast-size)))
 
 (defn start
-  "s with the lesson's run over the input values in force on show,
-  not yet stepped when it is a saturation."
+  "Returns `s` with the lesson's run on show. The run is made over
+  the input values in force. A saturation is not yet stepped."
   [s]
   (let [{:keys [values opts]} (:input s)]
     (show s (lessons/make-run (lesson s) values (or opts {})))))
 
 (defn page
-  "The page of lesson l: opened, and its run started, or run on show
-  when one is given, at step k when that is given too."
+  "Returns the page of lesson `l`, with the lesson opened. Starts the
+  lesson's run, or puts `run` on show when `run` is given. Scrubs to
+  step `k` when `k` is given too."
   ([l] (-> (initial) (open l) start))
   ([l run] (-> (initial) (open l) (show run)))
   ([l run k] (scrub (page l run) k)))
@@ -120,7 +136,7 @@
 ;; the values of the REPL
 
 (defn run?
-  "Is v a run, as orrery.run makes them?"
+  "Returns true when `v` is a run, as orrery.run makes them."
   [v]
   (boolean
    (and (map? v)
@@ -132,20 +148,28 @@
         (contains? #{:running :done} (:status v)))))
 
 (defn pair?
-  "Is v what `eg/add` and `eg/union` return, [g id]?"
+  "Returns true when `v` is a [g id] pair, which is what `eg/add` and
+  `eg/union` return."
   [v]
   (and (vector? v) (= 2 (count v)) (diff/egraph? (first v)) (integer? (second v))))
 
 (defn runner-result?
-  "Is v what `rw/saturate` returns?"
+  "Returns true when `v` is what `rw/saturate` returns."
   [v]
   (and (map? v) (diff/egraph? (:egraph v)) (vector? (:stats v))))
 
 (defn run-of
-  "A value of the REPL as a run, or nil when it is none of these: a
-  run as it is; an e-graph as a timeline of one entry; a [g id] pair
-  as its e-graph, id the class to extract for; a runner's result as
-  its timeline, when it kept one, or its last e-graph."
+  "Returns the REPL value `v` as a run, or nil when `v` is none of
+  these:
+
+    - A run is returned as it is.
+    - An e-graph becomes a timeline of one entry.
+    - A [g id] pair becomes a timeline of its e-graph, and id is the
+      class to extract for.
+    - A runner's result becomes its timeline when it kept one, and
+      otherwise its last e-graph.
+
+  Every run it returns is marked `:from :repl`."
   [v]
   (cond
     (run? v) (assoc v :from :repl)
@@ -161,23 +185,25 @@
     :else nil))
 
 (defn follows?
-  "May g1 come after g0 in a timeline? Ids only grow along a run,
-  which the diff and a class's history rely on."
+  "Returns true when `g1` may come after `g0` in a timeline. Ids only
+  grow along a run, and the diff and a class's history rely on that."
   [g0 g1]
   (<= (:next-id g0) (:next-id g1)))
 
 (defn put
-  "s with the REPL value v on show, or s when v is nothing the page
-  can show."
+  "Returns `s` with the REPL value `v` on show. Returns `s` unchanged
+  when `v` is nothing the page can show."
   [s v]
   (if-let [run (run-of v)] (show s run) s))
 
 (defn push
-  "s with the e-graph g as the next step of the run on show, under
-  label, and the scrub position on it, so a run can be made by hand
-  and scrubbed. A run still running is stopped first. An e-graph
-  that cannot follow the last one, or the first on a page with no
-  run, is put on show alone."
+  "Returns `s` with the e-graph `g` as the next step of the run on
+  show, under `label`, and with the scrub position on that step. So
+  a run can be made by hand and scrubbed.
+
+  A run that is still running is stopped first. `g` is put on show
+  alone when it cannot follow the last e-graph of the run, or when
+  the page has no run yet."
   ([s g] (push s g "from the REPL"))
   ([s g label]
    (let [run (some-> (:run s) run/stop)]
@@ -192,11 +218,14 @@
        :else (put s g)))))
 
 (defn recall
-  "The REPL r, a map of the editor's text, :input, and the :history,
-  with an earlier input in the editor (dir :back) or a later one
-  (:forward), as the arrow keys of a terminal do it: :recall is the
-  entry in the editor, nil while it holds what is being typed, and
-  going forward past the last entry brings that back."
+  "Returns the REPL `r` with an earlier input in the editor when
+  `dir` is :back, or a later one when `dir` is :forward. The arrow
+  keys of a terminal do the same. `r` is a map that holds the
+  editor's text under :input, and the :history.
+
+  :recall is the index of the history entry that is in the editor.
+  It is nil while the editor holds what is being typed. Going
+  forward past the last entry brings back what was being typed."
   [{:keys [input history recall draft] :as r} dir]
   (let [n (count history)
         i (case dir
@@ -211,8 +240,8 @@
 ;; what a state is
 
 (defn problem
-  "nil when s is a state of the page, or what is wrong with it, in
-  words."
+  "Returns nil when `s` is a state of the page. Otherwise returns a
+  string that says what is wrong with it."
   [s]
   (let [run (:run s)]
     (cond

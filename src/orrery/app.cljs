@@ -1,8 +1,9 @@
 (ns orrery.app
-  "Mount. The page is one hiccup tree computed from the state and
-  rendered by Replicant, pure ClojureScript, no React: state in,
-  hiccup out, on every change; every handler in it is data, routed
-  through orrery.dispatch."
+  "Mounts the page. The page is one hiccup tree, computed from the
+  state and rendered by Replicant. It is pure ClojureScript, with no
+  React. Every change of the state renders the tree again: state in,
+  hiccup out. Every handler in the tree is data, and orrery.dispatch
+  routes it."
   (:require [orrery.derived :as derived]
             [orrery.dispatch :as dispatch]
             [orrery.lessons :as lessons]
@@ -19,8 +20,10 @@
     (if (and l (lessons/live? l)) (:key l) lessons/start)))
 
 (defn- watch!
-  "The page follows its state: what the change asks of the browser
-  first, the run loop among it, then the render."
+  "Adds the watch that makes the page follow its state. On every
+  change the watch first calls `state/changed!`, which does what the
+  change asks of the browser, such as starting the run loop. Then it
+  renders the page."
   []
   (add-watch state/app-state :render (fn [_ _ old new] (state/changed! old new) (render!))))
 
@@ -29,9 +32,9 @@
 (defn init! []
   (r/set-dispatch! dispatch/dispatch)
   (watch!)
-  ;; a read-only hook for the Playwright specs in test/e2e. Not
-  ;; window.orrery: that global is the object every orrery.* namespace
-  ;; lives on, and assigning it erases them all.
+  ;; A read-only hook for the Playwright specs in test/e2e. It is not
+  ;; named window.orrery, because that global is the object every
+  ;; orrery.* namespace lives on, and assigning it erases them all.
   (set! (.-orreryPage js/window)
         #js {:snapshot (fn [] (clj->js (derived/snapshot @state/app-state)))})
   (js/window.addEventListener "hashchange" (fn [_] (state/load-lesson! (lesson-from-hash))))

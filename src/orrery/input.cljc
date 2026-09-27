@@ -1,19 +1,26 @@
 (ns orrery.input
-  "Learner input, in either spelling: the native format, read by the
-  EDN reader with ratios exact on every runtime (bendix.num), or the
-  notation, read by orrery.parse. Text that starts with a vector or a
-  keyword is native; anything else is notation, and a bare number or
-  ?x reads the same either way. A term, a pattern, or rules as
-  [[name lhs rhs] ...] or one name: pattern -> replacement per line.
-  Each reader returns {:term t}, {:pattern p}, {:rules [...]} or
-  {:error message}."
+  "Reads what the learner types, in either of two spellings:
+
+  - the native format, which the EDN reader reads, with ratios exact
+    on every runtime (`bendix.num`);
+  - the notation, which `orrery.parse` reads.
+
+  Text that starts with a vector or a keyword is native. Anything
+  else is notation. A bare number or ?x reads the same either way.
+
+  The input is a term, a pattern, or rules. Rules are written as
+  `[[name lhs rhs] ...]` or as one name: pattern -> replacement per
+  line.
+
+  Each reader returns `{:term t}`, `{:pattern p}`, `{:rules [...]}`
+  or `{:error message}`."
   (:require [bendix.num :as num]
             [cromulent.pattern :as pat]
             [cromulent.rewrite :as rw]
             [orrery.parse :as parse]))
 
 (defn native?
-  "Is text in the native format?"
+  "Returns true if `text` is in the native format."
   [text]
   (boolean (re-find #"^\s*[\[:]" text)))
 
@@ -23,27 +30,30 @@
          {:error (str "could not read that: " (ex-message e))})))
 
 (defn- read-text
-  "{:value v} or {:error message}, by the spelling of text."
+  "Reads `text` with the reader for its spelling. Returns
+  `{:value v}` or `{:error message}`."
   [text]
   (if (native? text) (read-edn text) (parse/term text)))
 
 (defn leaf-count
-  "How many leaves t has."
+  "Returns the number of leaves of the term `t`."
   [t]
   (if (vector? t) (reduce + 0 (map leaf-count (rest t))) 1))
 
 (defn size
-  "How many nodes the tree of t has."
+  "Returns the number of nodes in the tree of the term `t`."
   [t]
   (count (tree-seq vector? rest t)))
 
 (def leaf-limit
-  "The most leaves a term the page saturates may have."
+  "The largest number of leaves that a term may have if the page is
+  to saturate it."
   10)
 
 (defn term-problem
-  "nil, or why t is not a term: a tagged vector with a keyword
-  operator and keyword or number leaves."
+  "Returns nil when `t` is a term, or a message that says why it is
+  not one. A term is a keyword, an exact number, or a tagged vector
+  with a keyword operator whose children are terms."
   [t]
   (cond
     (vector? t) (cond (empty? t) "an empty vector is not a term"
@@ -56,7 +66,8 @@
     :else (str (pr-str t) " is not a variable or a number")))
 
 (defn read-term
-  "{:term t} or {:error message}."
+  "Reads `text` as a term. Returns `{:term t}` or
+  `{:error message}`."
   [text]
   (let [{:keys [value error]} (read-text text)]
     (cond error {:error error}
@@ -73,7 +84,8 @@
     :else (str (pr-str p) " is not a pattern variable (?x), a keyword or a number")))
 
 (defn read-pattern
-  "{:pattern p} or {:error message}: a term that may hold ?variables."
+  "Reads `text` as a pattern, which is a term that may hold
+  ?variables. Returns `{:pattern p}` or `{:error message}`."
   [text]
   (let [{:keys [value error]} (read-text text)]
     (cond error {:error error}
@@ -81,9 +93,13 @@
           :else (if-let [p (pattern-problem value)] {:error p} {:pattern value}))))
 
 (defn read-rules
-  "Rules as [[\"name\" lhs rhs] ...] or as name: pattern -> replacement
-  lines: {:rules data} in the vector shape, validated (every
-  right-hand variable bound on the left), or {:error message}."
+  "Reads `text` as rules. The rules are written as
+  `[[\"name\" lhs rhs] ...]` or as name: pattern -> replacement
+  lines.
+
+  Returns `{:rules data}` or `{:error message}`. `data` is in the
+  vector shape and is validated: every variable on the right-hand
+  side is bound on the left."
   [text]
   (let [{:keys [value error]} (if (native? text) (read-edn text) (parse/rules text))]
     (cond

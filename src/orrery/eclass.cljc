@@ -1,17 +1,22 @@
 (ns orrery.eclass
-  "What the page says about one class when it is selected: the class
-  of a term, each node of the class with its cost under the cost in
-  force, the classes its nodes point at and the nodes that point at
-  it, how many terms the class stands for and the cheapest few of
-  them, and where the class has been along a run. Pure; counts and
-  costs are the same on every runtime, ids are not."
+  "Computes what the page says about one class when it is selected:
+
+    - the class of a term
+    - each node of the class, with its cost under the cost in force
+    - the classes its nodes point at, and the nodes that point at it
+    - how many terms the class stands for, and the cheapest few of
+      them
+    - where the class has been along a run
+
+  The functions are pure. Counts and costs are the same on every
+  runtime. Ids are not."
   (:refer-clojure :exclude [parents])
   (:require [cromulent.core :as eg]
             [cromulent.term :as term]))
 
 (defn class-of
-  "The canonical class holding t in g, or nil when g does not hold it.
-  Looks up, never adds."
+  "Returns the canonical class that holds `t` in `g`, or nil when
+  `g` does not hold `t`. Only looks up, and never adds to `g`."
   [g t]
   (if (term/compound? t)
     (let [ids (mapv #(class-of g %) (term/children t))]
@@ -20,7 +25,8 @@
     (eg/lookup g t)))
 
 (defn children
-  "The classes the nodes of the class of id point at, ascending."
+  "Returns the classes that the nodes of the class of `id` point at,
+  in ascending order."
   [g id]
   (->> (eg/nodes g id)
        (filter term/compound?)
@@ -31,10 +37,13 @@
        vec))
 
 (defn parents
-  "The nodes that hold the class of id as a child, each with the class
-  it is in: [{:node n :class c}], the node canonical. Between a union
-  and the rebuild two parents may read the same and sit in two
-  classes, which is the invariant congruence restores."
+  "Returns the nodes that hold the class of `id` as a child, each
+  with the class it is in, as `[{:node n :class c}]`. Each node is
+  canonical.
+
+  Between a union and the rebuild, two parents may read the same and
+  sit in two classes. That breaks the invariant that congruence
+  restores."
   [g id]
   (->> (:parents (eg/eclass g id))
        (map (fn [[node c]] {:node (eg/canonicalize g node) :class (eg/find g c)}))
@@ -48,19 +57,21 @@
 ;; the terms a class stands for
 
 (def count-cap
-  "Past this many terms the count says only that there are more."
+  "The cap on a count of terms. Past this many terms, the count says
+  only that there are more."
   1000000)
 
 (def few
-  "How many of a class's cheapest terms the page lists."
+  "The number of a class's cheapest terms that the page lists."
   6)
 
 (defn term-count
-  "How many terms the class of id stands for: a number, `count-cap`
-  meaning at least that many, or :infinite when the class reaches
-  itself (x = x + 0 puts x, x + 0, x + 0 + 0, … in one class)."
+  "Returns how many terms the class of `id` stands for. The result
+  is a number, where `count-cap` means at least that many, or
+  `:infinite` when the class reaches itself. For example, x = x + 0
+  puts x, x + 0, x + 0 + 0 and so on in one class."
   [g id]
-  (let [state (volatile! {})            ; class id -> count, or :visiting
+  (let [state (volatile! {})            ; by class id: count, or :visiting
         infinite (volatile! false)
         walk (fn walk [id]
                (let [id (eg/find g id)
@@ -83,24 +94,25 @@
     (if @infinite :infinite n)))
 
 (defn- compare-costed
-  "Ascending cost, ties in cromulent's order on terms, so a list of
-  the cheapest is a function of the e-graph value alone."
+  "Compares two costed terms by ascending cost, and breaks ties by
+  cromulent's order on terms. A list of the cheapest terms is then
+  a function of the e-graph value alone."
   [a b]
   (let [c (compare (:cost a) (:cost b))]
     (if (zero? c) (term/compare-nodes (:term a) (:term b)) c)))
 
 (defn- cartesian
-  "Every way of choosing one element from each list."
+  "Returns every way of choosing one element from each list."
   [lists]
   (reduce (fn [acc xs] (for [a acc x xs] (conj a x))) [[]] lists))
 
 (def ^:private combo-budget 2000)
 
 (defn- node-terms
-  "The k cheapest terms a node heads, given each child class's
-  cheapest terms so far; nil while a child has none. A node of many
-  children is combined over a few of each child's terms so the work
-  stays bounded."
+  "Returns the `k` cheapest terms that `node` heads, given the
+  cheapest terms of each child class so far. Returns nil while a
+  child has none. A node with many children is combined over only a
+  few of the terms of each child, so that the work stays bounded."
   [cost-fn best k node]
   (if (term/compound? node)
     (let [lists (mapv #(nth best %) (term/children node))]
@@ -118,12 +130,15 @@
     [{:cost (cost-fn node []) :term node}]))
 
 (defn cheapest
-  "Vector, class id -> the k cheapest terms of the class under cost-fn,
-  [{:cost c :term t}] ascending, for every root (nil elsewhere): the
-  bottom-up fixpoint of cromulent.extract/best-costs, keeping k terms
-  per class instead of one. A term that comes back to its own class
-  costs more than the one it came from, so a cycle adds nothing past
-  the k-th."
+  "Returns a vector indexed by class id. For every root, the entry
+  holds the `k` cheapest terms of the class under `cost-fn`, as
+  `[{:cost c :term t}]` in ascending order. Every other entry is
+  nil.
+
+  This is the bottom-up fixpoint of `cromulent.extract/best-costs`,
+  except that it keeps `k` terms per class instead of one. A term
+  that comes back to its own class costs more than the term it came
+  from, so a cycle adds nothing past the `k`-th term."
   [g cost-fn k]
   (let [n (:next-id g)
         classes (:classes g)
@@ -146,9 +161,10 @@
         (if (= best' best) best (recur best'))))))
 
 (defn node-costs
-  "Each node of the class of id with the cost of the cheapest term it
-  heads, ascending, the cheapest marked: [{:node n :cost c :best? b}].
-  A node whose child has no finite term is left out."
+  "Returns each node of the class of `id` with the cost of the
+  cheapest term it heads, as `[{:node n :cost c :best? b}]`. The
+  nodes are in ascending order of cost, and `:best?` marks the
+  cheapest. A node whose child has no finite term is left out."
   [g cheapest-table cost-fn id]
   (let [costed (keep (fn [node]
                        (when-let [c (if (term/compound? node)
@@ -169,21 +185,28 @@
 ;; along the run
 
 (defn- old?
-  "Did g, an earlier e-graph of the same run, already hold node? Ids
-  only grow along a run, so a node whose child g does not have yet
-  is new."
+  "Returns true when `g`, an earlier e-graph of the same run,
+  already held `node`. Ids only grow along a run, so a node with a
+  child that `g` does not have yet is new."
   [g node]
   (and (or (not (term/compound? node))
            (every? #(< % (:next-id g)) (term/children node)))
        (some? (eg/lookup g node))))
 
 (defn history
-  "Where the class of id, as it is at step k of a timeline, has been:
-  {:born j :grew [j …] :merged [j …]}, the first step with a class
-  that ends up in it, the steps at which it gained a node, and the
-  steps at which two or more classes that make it up became one.
-  Before k a class is traced by which roots the union-find of step k
-  joins into it; after k, by find, since ids only grow along a run."
+  "Returns where the class of `id`, as it is at step `k` of
+  `timeline`, has been:
+
+    {:born j :grew [j ...] :merged [j ...]}
+
+  `:born` is the first step with a class that ends up in it.
+  `:grew` holds the steps at which it gained a node. `:merged`
+  holds the steps at which two or more classes that make it up
+  became one.
+
+  Before `k`, a class is traced by which roots the union-find of
+  step `k` joins into it. After `k`, it is traced by `find`, because
+  ids only grow along a run."
   [timeline k id]
   (let [n (count timeline)
         gk (nth timeline k)

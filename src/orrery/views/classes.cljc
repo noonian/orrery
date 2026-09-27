@@ -1,11 +1,17 @@
 (ns orrery.views.classes
-  "The class list: every root of the e-graph, its nodes, its parents,
-  and the best term of the class under the cost in force, and, when
-  the graph carries bendix's polynomial analysis, the normal form
-  of each class. Diff highlighting marks what the current step added
-  or merged. When a class is open (orrery.views.detail, in the replay
-  bar), its row is marked and the rows of the classes it points at
-  and is pointed at by say so."
+  "Renders the class list. The list has a row for every root of the
+  e-graph. A row shows:
+
+  - the nodes of the class;
+  - its parents, as a count;
+  - the best term of the class under the cost in force;
+  - the normal form of the class, when the graph carries the
+    polynomial analysis of bendix.
+
+  Diff highlighting marks what the current step added or merged.
+  When a class is open (`orrery.views.detail`, in the replay bar),
+  its row is marked. The rows of the classes that it points at, and
+  of the classes that point at it, say so."
   (:require [cromulent.core :as eg]
             [orrery.normal :as normal]
             [orrery.notation :as notation]

@@ -1,13 +1,15 @@
 (ns orrery.views.common
-  "Small pieces every panel uses: terms in both modes, e-nodes with
-  their class ids as links, the counters, the stop reason in words.
-  Every view is a function of values, and every handler in it is
-  data over orrery.actions."
+  "Small views that every panel uses: terms in both print modes,
+  e-nodes with their class ids as links, the counters, and the stop
+  reason in words. Every view is a function of values. Every handler
+  in a view is data: an `[action & args]` vector over the actions in
+  `orrery.actions`."
   (:require [orrery.notation :as notation]))
 
 (defn term-view
-  "A term in the mode in force; in the notation, the native spelling
-  is the tooltip, which tells a nested sum from a flat one."
+  "Renders the term `t` in the print mode `mode`. In the notation,
+  the tooltip is the native spelling, which tells a nested sum from
+  a flat one."
   [t mode]
   (if (= :native mode)
     [:code.native (pr-str t)]
@@ -16,13 +18,13 @@
 (def ^:private digits (zipmap "0123456789" (range 10)))
 
 (defn- ref-id
-  "The class id in a printed #id."
+  "Returns the class id that `tok`, a printed #id, refers to."
   [tok]
   (reduce (fn [n c] (+ (* 10 n) (digits c))) 0 (subs tok 1)))
 
 (defn enode-view
-  "An e-node, its children as class ids; in the notation each id is a
-  link that opens its class."
+  "Renders an e-node with its children as class ids. In the notation,
+  each id is a link that opens its class."
   [node mode]
   (if (= :native mode)
     [:code.native (pr-str node)]
@@ -34,9 +36,10 @@
                (re-seq #"#\d+|[^#]+" (notation/enode->str node))))))
 
 (defn title
-  "A panel's heading: what the panel shows and, beside it, what it is
-  the work of, a function or a value as the REPL under the page
-  names it."
+  "Renders the heading of a panel. `text` says what the panel shows.
+  `of`, when given, is shown beside it and says what made the
+  content of the panel: a function or a value, as the REPL under the
+  page names it."
   ([text] (title text nil))
   ([text of]
    [:div.panel-head
@@ -44,7 +47,8 @@
     (when of [:code.of of])]))
 
 (defn round
-  "A non-negative number of milliseconds to the nearest integer."
+  "Rounds `x`, a non-negative number of milliseconds, to the nearest
+  integer."
   [x]
   (long (+ (or x 0) 0.5)))
 
@@ -60,8 +64,9 @@
     (name reason)))
 
 (defn tiles
-  "The counters: classes, nodes, the step of the timeline (its last
-  entry may follow the last iteration), and how it ended."
+  "Renders the counters: the classes, the nodes, the step of the
+  timeline with how the run ended, and the time the engine took. The
+  last entry of the timeline may come after the last iteration."
   [{:keys [classes nodes step n status stop-reason ms]}]
   (let [running? (= :running status)]
     [:div.tiles

@@ -1,30 +1,36 @@
 (ns orrery.run
-  "One shape for every lesson's execution: a timeline of e-graph
-  values with a label each, plus the runner's stats when the engine
-  ran. A script (lessons 1, 2, 3, 10) lists its steps; a saturation
-  (lessons 4 to 7) is stepped one iteration at a time over
-  cromulent's start/step/finish, so a page can repaint between
-  iterations and stop between them, and the run is exactly the one
-  `rw/embiggen` would make, bans and all. Pure: the browser drives
-  `step` from a timer, the JVM and Jolt tests drive `run-all`."
+  "A run: one shape for every lesson's execution. A run is a timeline
+  of e-graph values with a label for each, plus the runner's stats
+  when the engine ran.
+
+  A script (lessons 1, 2, 3, 10) lists its steps. A saturation
+  (lessons 4 to 7) is stepped one iteration at a time, over
+  cromulent's start/step/finish. So a page can repaint between
+  iterations and stop between them. The run is exactly the one
+  `rw/embiggen` would make, including its bans.
+
+  The functions are pure. The browser drives `step` from a timer,
+  and the JVM and Jolt tests drive `run-all`."
   (:require [cromulent.core :as eg]
             [cromulent.rewrite :as rw]))
 
 (def defaults
-  "Runner options unless a lesson says otherwise."
+  "The runner options a run uses unless a lesson says otherwise."
   {:scheduler :simple :iter-limit 30 :node-limit 5000 :time-limit-ms 600000})
 
 (defn script
-  "A run from [label egraph] steps, the first being the input; root
-  is the class to extract for, if any."
+  "Returns a run made from `steps`, a sequence of [label egraph]
+  pairs. The first step is the input. `root` is the class to extract
+  for, if there is one."
   ([steps] (script steps nil))
   ([steps root]
    {:kind :script :timeline (mapv second steps) :labels (mapv first steps) :root root
     :stats [] :iterations 0 :stop-reason :done :status :done :ms 0}))
 
 (defn- after-steps
-  "The run with its :after steps applied to the last e-graph, each
-  [label f] adding one entry."
+  "Returns the run with its :after steps applied. Each step is a
+  pair [label f]. It calls `f` on the last e-graph and adds the
+  result as one more entry, under `label`."
   [run]
   (reduce (fn [run [label f]]
             (-> run
@@ -34,12 +40,18 @@
           (:after run)))
 
 (defn start
-  "A stepped saturation of term under rules: the term is added to an
-  empty e-graph, rebuilt, and becomes entry 0; :root is its class.
-  opts as `rw/embiggen` takes them, over `defaults`, plus :egraph,
-  the empty e-graph to start from (one carrying an analysis, say),
-  and :after, steps [label f] appended once the engine stops, f
-  taking the last e-graph and returning the next (a materialization)."
+  "Returns a stepped saturation of `term` under `rules`. The term is
+  added to an empty e-graph. That e-graph is rebuilt and becomes
+  entry 0 of the timeline. :root is the term's class.
+
+  `opts` are the options that `rw/embiggen` takes, merged over
+  `defaults`, plus two more:
+
+    :egraph  The empty e-graph to start from. It can be one that
+             carries an analysis, for example.
+    :after   Steps [label f] that are appended once the engine
+             stops. `f` takes the last e-graph and returns the
+             next. A materialization is such a step."
   [term rules opts]
   (let [{:keys [egraph after]} opts
         [g root] (eg/add (or egraph (eg/egraph)) term)
@@ -51,7 +63,8 @@
      :stop-reason nil :status :running :ms 0}))
 
 (defn step
-  "One more iteration, when the run is still running."
+  "Returns the run after one more iteration. Returns the run
+  unchanged when it is no longer running."
   [{:keys [engine status] :as run}]
   (if (not= :running status)
     run
@@ -70,7 +83,7 @@
                  after-steps)))))
 
 (defn stop
-  "The run, stopped where it is."
+  "Returns the run, stopped where it is."
   [run]
   (if (= :running (:status run))
     (-> run (assoc :status :done :stop-reason :stopped)
@@ -80,7 +93,7 @@
     run))
 
 (defn run-all
-  "Step to the end."
+  "Steps the run to its end and returns it."
   [run]
   (loop [r run]
     (if (= :running (:status r)) (recur (step r)) r)))

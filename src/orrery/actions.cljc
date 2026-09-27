@@ -1,14 +1,19 @@
 (ns orrery.actions
   "The vocabulary of the views' event handlers. Every handler in the
-  hiccup is data, [action & args] over these, never a function:
-  Replicant compares handlers by value and leaves an unchanged one
-  alone, where a closure is re-registered on every render, and a
-  view with no functions in it builds on the JVM and Jolt, where the
-  suite checks every handler against this table. orrery.dispatch
-  routes them in the browser.")
+  hiccup is data and never a function. A handler is a vector
+  [action & args], where the action is a key of `all`.
+
+  There are two reasons to use data:
+
+    - Replicant compares handlers by value and leaves an unchanged
+      handler alone. A closure is registered again on every render.
+    - A view with no functions in it builds on the JVM and Jolt.
+      There the suite checks every handler against this table.
+
+  orrery.dispatch routes the handlers in the browser.")
 
 (def all
-  "Action -> what its handler means."
+  "Maps each action to a description of what its handler means."
   {:step "[:step k]: scrub to step k"
    :step-from-range "[:step-from-range]: scrub to the range input's value"
    :play "[:play]: play the timeline"
@@ -39,6 +44,7 @@
    :adopt "[:adopt i]: make the value of REPL history entry i the run on show"})
 
 (defn known?
-  "Is h a handler over this vocabulary?"
+  "Returns true when `h` is a handler over this vocabulary: a vector
+  whose first element is a key of `all`."
   [h]
   (and (vector? h) (contains? all (first h))))

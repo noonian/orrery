@@ -1,9 +1,12 @@
 (ns orrery.dispatch
-  "Where hiccup meets the page. Every event handler in the views is
-  data, [action & args] over orrery.actions, and Replicant's global
-  dispatch (replicant.dom/set-dispatch!, in orrery.app) routes it
-  here with the DOM event beside it. This is the only place a DOM
-  event is read."
+  "Routes the views' event handlers to the page's actions. Every
+  event handler in the views is data: a vector [action & args], where
+  the action is one that orrery.actions lists.
+
+  Replicant's global dispatch routes each handler here, together
+  with the DOM event. orrery.app sets that dispatch with
+  replicant.dom/set-dispatch!. This is the only place a DOM event is
+  read."
   (:require [clojure.string :as str]
             [orrery.derived :as derived]
             [orrery.state :as state]))
@@ -13,10 +16,12 @@
 (defn- target-value [e] (.. (dom-event e) -target -value))
 
 (defn- editor-key!
-  "A key in the REPL's editor: Ctrl-Enter or Cmd-Enter evaluates; the
-  up arrow with the caret in the first line brings back an earlier
-  input and the down arrow in the last line a later one, as a
-  terminal does, and inside text of several lines the arrows
+  "Handles a key pressed in the REPL's editor.
+
+  Ctrl-Enter or Cmd-Enter evaluates. The up arrow brings back an
+  earlier input when the caret is in the first line. The down arrow
+  brings back a later input when the caret is in the last line. A
+  terminal does the same. Inside text of several lines the arrows
   move the caret."
   [d]
   (let [el (.-target d)
@@ -38,8 +43,8 @@
 (defn- export-name [s] (str "orrery-" (name (:lesson s)) "-step-" (:step s) ".json"))
 
 (defn- copy-export!
-  "The e-graph on show as JSON, to the clipboard; the tools row says
-  when it is there."
+  "Copies the e-graph on show to the clipboard, as JSON. The tools
+  row says when the JSON is there, or that it could not be copied."
   []
   (let [s @state/app-state
         json (derived/export-json s)]
@@ -48,7 +53,8 @@
                (fn [e] (state/set-export-status! (str "could not copy: " e)))))))
 
 (defn- download-export!
-  "The same as a file, through a link clicked for the learner."
+  "Downloads the e-graph on show as a JSON file. Makes a link to the
+  file and clicks it for the learner."
   []
   (let [s @state/app-state
         json (derived/export-json s)
@@ -61,7 +67,8 @@
     (state/set-export-status! (str "downloaded " (export-name s)))))
 
 (defn dispatch
-  "Replicant's dispatch: the event map and the handler data."
+  "Calls the action that a handler names. Replicant calls this with
+  the event map `e` and the handler data `handler`."
   [e [action & args :as handler]]
   (case action
     :step (state/set-step! (first args))

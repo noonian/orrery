@@ -1,8 +1,11 @@
 (ns orrery.views.stats
-  "Per-iteration statistics of a saturation: matches and applications
-  per rule, the counts, the bans, the time. The rules are the run's,
-  in its order; a runner's result put on show from the REPL names
-  none, and its columns are the names its first iteration counted."
+  "Renders the statistics of a saturation, one row per iteration:
+  the matches and applications per rule, the counts, the bans, and
+  the time.
+
+  The rules are the rules of the run, in the order of the run. A
+  runner result put on show from the REPL names no rules, so its
+  columns are the names that its first iteration counted."
   (:require [clojure.string :as str]
             [orrery.views.common :as common]))
 

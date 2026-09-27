@@ -1,12 +1,19 @@
 (ns orrery.views.repl
-  "The REPL panel: an editor, the history, and results rendered by
-  what they are: an e-graph as a class list, a [g id] pair with the
-  class highlighted, a runner result or a run as a summary with a
-  button to scrub it, anything else printed, abridged
-  (orrery.printed). What an evaluation printed stands over its value.
-  A button names its history entry by index; the value stays in the
-  state. And the names in scope, as the REPL's page lists them
-  (orrery.names)."
+  "Renders the REPL panel: an editor, the history, and the results.
+  A result is rendered by what it is:
+
+  - an e-graph renders as a class list;
+  - a `[g id]` pair renders as a class list with the class
+    highlighted;
+  - a runner result or a run renders as a summary with a button to
+    scrub it;
+  - anything else is printed, abridged (`orrery.printed`).
+
+  What an evaluation printed is shown over its value. A button names
+  its history entry by index, and the value stays in the state.
+
+  This namespace also renders the names in scope, as the REPL's page
+  lists them (`orrery.names`)."
   (:require [orrery.diff :as diff]
             [orrery.names :as names]
             [orrery.printed :as printed]
@@ -20,8 +27,8 @@
 ;; the history and the editor
 
 (defn result-view
-  "Entry i's value; text is the value as the evaluation printed it,
-  when it did."
+  "Renders `v`, the value of history entry `i`. `text` is the value
+  as the evaluation printed it, when the evaluation did print it."
   [v i mode text]
   (cond
     (diff/egraph? v)
@@ -55,22 +62,30 @@
     [:pre.result (or text (printed/printed v))]))
 
 (defn repl-panel
-  "The panel. beside? is the REPL's own page, where the panel stands
-  beside the e-graph: the history scrolls inside it, down to the last
-  entry after every evaluation, and the editor is taller. Its id is
-  not `repl`: that is the address of the REPL's page, and a browser
-  scrolls to the element an address names."
+  "Renders the REPL panel.
+
+  `beside?` is true on the REPL page, where the panel stands beside
+  the e-graph. There the editor is taller, and the history scrolls
+  inside the panel. The style sheet does the second
+  (`.beside .repl .history`).
+
+  On every page, the history scrolls down to its last entry when it
+  is rendered (`[:repl/scroll]`).
+
+  The id of the panel is not `repl`. That is the address of the
+  REPL's page, and a browser scrolls to the element that an address
+  names."
   [{:keys [input history mode beside?]}]
   [:div.panel.repl {:id "repl-panel"}
    (common/title "the REPL" (when beside? "user"))
    [:p.hint
-    [:code "g"] " is the e-graph you are looking at, " [:code "timeline"] " the whole run and "
-    [:code "state"] " the page; " [:code "eg"] ", " [:code "rw"] ", " [:code "ex"] " and " [:code "bx"]
-    " are the engine, among the names "
+    [:code "g"] " is the e-graph you are looking at, " [:code "timeline"] " is the whole run, and "
+    [:code "state"] " is the page. " [:code "eg"] ", " [:code "rw"] ", " [:code "ex"] " and " [:code "bx"]
+    " are the engine. "
     (if beside?
-      "listed over this panel"
-      (list "that " [:a {:href "#repl"} "the REPL's page"] " lists"))
-    ". Ctrl-Enter evaluates; the up arrow brings back what was evaluated before."]
+      "Every name is listed above this panel."
+      (list [:a {:href "#repl"} "The REPL page"] " lists every name."))
+    " Press Ctrl-Enter to evaluate. The up arrow brings back what you evaluated before."]
    (into [:div.history {:id "repl-history" :replicant/on-render [:repl/scroll]}]
          (for [[i {:keys [in out error] :as entry}] (map-indexed vector history)]
            [:div.entry {:replicant/key i}
@@ -92,8 +107,9 @@
 ;; the names in scope
 
 (defn names-view
-  "Every name in scope, beside the prose of the REPL's page: what is
-  bound, then the namespaces, each under the short name it goes by."
+  "Renders every name in scope, beside the prose of the REPL's page.
+  Lists what is bound first and then the namespaces, each under its
+  alias."
   []
   [:aside.panel.names {:id "names"}
    (common/title "names in scope" "user")

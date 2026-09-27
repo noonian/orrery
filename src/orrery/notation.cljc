@@ -1,33 +1,49 @@
 (ns orrery.notation
-  "The notation printer: the canonical tagged vectors printed as
-  mathematics, for display. [:+ [:* 2 :x] :y] prints as 2·x + y,
-  [:expt [:sin :x] 2] as sin²x, [:D [:sin [:* 2 :x]] :x] as
-  d/dx sin(2·x). Nesting is shown faithfully: [:+ :a [:+ :b :c]] is
-  a + (b + c) while [:+ [:+ :a :b] :c] is a + b + c, so an arrangement
-  of a sum stays visible. E-nodes, whose children are class ids, print
-  the ids as #7. Pure and the same on every runtime.
+  "Prints the canonical tagged vectors as mathematics, for display.
 
-  orrery.parse reads the notation back, so what prints here must read
-  as the term it came from: a numeral's spelling absorbs a leading
-  minus and a slash between integers there, so the quotient node of
-  two integers prints 1/(2), the negation of a numeral −(3), and a
-  negative numeral is parenthesized wherever a negation would be,
-  (−2)²."
+    [:+ [:* 2 :x] :y]         prints as  2·x + y
+    [:expt [:sin :x] 2]       prints as  sin²x
+    [:D [:sin [:* 2 :x]] :x]  prints as  d/dx sin(2·x)
+
+  The printer shows nesting faithfully. `[:+ :a [:+ :b :c]]` prints
+  as a + (b + c) and `[:+ [:+ :a :b] :c]` prints as a + b + c, so
+  the arrangement of a sum stays visible. The children of an e-node
+  are class ids, and the ids print as #7. The printer is pure and
+  prints the same on every runtime.
+
+  `orrery.parse` reads the notation back, so what prints here must
+  read as the term it came from. In the parser, the spelling of a
+  numeral absorbs a leading minus and a slash between integers. For
+  that reason:
+
+  - the quotient node of two integers prints as 1/(2);
+  - the negation of a numeral prints as −(3);
+  - a negative numeral is parenthesized wherever a negation would
+    be, as in (−2)²."
   (:require [bendix.num :as num]
             [clojure.string :as str]))
 
-;; Precedence levels: 0 shifts, 1 sums, 2 a function applied to a bare
-;; atom (sin x) and a derivative (d/dx u), 3 products, 4 unary minus,
-;; 5 powers, 6 atoms and anything already parenthesized. An operand
-;; below its operator's level is parenthesized; in a chain the operands
-;; after the first are parenthesized at the operator's level too.
+;; Precedence levels:
+;;
+;;   0  shifts
+;;   1  sums
+;;   2  a function applied to a bare atom (sin x), and a derivative
+;;      (d/dx u)
+;;   3  products
+;;   4  unary minus
+;;   5  powers
+;;   6  atoms, and anything already parenthesized
+;;
+;; An operand is parenthesized when its level is below the level of
+;; its operator. In a chain, the operands after the first are also
+;; parenthesized when they are at the level of the operator.
 
 (def ^:private binary
   {:+ [" + " 1] :- [" − " 1] :* ["·" 3] :/ ["/" 3] :<< [" << " 0] :>> [" >> " 0]})
 
 (def functions
-  "The operators that print as a function of one argument, sin x,
-  and read back as one."
+  "The set of operators that print as a function of one argument,
+  such as sin x, and that read back as one."
   #{:sin :cos :tan :exp :log :sqrt :abs})
 
 (def ^:private constants {:pi "π" :e "e"})
@@ -42,7 +58,7 @@
 (defn- paren [s] (str "(" s ")"))
 
 (defn- wrap
-  "s, parenthesized when its level is below min-level."
+  "Returns `s`, parenthesized when `level` is below `min-level`."
   [[s level] min-level]
   (if (< level min-level) (paren s) s))
 
@@ -51,7 +67,8 @@
     (if (str/starts-with? s "-") (str "−" (subs s 1)) s)))
 
 (defn leaf-str
-  "A leaf of a term: a variable, a number, or a stray symbol."
+  "Returns the string for `x`, a leaf of a term: a variable, a
+  number, or a stray symbol."
   [x]
   (cond (keyword? x) (name x)
         (number? x) (number-str x)
@@ -61,25 +78,30 @@
         :else (pr-str x)))
 
 (defn- leaf-level
-  "A ratio sits at the product level (1/2·x, x·(1/2), x^(1/2)); a
-  negative integer at the level of a negation ((−2)², sin(−2))."
+  "Returns the precedence level of the leaf `x`. A ratio sits at the
+  level of a product: 1/2·x, x·(1/2), x^(1/2). Any other negative
+  number sits at the level of a negation: (−2)², sin(−2). Every
+  other leaf is an atom."
   [x]
   (cond (num/ratio? x) 3
         (and (number? x) (neg? x)) 4
         :else 6))
 
 (defn- chain
-  "A left-associative chain at level p: a + b + c, a + (b + c). The
-  first operand is parenthesized below first-min, the rest below
-  rest-min."
+  "Returns [string level] for a left-associative chain at level `p`,
+  such as a + b + c or a + (b + c). The first operand is
+  parenthesized when its level is below `first-min`. The other
+  operands are parenthesized when their level is below `rest-min`."
   ([sep p cs] (chain sep p p (inc p) cs))
   ([sep p first-min rest-min cs]
    [(str/join sep (cons (wrap (first cs) first-min) (map #(wrap % rest-min) (rest cs)))) p]))
 
 (defn- render
-  "[string level] for t. child renders an operand; ids? says the
-  operands are class ids (an e-node), so no exponent is a number and
-  no child is a numeral."
+  "Returns [string level] for `t`.
+
+  `child` is the function that renders an operand. `ids?` is true
+  when the operands are class ids, which means `t` is an e-node. In
+  that case no exponent is a number and no child is a numeral."
   [t child ids?]
   (if (vector? t)
     (let [op (first t), args (rest t), cs (mapv child args), n (count cs)]
@@ -130,27 +152,31 @@
 (defn- render-term [t] (render t render-term false))
 
 (defn term->str
-  "t as mathematics."
+  "Returns the term `t` printed as mathematics."
   [t]
   (first (render-term t)))
 
 (defn rule->str
-  "A [name lhs rhs] rule as name: lhs → rhs, the line orrery.parse reads."
+  "Returns a `[name lhs rhs]` rule printed as the line
+  name: lhs → rhs, which is the line that `orrery.parse` reads."
   [[n lhs rhs]]
   (str n ": " (term->str lhs) " → " (term->str rhs)))
 
 (defn rules->str
-  "Rules as [name lhs rhs] data, one line each."
+  "Returns `rules`, given as `[name lhs rhs]` data, printed with one
+  rule on each line."
   [rules]
   (str/join "\n" (map rule->str rules)))
 
 (defn class-ref
-  "How a class id prints inside an e-node."
+  "Returns the class id `id` as it prints inside an e-node, such as
+  #7."
   [id]
   (str "#" id))
 
 (defn enode->str
-  "An e-node as mathematics, its children printed as class ids."
+  "Returns the e-node `node` printed as mathematics, with its
+  children printed as class ids."
   [node]
   (if (vector? node)
     (first (render node (fn [id] [(class-ref id) 6]) true))

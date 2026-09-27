@@ -1,7 +1,8 @@
 (ns orrery.smoke-cli
-  "The third runtime as a command: cromulent's and bendix's
-  cross-runtime facts and the notation round trip over every lesson,
-  compiled by shadow-cljs and run by node.
+  "Runs the checks on the third runtime, as a command. The checks
+  are cromulent's and bendix's cross-runtime facts, and the notation
+  round trip over every lesson. shadow-cljs compiles them and node
+  runs them.
 
     npx shadow-cljs compile smoke && node target/smoke.js
 

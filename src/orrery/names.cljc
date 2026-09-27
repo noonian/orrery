@@ -1,15 +1,18 @@
 (ns orrery.names
-  "What the REPL calls things, as data: the namespaces loaded into it,
-  each under a short name, and the names bound in its `user`
-  namespace. orrery.repl makes its prelude from this table and the
-  REPL page prints it (orrery.views.repl), so what the page says is
-  in scope is what is; the suites check every name the prose
-  evaluates against it."
+  "The names the REPL uses, as data. The table lists the namespaces
+  loaded into the REPL, each under a short name, and the names bound
+  in its `user` namespace.
+
+  orrery.repl makes its prelude from this table, and the REPL page
+  (orrery.views.repl) prints the table. So what the page says is in
+  scope is what is in scope. The suites check every name that the
+  prose evaluates against this table."
   (:require [clojure.string :as str]))
 
 (def namespaces
-  "A namespace of the REPL: the short name, the namespace, the
-  library it belongs to, and what is in it, in a line."
+  "The namespaces of the REPL. Each row holds the short name
+  (:alias), the namespace (:ns), the library the namespace belongs
+  to (:of), and one line that says what is in it (:says)."
   [{:alias 'eg :ns 'cromulent.core :of "cromulent"
     :says "the e-graph: egraph, add, union, rebuild, find, lookup, nodes, roots, class-count, node-count"}
    {:alias 'pat :ns 'cromulent.pattern :of "cromulent"
@@ -54,30 +57,34 @@
     :says "the reader, of either spelling: read-term, read-pattern, read-rules"}])
 
 (def bound
-  "A name of the `user` namespace: what it is, in a line. `g` and
-  `timeline` are bound anew before every evaluation."
-  [{:name 'g :says "the e-graph on show: the run's, at the step on show"}
+  "The names bound in the `user` namespace. Each row holds the name
+  (:name) and one line that says what it is (:says). `g` and
+  `timeline` are bound again before every evaluation."
+  [{:name 'g :says "the e-graph on show, which is the e-graph of the run at the step on show"}
    {:name 'timeline :says "every step of the run on show, a vector of e-graphs"}
-   {:name 'state :says "the page, an atom; a swap of it is a change of the page"}
+   {:name 'state :says "the page, held in an atom; swapping the atom changes the page"}
    {:name 'show! :says "(show! v) puts v on show: an e-graph, a [g id] pair, a runner's result or a run"}
    {:name 'push! :says "(push! g) or (push! g label) makes g the next step of the run on show"}
-   {:name '*1 :says "the last value, *2 and *3 the ones before it, and *e the last error"}
-   {:name 'doc :says "(doc eg/union) prints what a function says of itself; (dir eg) lists a namespace"}])
+   {:name '*1 :says "the last value; *2 and *3 are the two values before it, and *e is the last error"}
+   {:name 'doc :says "(doc eg/union) prints the docstring of a function, and (dir eg) lists a namespace"}])
 
 (def aliases
   "Every short name a namespace goes by."
   (into #{} (map :alias) namespaces))
 
 (defn prelude
-  "The form that makes the `user` namespace, as text: every namespace
-  of the table under its short name, and clojure.repl's doc and dir."
+  "Returns the text of the form that makes the `user` namespace. The
+  form requires every namespace of the table under its short name,
+  and refers `doc`, `dir`, `apropos` and `find-doc` from
+  clojure.repl."
   []
   (str "(ns user (:require "
        (str/join " " (for [{:keys [alias ns]} namespaces] (str "[" ns " :as " alias "]")))
        " [clojure.repl :refer [doc dir apropos find-doc]]))"))
 
 (defn qualifiers
-  "The namespace parts of the qualified symbols in code, as symbols:
-  what `(eg/add g t)` asks to be an alias."
+  "Returns the namespace parts of the qualified symbols in `code`, as
+  a set of symbols. These are the names that the code needs to be
+  aliases. For `(eg/add g t)` the set is #{eg}."
   [code]
   (into #{} (map (comp symbol second)) (re-seq #"[\s(\[{'#@]([a-z][a-z0-9.-]*)/[a-zA-Z*+!?<>=-]" (str " " code))))

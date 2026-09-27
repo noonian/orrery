@@ -1,21 +1,32 @@
 (ns orrery.views.graph
-  "The picture of the e-graph on show (orrery.graph), as SVG: a box
-  per class with its nodes inside, an edge from each node's child
-  slot to the class it points at, and the marks the class list uses,
-  the input's class, the opened and the hovered class, what the step
-  added or merged, where a rule matches. Hovering a box lights its
-  row in the list and clicking it opens the class, as in the tree.
-  The controls: zoom in and out or fit the width, and restrict the
-  picture to what the opened class reaches. Off by default, since it
-  takes the room, except on the introduction, whose e-graph is small
-  and whose prose points at it; the tools row above it turns it on
-  and off. Every handler is data over orrery.actions."
+  "Renders the picture of the e-graph on show (`orrery.graph`) as
+  SVG. The picture has a box for each class, with the nodes of the
+  class inside. It has an edge from each child slot of a node to the
+  class that the slot points at. It carries the marks that the class
+  list uses:
+
+  - the input's class;
+  - the opened class and the hovered class;
+  - what the step added or merged;
+  - where a rule matches.
+
+  Hovering a box lights its row in the class list, and clicking a
+  box opens the class, as in the tree. The controls zoom in and out,
+  fit the width, and restrict the picture to what the opened class
+  reaches.
+
+  The picture is off by default, because it takes up room. The
+  exception is the introduction, where the e-graph is small and the
+  prose points at the picture. The tools row above the picture turns
+  it on and off. Every handler is data: an `[action & args]` vector
+  over the actions in `orrery.actions`."
   (:require [orrery.graph :as graph]
             [orrery.notation :as notation]))
 
 (defn- edge-path
-  "A cubic from the node's slot to the class's top; a cycle-closing
-  edge dips under both and comes back up to the class's foot."
+  "Returns the SVG path of an edge: a cubic curve from the slot of
+  the node to the top of the class. An edge that closes a cycle dips
+  under both ends and comes back up to the foot of the class."
   [{:keys [x1 y1 x2 y2 back?]}]
   (if back?
     (let [d 36]
@@ -52,12 +63,18 @@
         [:text {:x (+ x nx (quot nw 2)) :y (+ y ny 15) :text-anchor "middle"} label]])]))
 
 (defn graph-view
-  "The graph panel. layout is orrery.graph/layout's; root the input's
-  class; selected and hovered the opened and the lit class; diff what
-  the step changed; matches the classes a rule matches; zoom a factor
-  over the natural size or nil to fit the width; filter? whether the
-  picture is what the opened class reaches, filterable? whether a
-  class is open to filter by."
+  "Renders the graph panel. Takes a map with these keys:
+
+  - `layout` is the layout that `orrery.graph/layout` returns.
+  - `root` is the input's class.
+  - `selected` is the opened class and `hovered` is the lit class.
+  - `diff` is what the step changed.
+  - `matches` holds the classes that a rule matches.
+  - `zoom` is a factor over the natural size, or nil to fit the
+    width.
+  - `filter?` says whether the picture is restricted to what the
+    opened class reaches.
+  - `filterable?` says whether a class is open to filter by."
   [{:keys [layout root selected hovered diff matches zoom filter? filterable?]}]
   (let [{:keys [width height classes edges]} layout
         lit (or hovered selected)

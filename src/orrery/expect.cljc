@@ -1,11 +1,16 @@
 (ns orrery.expect
-  "What each lesson's run must produce, the same on the JVM, on Jolt
-  and in the browser: counts, iterations, stop reasons and costs, and
-  a term only where its cost is a unique minimum. Never class ids,
-  and never a tied term, because the tie falls to ids and ids follow
-  hash iteration order, which differs per runtime. `checks` runs every
-  live lesson and its alternatives; orrery.lessons-test asserts it on
-  the JVM and Jolt, the page's self-test in the browser."
+  "States what the run of each lesson must produce. The results
+  must be the same on the JVM, on Jolt and in the browser.
+
+  The expectations cover counts, iterations, stop reasons and costs.
+  They cover a term only where its cost is a unique minimum. They
+  never cover class ids, and never a tied term, because the tie
+  falls to ids, and ids follow hash iteration order, which differs
+  per runtime.
+
+  `checks` runs every live lesson and its alternatives.
+  orrery.lessons-test asserts `checks` on the JVM and on Jolt, and
+  the page's self-test asserts it in the browser."
   (:require [cromulent.core :as eg]
             [cromulent.extract :as ex]
             [orrery.costs :as costs]
@@ -16,8 +21,9 @@
             [orrery.run :as run]))
 
 (def runs
-  "By lesson key, then by alternative label (nil for the curated
-  example): the keys of `observe` that must match."
+  "Maps a lesson key, and then an alternative label, to the keys of
+  `observe` that must match. The label is nil for the curated
+  example."
   {:basics
    {nil {:steps 3 :iterations 2 :stop-reason :saturated :classes-per-step [5 3 3] :classes 3 :nodes 5
          :nodes-per-iteration [5 5]
@@ -132,7 +138,8 @@
          :best-terms {:prefer-add [:+ :a :a] :prefer-mul [:* :a 2] :prefer-shift [:<< :a 1]}}}})
 
 (defn observe
-  "Everything `runs` may assert about a finished run of lesson."
+  "Returns everything `runs` may assert about a finished run of
+  `lesson`."
   [lesson values run]
   (let [g (peek (:timeline run))
         root (when-let [r (:root run)] (eg/find g r))
@@ -155,7 +162,7 @@
                               [c (:term (ex/extract g root (costs/cost-fn c g)))])))}))
 
 (defn- narrow
-  "observed cut down to what expected mentions."
+  "Returns `observed` cut down to what `expected` mentions."
   [expected observed]
   (let [o (select-keys observed (keys expected))]
     (if (:best-terms expected)
@@ -163,7 +170,8 @@
       o)))
 
 (defn checks
-  "One {:name :expected :actual :ok?} per live lesson and alternative."
+  "Returns one `{:name :expected :actual :ok?}` per live lesson and
+  alternative."
   []
   (vec
    (for [lesson lessons/all
@@ -177,11 +185,14 @@
       :expected expected :actual actual :ok? (= expected actual)})))
 
 (defn notation-checks
-  "One {:name :expected :actual :ok?} per lesson: its curated values
-  and its alternatives', printed in the notation and read back, are
-  the same terms up to `parse/as-read`, the rules too; the first
-  disagreement is the fact reported. orrery.parse-test asserts the
-  same on the JVM and Jolt, and over thirty seeds of every draw."
+  "Returns one `{:name :expected :actual :ok?}` per lesson. Each
+  check prints the curated values of the lesson, and the values of
+  its alternatives, in the notation and reads them back. The terms
+  read back must be the same terms, up to `parse/as-read`. The same
+  goes for the rules. The check reports the first disagreement.
+
+  orrery.parse-test asserts the same on the JVM and on Jolt, and
+  also over thirty seeds of every draw."
   []
   (vec
    (for [lesson lessons/all]

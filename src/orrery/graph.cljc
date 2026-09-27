@@ -1,15 +1,21 @@
 (ns orrery.graph
-  "The e-graph as a picture: every class a box holding its nodes, and
-  an edge from each child slot of a node to the class it points at,
-  which is what the class list says in words. Boxes sit in layers by
-  height, leaves at the bottom, so every edge points down except one
-  that closes a cycle (x = x + 0), which is drawn back up. Within a
-  layer the boxes are ordered by the barycenter of their neighbours,
-  a few sweeps, ties by class id, so the picture is a function of the
-  e-graph value: the same counts on every runtime, positions that
-  follow the ids. Pure, integer coordinates, and the page's own; the
-  egraphs-good visualizer was weighed and not taken (IDEA.md section
-  9)."
+  "Lays out the e-graph as a picture. Every class is a box that
+  holds its nodes. An edge runs from each child slot of a node to
+  the class that the slot points at. The class list says the same
+  in words.
+
+  Boxes sit in layers by height, with leaves at the bottom. So every
+  edge points down, except an edge that closes a cycle (x = x + 0),
+  which is drawn back up.
+
+  Within a layer, the boxes are ordered by the barycenter of their
+  neighbours, over a few sweeps, with ties broken by class id. So
+  the picture is a function of the e-graph value. The counts are the
+  same on every runtime, and the positions follow the ids.
+
+  The layout is pure, uses integer coordinates, and is the page's
+  own code. The egraphs-good visualizer was weighed and not taken
+  (IDEA.md section 9)."
   (:require [cromulent.core :as eg]
             [cromulent.term :as term]))
 
@@ -25,7 +31,8 @@
 (def margin 12)
 
 (defn reachable
-  "The canonical classes the class of id reaches, itself included."
+  "Returns the canonical classes that the class of `id` reaches,
+  including itself."
   [g id]
   (loop [todo [(eg/find g id)] seen #{}]
     (if-let [c (peek todo)]
@@ -37,9 +44,10 @@
       seen)))
 
 (defn- heights
-  "Class -> height: 0 for a class whose nodes are all leaves, else
-  one more than its highest drawn child, an edge back into a class
-  on the way down not counted."
+  "Returns a map from class to height. The height is 0 for a class
+  whose nodes are all leaves. Otherwise it is one more than the
+  height of its highest drawn child. An edge that leads back into a
+  class on the way down is not counted."
   [g classes]
   (let [drawn (set classes)
         state (volatile! {})
@@ -67,8 +75,9 @@
 (defn- text-w [s] (+ node-pad (* char-w (count s))))
 
 (defn- box
-  "A class's box: its size and its nodes placed inside it, in rows
-  of `per-row`, each row centred; positions relative to the box."
+  "Returns the box of class `c`: its size, and its nodes placed
+  inside it in rows of `per-row`. Each row is centred. Positions
+  are relative to the box."
   [c nodes labels sub]
   (let [ws (mapv text-w labels)
         rows (vec (partition-all per-row (range (count nodes))))
@@ -90,8 +99,9 @@
     {:id c :w w :h h :sub sub :nodes placed}))
 
 (defn- pack
-  "Class -> the centre x of its box: each layer laid left to right in
-  its order with `col-gap` between, and centred on the widest layer."
+  "Returns a map from class to the centre x of its box. Each layer
+  is laid out left to right in its order, with `col-gap` between
+  boxes, and is centred on the widest layer."
   [layers boxes]
   (let [width (fn [layer] (+ (reduce + 0 (map #(:w (boxes %)) layer)) (* col-gap (max 0 (dec (count layer))))))
         widest (reduce max 0 (map width layers))]
@@ -105,10 +115,10 @@
           layers)))
 
 (defn- order
-  "The layers with their boxes sorted by the barycenter of their
-  neighbours' centres: a sweep down orders by parents, a sweep up by
-  children, two of each; a box with no neighbours keeps its place;
-  ties by id."
+  "Returns the layers with their boxes sorted by the barycenter of
+  the centres of their neighbours. A sweep down orders by parents,
+  and a sweep up orders by children. There are two sweeps of each.
+  A box with no neighbours keeps its place. Ties are broken by id."
   [layers boxes parents children]
   (loop [layers layers k 0]
     (if (= 4 k)
@@ -120,19 +130,26 @@
                (inc k))))))
 
 (defn layout
-  "The picture of g:
+  "Returns the picture of `g`:
 
     {:width w :height h
      :classes [{:id c :x :y :w :h :sub label :nodes [{:node n :label s :x :y :w :h}]}]
      :edges   [{:from c :to c' :node n :slot i :x1 :y1 :x2 :y2 :back? b}]
      :layers  n}
 
-  coordinates absolute, integer, node positions inside a box relative
-  to it; an edge leaves node n's slot i at its foot and enters the
-  top of the box of c', or its foot when the edge closes a cycle.
-  Options: :only, the set of classes to draw (every class otherwise);
-  :node-label, (fn [node] string); :class-label, (fn [id] string or
-  nil), a second label in the box's head, the polynomial say."
+  Coordinates are integers. They are absolute, except that the
+  position of a node inside a box is relative to the box. An edge
+  leaves slot `i` of node `n` at the foot of the node. It enters
+  the box of `c'` at the top, or at the foot when the edge closes a
+  cycle.
+
+  Options:
+
+    :only         The set of classes to draw. Every class is drawn
+                  otherwise.
+    :node-label   `(fn [node] string)`.
+    :class-label  `(fn [id] string or nil)`. Gives a second label
+                  for the head of the box, such as the polynomial."
   [g {:keys [only node-label class-label] :or {node-label pr-str class-label (constantly nil)}}]
   (let [classes (if only (vec (sort only)) (eg/roots g))
         drawn (set classes)

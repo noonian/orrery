@@ -1,9 +1,9 @@
 (ns orrery.views.scrubber
-  "The transport: first, back, play, forward, last, a range over the
-  timeline, and the label of the entry on show, in one row; a stop
-  button and a note while the engine is still running. summary, when
-  given, is a short text beside the label, the counts of the step on
-  show.")
+  "Renders the transport in one row: the buttons first, back, play,
+  forward and last, a range over the timeline, and the label of the
+  entry on show. While the engine is still running, the row also has
+  a stop button and a note. `summary`, when given, is a short text
+  beside the label. It holds the counts of the step on show.")
 
 (defn scrubber
   [{:keys [step n labels playing? status summary]}]

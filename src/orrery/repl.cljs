@@ -1,11 +1,16 @@
 (ns orrery.repl
-  "The REPL: SCI embedded as a library, with the compiled engine
-  namespaces copied into its context, so `(eg/add g [:+ :x 1])` at
-  the REPL calls the same function the scrubber called. This is the
-  one namespace that knows SCI exists; the page hands it a string and
-  gets a value or an error back, with what the evaluation printed.
-  What is in scope is orrery.names' table: the `user` namespace is
-  made from it, so a namespace copied here must be a row there."
+  "The page's REPL. SCI is embedded as a library, and the compiled
+  engine namespaces are copied into its context. So
+  `(eg/add g [:+ :x 1])` at the REPL calls the same function the
+  scrubber called.
+
+  This is the only namespace that knows SCI exists. The page hands
+  it a string and gets back a value or an error, together with what
+  the evaluation printed.
+
+  The table in orrery.names decides what is in scope. The `user`
+  namespace is made from that table, so a namespace copied here must
+  also be a row there."
   (:require [bendix.analysis]
             [bendix.core]
             [bendix.num]
@@ -55,14 +60,15 @@
    'bendix.num        (sci/copy-ns bendix.num (sci/create-ns 'bendix.num))})
 
 (def prelude
-  "The user namespace with the engine's aliases."
+  "The text of the form that makes the user namespace with the
+  engine's aliases."
   (names/prelude))
 
 (defonce ^:private ctx
   (let [c (sci/init {:namespaces namespaces
                      :classes {'js js/globalThis :allow :all}})]
-    ;; what is printed once an evaluation has returned, by a timer
-    ;; or a watch, goes to the console
+    ;; Anything printed after an evaluation has returned goes to the
+    ;; console. A timer or a watch can print that late.
     (sci/alter-var-root sci/print-newline (constantly true))
     (sci/alter-var-root sci/print-fn (constantly (fn [s] (js/console.log s))))
     (sci/eval-string* c prelude)
@@ -73,8 +79,8 @@
   (atom {:values () :error nil}))
 
 (defn bind!
-  "g and timeline in the user namespace: the e-graph the page shows
-  and the whole run."
+  "Binds `g` and `timeline` in the user namespace. `g` is the e-graph
+  the page shows, and `timeline` is every step of the run."
   [g timeline]
   (sci/intern ctx 'user 'g g)
   (sci/intern ctx 'user 'timeline timeline))
@@ -95,13 +101,18 @@
     (sci/intern ctx 'user (with-meta (symbol (name (:name m))) (select-keys m [:doc :arglists])) @v)))
 
 (defn eval-string
-  "{:ok value :printed text} or {:error message}, with :out, what the
-  evaluation printed, when it printed anything. print makes the text
-  of the value, and is called while the evaluation's bindings hold
-  and its errors are caught, so a lazy value is walked here: what it
-  prints is in :out, and what it throws is the evaluation's error.
-  *1, *2 and *3 are the values of the last three evaluations and *e
-  the last error, as at any REPL."
+  "Evaluates the string `s`. Returns {:ok value :printed text}, or
+  {:error message} when the evaluation throws. Adds :out, the text
+  the evaluation printed, when it printed anything.
+
+  `print` is a function that makes the text of the value. It is
+  called while the evaluation's bindings hold and its errors are
+  caught, so a lazy value is walked here. What the value prints while
+  it is walked goes to :out, and what it throws is the evaluation's
+  error.
+
+  *1, *2 and *3 are the values of the last three evaluations, and *e
+  is the last error, as at any REPL."
   [s print]
   (let [out (StringBuffer.)
         print! (fn [x] (.append out x))

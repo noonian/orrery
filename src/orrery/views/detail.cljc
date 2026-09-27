@@ -1,10 +1,15 @@
 (ns orrery.views.detail
-  "The opened class: what the engine knows about the selected class
-  in the e-graph on show (orrery.derived/detail-at). Each node with
-  its cost and the cheapest marked, the terms the class stands for,
-  the classes it points at and the nodes that point at it, and where
-  it has been along the run. It renders in the replay bar, stuck to
-  the top of the viewport with the transport, so it stays in view
+  "Renders the opened class: what the engine knows about the selected
+  class in the e-graph on show (`orrery.derived/detail-at`). The
+  view shows:
+
+  - each node with its cost, and the cheapest node marked;
+  - the terms that the class stands for;
+  - the classes that it points at and the nodes that point at it;
+  - where the class has been along the run.
+
+  The view renders in the replay bar, which is stuck to the top of
+  the viewport with the transport. So the opened class stays in view
   while the class list scrolls under it."
   (:require [orrery.costs :as costs]
             [orrery.eclass :as eclass]
@@ -24,9 +29,11 @@
   (interpose ", " (for [k ks] [:a.step {:title (nth labels k "") :on {:click [:step k]}} (str "step " k)])))
 
 (defn detail-view
-  "The opened class. mode is the print mode, cost-label the name of
-  the cost in force, labels the run's step labels, root-id the input
-  term's class in the e-graph on show."
+  "Renders the opened class.
+
+  `mode` is the print mode. `cost-label` is the name of the cost in
+  force. `labels` are the step labels of the run. `root-id` is the
+  class of the input term in the e-graph on show."
   [{:keys [id root nodes cheapest count children parents history]}
    {:keys [mode cost-label labels root-id]}]
   [:div.class-detail
