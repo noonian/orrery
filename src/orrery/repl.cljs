@@ -80,11 +80,14 @@
   (sci/intern ctx 'user 'timeline timeline))
 
 (defn bind-page!
-  "state, the page's atom, in the user namespace, and beside it each
-  of vars, a function of the page's under its own name and with what
-  it says of itself, so that `(doc show!)` prints it. The page hands
-  them over, since this namespace is required by the one that holds
-  them."
+  "Makes the page's atom and functions available at the REPL.
+
+  Interns `state` as `user/state`, and each var in `vars` under its
+  own name with its docstring and arglists, so `(doc show!)` works.
+
+  orrery.state calls this at load. It passes its vars in because this
+  namespace cannot require orrery.state: orrery.state already
+  requires this one."
   [state vars]
   (sci/intern ctx 'user 'state state)
   (doseq [v vars
