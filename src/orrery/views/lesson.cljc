@@ -1,30 +1,22 @@
 (ns orrery.views.lesson
   "Renders the page for one lesson: the navigation, the prose, the
-  inputs, and the panels that the lesson asks for. This is the one
-  view that reads the state value, which it does through
-  `orrery.derived`. The other views take values.
+  inputs, and the panels that the lesson asks for, which
+  orrery.views.panels renders. This view and the panels read the
+  state value, which they do through `orrery.derived`. The other
+  views take values.
 
   Every handler is data: an `[action & args]` vector over the
   actions in `orrery.actions`. So the page builds on the JVM and on
   Jolt too. `orrery.page-test` builds it there for every lesson at
   every step."
   (:require [clojure.string :as str]
-            [cromulent.core :as eg]
-            [orrery.costs :as costs]
             [orrery.derived :as derived]
             [orrery.eclass :as eclass]
             [orrery.lessons :as lessons]
-            [orrery.run :as run]
             [orrery.score :as score]
-            [orrery.views.classes :as classes]
             [orrery.views.common :as common]
-            [orrery.views.detail :as detail]
-            [orrery.views.graph :as graph]
-            [orrery.views.matches :as matches]
-            [orrery.views.repl :as repl]
-            [orrery.views.scrubber :as scrubber]
-            [orrery.views.stats :as stats]
-            [orrery.views.tree :as tree]))
+            [orrery.views.panels :as panels]
+            [orrery.views.repl :as repl]))
 
 (defn- work-link
   "Renders a work of the reading list as a link to the paper, or as
@@ -162,159 +154,45 @@
         (when drawn
           [:div.drawn {:id "drawn"} (score/explain drawn (get-in l [:surprise :wants]))])])]))
 
-(defn- run-panel
-  "Renders the counters and how the run ended. The heading names the
-  function that made the run, or says \"from the REPL\" when the
-  REPL put the run on show. The transport is not in this panel. It
-  is in the replay bar, over the class list."
-  [s l r g]
-  [:div.panel {:style {:margin-top "16px"}}
-   (common/title "the run" (if (= :repl (:from r)) "from the REPL" (:fn (lessons/operation l))))
-   (common/tiles {:classes (eg/class-count g) :nodes (eg/node-count g)
-                  :step (:step s) :n (run/last-step r)
-                  :status (:status r) :stop-reason (:stop-reason r) :ms (:ms r)})
-   [:div {:id "run-status" :data-status (name (:status r))
-          :data-stop-reason (some-> (:stop-reason r) name)
-          :data-dirty (str (boolean (:dirty? g)))}]
-   (when (:dirty? g)
-     [:div.status [:span.badge.dirty "rebuild pending: the invariants are not restored yet"]])])
+(defn- text
+  "Renders the words of a page: what the site is, the heading, the
+  prose and its reading list."
+  [s l]
+  (list (about-view s l)
+        [:h2 (lessons/heading l)]
+        (into [:div.prose] (map #(prose s %) (:prose l)))
+        (reading-view l)))
 
-(defn- replay-bar
-  "Renders the replay bar: the transport and, under it, the opened
-  class at the step on show. The bar sits directly above the class
-  list and sticks to the top of the viewport while the list scrolls
-  under it. So the classes change in view as you scrub, and the
-  opened class never scrolls away."
-  [s r g]
-  [:div.replay {:id "replay"}
-   (scrubber/scrubber {:step (:step s) :n (run/last-step r) :labels (:labels r)
-                       :playing? (some? (get-in s [:ui :playing])) :status (:status r)
-                       :summary (str (eg/class-count g) " classes · " (eg/node-count g) " nodes")})
-   (when-let [d (derived/detail-at s (:step s))]
-     (detail/detail-view d {:mode (get-in s [:ui :print])
-                            :cost-label (costs/label (:cost s))
-                            :labels (:labels r)
-                            :root-id (derived/root-at s)}))])
+(defn- lesson-layout
+  "Renders a lesson in three parts. The text comes first. The
+  controls are the operation, its arguments and what it made. The
+  e-graph is the replay bar, the tools, the graph and the classes.
 
-(defn- tools
-  "Renders the row under the replay bar. The row holds the switch
-  for the graph picture, and the buttons that copy or download the
-  e-graph on show as egraph-serialize JSON."
-  [s]
-  (let [graph? (derived/graph? s)]
-    [:div.tools {:id "tools"}
-     [:button {:id "graph-toggle" :class (when graph? "current") :on {:click [:graph/toggle]}}
-      (if graph? "hide the graph" "draw the graph")]
-     [:span.spacer]
-     [:span.status {:title "the e-graph on show in the egraph-serialize format, which egg's and egglog's tools read"}
-      "this step as egraph-serialize JSON:"]
-     [:button {:id "export-copy" :on {:click [:export/copy]}} "copy"]
-     [:button {:id "export-download" :on {:click [:export/download]}} "download"]
-     (when-let [m (get-in s [:ui :export-status])]
-       [:span.status {:id "export-status"} m])]))
-
-(defn- graph-panel [s matches]
-  (when (derived/graph? s)
-    (let [selected (get-in s [:ui :selected])]
-      (graph/graph-view {:layout (derived/graph-at s)
-                         :mode (get-in s [:ui :print])
-                         :root (derived/root-at s)
-                         :selected selected
-                         :hovered (get-in s [:ui :hover])
-                         :diff (derived/diff-at s)
-                         :matches (derived/matched-classes matches)
-                         :zoom (get-in s [:ui :graph-zoom])
-                         :filter? (get-in s [:ui :graph-filter?])
-                         :filterable? (some? selected)}))))
-
-(defn- best-panel [s l]
-  (let [best (derived/best-at s)
-        root (derived/root-at s)
-        {:keys [cost term]} (best root)
-        picker (filter (comp (set (:costs l)) :key) costs/all)]
-    [:div.panel.best {:style {:margin-top "16px"}}
-     (common/title "best so far" "ex/extract")
-     [:div.term {:id "best-notation"} (common/term-view term :notation)]
-     [:div {:id "best-term"} (common/term-view term :native)]
-     [:div.changed (str "cost " (costs/cost-str cost) " under " (costs/label (:cost s)))]
-     [:p.says {:id "extract-says"}
-      [:code "(ex/extract g root cost)"] " returns the cheapest term of " [:code "root"] " in " [:code "g"] ". "
-      [:code "root"] " is the class of the input, and " [:code "g"] " is the e-graph at this step."]
-     (when (> (count picker) 1)
-       (into [:div.cost-picker [:code.arg "cost"]]
-             (for [c picker]
-               [:label {:replicant/key (:key c) :title (:blurb c)}
-                [:input {:type "radio" :name "cost" :value (name (:key c)) :checked (= (:key c) (:cost s))
-                         :on {:change [:cost (:key c)]}}]
-                " " (:label c)])))]))
-
-(defn- class-panel
-  "Renders the class list over `g`, the e-graph at step `k`. The
-  heading is `title`, with `of` beside it, which is what the REPL
-  calls that e-graph. The class that is open at that step marks its
-  own row and the rows of its relatives."
-  [title of g s k opts]
-  [:div.panel
-   (common/title title of)
-   (classes/class-list (merge {:g g :mode (get-in s [:ui :print])
-                               :selected (get-in s [:ui :selected])
-                               :hovered (get-in s [:ui :hover])
-                               :detail (derived/detail-at s k)}
-                              opts))])
-
-(defn- matches-view [matches]
-  [:div {:style {:margin-top "16px"}}
-   (matches/matches-panel {:matches matches})])
-
-(defn- stats-panel [s r]
-  [:div.panel {:style {:margin-top "16px"}}
-   (common/title "the iterations" ":stats")
-   (stats/stats-table {:stats (:stats r) :rules (:rules r) :step (:step s)})])
-
-(defn- tree-panel
-  "Renders the term as a tree over the e-graph on show."
-  [s g term style]
-  [:div.panel {:style style}
-   (common/title "the tree" "term")
-   (tree/tree-view {:g g :term term
-                    :hovered (or (get-in s [:ui :hover]) (get-in s [:ui :selected]))})])
-
-(defn- classes-view [s r g matches]
-  (class-panel "the classes" "g at this step" g s (:step s)
-               {:diff (derived/diff-at s) :best (derived/best-at s) :root (derived/root-at s)
-                :matches (derived/matched-classes matches)}))
-
-(defn- repl-view [s beside?]
-  (repl/repl-panel {:input (get-in s [:repl :input])
-                    :history (get-in s [:repl :history])
-                    :mode (get-in s [:ui :print])
-                    :line-numbers? (get-in s [:ui :line-numbers?])
-                    :beside? beside?}))
-
-(defn- workbench
-  "Renders the panels of a lesson. The left column holds what the
-  operation is given and what it made. The right column holds the
-  e-graph."
+  On a wide screen the text and the controls make the left column,
+  which scrolls with the page. The e-graph is the right column, which
+  stays in view and scrolls inside itself, so a link in the prose
+  changes what is in view. On a narrow screen the three stack, with
+  the e-graph after the text. The style sheet does both."
   [s l r g panels matches]
-  [:div.workbench
-   [:div
-    (when (seq (:inputs l)) (input-area s l))
-    (run-panel s l r g)
-    (when (derived/root-at s) (best-panel s l))
-    (when (contains? panels :matches) (matches-view matches))
-    (when (contains? panels :stats) (stats-panel s r))]
-   [:div
-    (when (contains? panels :tree)
-      (tree-panel s g (get-in s [:input :values :term]) {:margin-bottom "16px"}))
-    (replay-bar s r g)
-    (tools s)
-    (graph-panel s matches)
-    (if (contains? panels :fork)
-      [:div.fork
-       (class-panel "the original, step 0" "(first timeline)" (derived/egraph-at s 0) s 0 {:root (:root r)})
-       (class-panel (str "this step: " (nth (:labels r) (:step s) "")) "g at this step" g s (:step s)
-                    {:diff (derived/diff-at s) :best (derived/best-at s) :root (derived/root-at s)})]
-      (classes-view s r g matches))]])
+  [:div.lesson-grid
+   [:div.text (text s l)]
+   (when (and r g)
+     [:div.egraph
+      (when (contains? panels :tree)
+        (panels/tree-panel s g (get-in s [:input :values :term])))
+      (panels/replay-bar s r g)
+      (panels/tools s)
+      (panels/graph-panel s matches)
+      (if (contains? panels :fork)
+        (panels/fork-panels s r g)
+        (panels/classes-panel s g matches))])
+   (when (and r g)
+     [:div.controls
+      (when (seq (:inputs l)) (input-area s l))
+      (panels/run-panel s r g (:fn (lessons/operation l)))
+      (when (derived/root-at s) (panels/best-panel s (:costs l)))
+      (when (contains? panels :matches) (panels/matches-panel matches))
+      (when (contains? panels :stats) (panels/stats-panel s r))])])
 
 (defn- beside
   "Renders the panels of the REPL's page. The editor is on the left
@@ -326,28 +204,50 @@
   needs a run that knows the term it started from."
   [s l r g panels matches]
   [:div.workbench.beside
-   [:div.repl-column (repl-view s true)]
-   [:div
-    (replay-bar s r g)
-    (tools s)
-    (graph-panel s matches)
-    (classes-view s r g matches)
-    (run-panel s l r g)
-    (when (derived/root-at s) (best-panel s l))
-    (when (and (contains? panels :matches) matches) (matches-view matches))
-    (when (and (contains? panels :stats) (seq (:stats r))) (stats-panel s r))
+   [:div.repl-column (panels/repl-panel s :beside)]
+   [:div.stack
+    [:div.egraph
+     (panels/replay-bar s r g)
+     (panels/tools s)
+     (panels/graph-panel s matches)
+     (panels/classes-panel s g matches)]
+    (panels/run-panel s r g (:fn (lessons/operation l)))
+    (when (derived/root-at s) (panels/best-panel s (:costs l)))
+    (when (and (contains? panels :matches) matches) (panels/matches-panel matches))
+    (when (and (contains? panels :stats) (seq (:stats r))) (panels/stats-panel s r))
     (when (and (contains? panels :tree) (:term r))
-      (tree-panel s g (:term r) {:margin-top "16px"}))]])
+      (panels/tree-panel s g (:term r)))]])
 
-(defn page [s]
+(defn- repl-page
+  "Renders the REPL's page: its words beside the names in scope, and
+  under them the REPL beside the e-graph."
+  [s l r g panels matches]
+  (list
+   [:div.docs
+    [:div
+     (into [:div.prose] (map #(prose s %) (:prose l)))
+     (reading-view l)]
+    (repl/names-view)]
+   (when (and r g)
+     (beside s l r g panels matches))))
+
+(defn page
+  "Renders the page. A lesson has the REPL in a dock along the
+  bottom of the viewport. The dock's height is the style variable
+  `--dock-h`, which the page's padding and the e-graph column read,
+  so nothing is hidden under the dock."
+  [s]
   (let [l (derived/lesson s)
         r (:run s)
         g (derived/current-egraph s)
         mode (get-in s [:ui :print])
         panels (or (:panels l) #{})
         matches (derived/matches-at s)
-        beside? (= :beside (:layout l))]
-    [:main.page {:class (when beside? "wide")}
+        beside? (= :beside (:layout l))
+        {:keys [repl-open? dock-height]} (:ui s)]
+    [:main.page {:class (when-not beside? "has-dock")
+                      :style (when (and repl-open? (not beside?))
+                               {:--dock-h (if dock-height (str dock-height "px") "40vh")})}
      [:header.masthead
       [:h1 "orrery"]
       [:span.tagline "an e-graph explorer, for understanding"]
@@ -356,21 +256,11 @@
      (nav (:key l))
      (when l
        [:section.lesson
-        (about-view s l)
-        [:h2 (lessons/heading l)]
         (if beside?
-          [:div.docs
-           [:div
-            (into [:div.prose] (map #(prose s %) (:prose l)))
-            (reading-view l)]
-           (repl/names-view)]
-          (list (into [:div.prose] (map #(prose s %) (:prose l)))
-                (reading-view l)))
-        (when (and r g)
-          (if beside?
-            (beside s l r g panels matches)
-            (workbench s l r g panels matches)))
-        (when (and r (not beside?))
-          [:div {:style {:margin-top "16px"}}
-           (repl-view s false)])])
-     (colophon-view s)]))
+          (list (about-view s l)
+                [:h2 (lessons/heading l)]
+                (repl-page s l r g panels matches))
+          (lesson-layout s l r g panels matches))])
+     (colophon-view s)
+     (when (and l (not beside?))
+       (panels/repl-dock s))]))

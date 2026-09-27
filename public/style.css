@@ -66,7 +66,7 @@ textarea, input[type=text] {
   background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 8px; width: 100%;
 }
 
-.page { max-width: 1100px; margin: 0 auto; padding: 16px; }
+.page { max-width: 1500px; margin: 0 auto; padding: 16px; --dock-h: 0px; }
 .masthead { display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; border-bottom: 1px solid var(--hairline); padding-bottom: 8px; margin-bottom: 16px; }
 .masthead h1 { font-size: 28px; margin: 0; letter-spacing: .02em; }
 .masthead .tagline { color: var(--ink-2); }
@@ -108,7 +108,20 @@ sup.cite a:hover { text-decoration: underline; }
 .prose code { font-size: 15px; background: var(--surface-2); padding: 1px 5px; border-radius: 4px; }
 
 .workbench { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
-@media (min-width: 900px) { .workbench { grid-template-columns: 340px minmax(0, 1fr); } }
+.stack, .controls { display: flex; flex-direction: column; gap: 16px; }
+
+/* a lesson: on a narrow screen the text, the e-graph and the controls stack in that order; on a wide one the text and the
+   controls are the left column, and the e-graph is the right column, which stays in view and scrolls inside itself */
+.lesson-grid { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-areas: "text" "egraph" "controls"; gap: 16px; }
+.lesson-grid > .text { grid-area: text; }
+.lesson-grid > .egraph { grid-area: egraph; }
+.lesson-grid > .controls { grid-area: controls; }
+.egraph { container-type: inline-size; }
+.egraph > .tree-panel { margin-bottom: 16px; }
+@media (min-width: 1100px) {
+  .lesson-grid { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); grid-template-rows: auto 1fr; grid-template-areas: "text egraph" "controls egraph"; }
+  .lesson-grid > .egraph { position: sticky; top: 0; align-self: start; max-height: calc(100vh - var(--dock-h)); overflow-y: auto; }
+}
 .panel { background: var(--surface); border: 1px solid var(--hairline); border-radius: 10px; padding: 12px 14px; overflow-x: auto; } /* the background always holds its content: what is wider than the panel scrolls inside it */
 .panel h3 { margin: 0 0 8px; font-size: 14px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600; }
 
@@ -192,13 +205,12 @@ table.classes td.poly .notation, table.classes td.best .notation, table.classes 
 .best .cost-picker { display: flex; gap: 10px; flex-wrap: wrap; font-size: 14px; }
 .best .changed { font-size: 14px; color: var(--ink-2); }
 
-.selftest { max-width: 1100px; margin: 8px auto 24px; padding: 0 16px; font-size: 14px; color: var(--muted); }
+.selftest { max-width: 1500px; margin: 8px auto 24px; padding: 0 16px; font-size: 14px; color: var(--muted); }
 .selftest .ok { color: var(--good); }
 .selftest .bad { color: var(--bad); }
 .loading { color: var(--muted); padding: 24px; }
 
-/* the REPL's page: a wider page, the editor beside the e-graph and staying in view, its history scrolling inside the panel */
-.page.wide { max-width: 1400px; }
+/* the REPL's page: the editor beside the e-graph and staying in view, its history scrolling inside the panel */
 @media (min-width: 900px) {
   .workbench.beside { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); }
   .beside .repl-column { position: sticky; top: 8px; align-self: start; }
@@ -287,7 +299,7 @@ table.stats td.applied { color: var(--added-ink); font-weight: 600; }
 .matches ul { margin: 4px 0 0; padding-left: 18px; font-family: var(--mono); font-size: 13px; }
 
 .fork { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
-@media (min-width: 1200px) { .fork { grid-template-columns: 1fr 1fr; } }
+@container (min-width: 900px) { .fork { grid-template-columns: 1fr 1fr; } }
 
 /* the tools row under the replay bar, and the graph picture, off by default since it takes the room */
 .tools { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 0 0 12px; font-size: 14px; }
@@ -323,3 +335,21 @@ table.stats td.applied { color: var(--added-ink); font-weight: 600; }
 .graph .edge.lit { stroke: var(--accent); stroke-width: 2; opacity: 1; }
 .graph marker path { fill: var(--ink-2); }
 .graph marker#arrow-lit path { fill: var(--accent); }
+
+/* the REPL's dock along the bottom of a lesson: one bar when closed; open, the REPL under the bar, resized from its top edge.
+   Its height is --dock-h, which the page's padding and the e-graph column read, so nothing is hidden under it */
+.page.has-dock { --dock-h: 44px; padding-bottom: calc(var(--dock-h) + 16px); }
+.dock { position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; display: flex; flex-direction: column;
+        background: var(--page); border-top: 1px solid var(--border); box-shadow: 0 -4px 12px rgba(0, 0, 0, .08); }
+.dock.open { height: var(--dock-h); }
+.dock-handle { flex: 0 0 auto; height: 6px; margin-top: -3px; cursor: ns-resize; touch-action: none; }
+.dock-handle:hover { background: var(--accent); }
+.dock-bar, .dock .repl { width: 100%; max-width: 1500px; margin: 0 auto; box-sizing: border-box; }
+.dock-bar { flex: 0 0 auto; height: 43px; display: flex; align-items: center; gap: 12px; padding: 0 16px; min-width: 0; }
+.dock-bar button { flex: 0 0 auto; }
+.dock-bar .last { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; color: var(--ink-2); }
+.dock-bar .key { margin-left: auto; flex: 0 0 auto; font-size: 12px; color: var(--muted); white-space: nowrap; }
+@media (max-width: 600px) { .dock-bar .key { display: none; } }
+.dock .repl { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; margin-bottom: 8px; border-radius: 0; border-left: 0; border-right: 0; }
+.dock .repl .history { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+.dock .repl .editor, .dock .repl .row { flex: 0 0 auto; }

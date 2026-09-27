@@ -259,6 +259,10 @@
 
 (defn set-repl-input! [text] (swap! app-state update :repl assoc :input text :recall nil))
 
+(defn toggle-dock! [] (swap! app-state update-in [:ui :repl-open?] not))
+
+(defn set-dock-height! [px] (swap! app-state assoc-in [:ui :dock-height] px))
+
 (defn toggle-line-numbers! [] (swap! app-state update-in [:ui :line-numbers?] not))
 
 (defn clear-repl! [] (swap! app-state assoc :repl (:repl (workbench/initial))))
@@ -276,20 +280,25 @@
     (assoc (repl/eval-string text printed/printed) :in text)))
 
 (defn eval-repl!
-  "Evaluates what is in the editor."
+  "Evaluates what is in the editor. Opens the REPL's dock, so that
+  the REPL stays in view when the code opens a lesson."
   []
   (let [text (get-in @app-state [:repl :input])]
     (when (seq (str/trim text))
       (let [entry (evaluate! text)]
-        (swap! app-state update :repl
-               (fn [r] (-> r (update :history conj entry) (assoc :input "" :recall nil))))))))
+        (swap! app-state #(-> %
+                              (update :repl (fn [r] (-> r (update :history conj entry) (assoc :input "" :recall nil))))
+                              (assoc-in [:ui :repl-open?] true)))))))
 
 (defn run-repl!
   "Evaluates `code` from a link in the prose, as if it had been
-  typed. The editor keeps its text."
+  typed. The editor keeps its text. Opens the REPL's dock, so the
+  result is in view."
   [code]
   (let [entry (evaluate! code)]
-    (swap! app-state update-in [:repl :history] conj entry)))
+    (swap! app-state #(-> %
+                          (update-in [:repl :history] conj entry)
+                          (assoc-in [:ui :repl-open?] true)))))
 
 (defn recall-repl!
   "Puts an earlier input into the editor when `dir` is :back, or a

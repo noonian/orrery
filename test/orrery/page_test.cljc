@@ -177,11 +177,13 @@
         s (workbench/page l run)
         h (page/page s)
         hs (set (handlers h))]
-    (testing "the editor beside the e-graph, over it in reading order, where a lesson has it under"
+    (testing "the editor beside the e-graph, over it in reading order, where a lesson has it in a dock"
       (is (< (position h :div.panel.repl) (position h :table.classes)))
       (is (seq (elements h :div.workbench.beside)))
+      (is (empty? (elements h :section.dock)) "the REPL's page has no dock")
       (let [lesson (page-at-the-end lessons/taste)]
-        (is (> (position lesson :div.panel.repl) (position lesson :table.classes)))
+        (is (empty? (elements lesson :div.panel.repl)) "the dock starts closed")
+        (is (contains? (set (handlers lesson)) [:repl/dock]))
         (is (empty? (elements lesson :div.workbench.beside)))))
     (testing "no fields: the editor is the input"
       (is (empty? (elements h :textarea)) "prism-code-editor makes the editor's textarea")
@@ -257,6 +259,7 @@
         _ (derived/clear-cache!)
         g (peek (:timeline run))
         s (-> (state-for l run 0)
+              (assoc-in [:ui :repl-open?] true)
               (assoc-in [:repl :history] [{:in "g" :ok g}
                                           {:in "[g 0]" :ok [g 0]}
                                           {:in "(rw/embiggen g [])" :ok {:egraph g :stats [] :iterations 0 :stop-reason :saturated}}
@@ -278,6 +281,11 @@
     (is (= ["1\n"] (texts h :pre.out)) "what was printed stands over the value")
     (is (= ["2" "nil" "#function"] (remove #(re-find #"^\{" %) (texts h :pre.result))))
     (is (some #(re-find #"^a run: 1 step, 0 iterations, not run yet; 2 classes, 2 nodes$" %) (texts h :span.summary)))
+    (is (contains? hs [:repl/resize]) "the open dock resizes")
+    (testing "closed, the dock says what was evaluated last, in a line"
+      (is (= ["user=> inc  ⇒  #function"] (texts (page/page (assoc-in s [:ui :repl-open?] false)) :code.last)))
+      (is (= ["user=> (boom)  ⇒  no such var"]
+             (texts (page/page (-> s (assoc-in [:ui :repl-open?] false) (update-in [:repl :history] subvec 0 5))) :code.last))))
     (testing "the text an evaluation printed of its value is the text shown"
       (let [h (page/page (assoc-in s [:repl :history] [{:in "(range 3)" :ok (range 3) :printed "(0 1 2), as printed then"}]))]
         (is (= ["(0 1 2), as printed then"] (texts h :pre.result)))))))

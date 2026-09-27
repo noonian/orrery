@@ -1,7 +1,7 @@
 // The REPL's editor, prism-code-editor over a textarea: the colours,
 // the brackets, the keys, the undo and the line numbers.
 import { test, expect } from '@playwright/test';
-import { openLesson, evalRepl } from './orrery.js';
+import { openLesson, evalRepl, openRepl } from './orrery.js';
 
 const editor = (page) => page.locator('#repl-input');
 const code = (page) => page.locator('#repl-panel .prism-code-editor');
@@ -81,6 +81,7 @@ test.describe('the REPL\'s editor', () => {
     await expect(code(page)).toHaveClass(/show-line-numbers/);
     await expect(editor(page)).toHaveValue('(+ 1\n 2)');
     await page.goto('/#1');
+    await openRepl(page);
     await expect(page.locator('#repl-line-numbers')).toBeChecked();
     await expect(code(page)).toHaveClass(/show-line-numbers/);
     await page.locator('#repl-line-numbers').uncheck();

@@ -36,6 +36,8 @@
    :run "[:run]: read every field and run"
    :surprise "[:surprise]: draw, score and run a candidate"
    :repl/editor "[:repl/editor opts]: a life-cycle hook, not an event: builds the REPL's editor, keeps it showing (:text opts) and numbering its lines when (:line-numbers? opts), and removes it"
+   :repl/dock "[:repl/dock]: open the REPL's dock along the bottom of a lesson, or close it"
+   :repl/resize "[:repl/resize]: on a press of the dock's top edge, resize the dock by dragging"
    :repl/line-numbers "[:repl/line-numbers]: number the editor's lines, or stop"
    :repl/eval "[:repl/eval]: evaluate what is in the editor"
    :repl/run "[:repl/run code]: evaluate code from a link in the prose, as if it had been typed"

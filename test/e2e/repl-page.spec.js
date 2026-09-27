@@ -2,7 +2,7 @@
 // that reads an e-graph, the documentation as lines to evaluate, the
 // page's state as an atom the REPL holds. Counts, never ids.
 import { test, expect } from '@playwright/test';
-import { openLesson, expectSnapshot, evalRepl } from './orrery.js';
+import { openLesson, expectSnapshot, evalRepl, openRepl } from './orrery.js';
 
 const entries = (page) => page.locator('#repl-panel .entry');
 const result = async (page, code) => (await evalRepl(page, code)).locator('pre.result');
@@ -186,6 +186,7 @@ test.describe('the REPL\'s page', () => {
 
   test('a lesson\'s REPL links to the page, which opens at its top', async ({ page }) => {
     await openLesson(page, 3);
+    await openRepl(page);
     await page.locator('#repl-panel .hint a').click();
     await expect(page).toHaveURL(/#repl$/);
     await expectSnapshot(page, curated);

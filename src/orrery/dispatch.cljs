@@ -47,6 +47,39 @@
       (some-> ed editor/remove!)
       (some-> ed (editor/sync! opts)))))
 
+(defn- resize-dock!
+  "Resizes the REPL's dock while the pointer that pressed its top
+  edge is dragged. While it drags, the height is set on the page's
+  style directly, so the page is not rendered again on every move.
+  When the pointer is let go, the height goes into the state. The
+  dock is kept between 120 pixels and 85% of the viewport."
+  [e]
+  (let [ev (dom-event e)
+        dock (.closest (:replicant/node e) "#repl-dock")
+        page (.closest dock "main.page")
+        start-y (.-clientY ev)
+        start-h (.-offsetHeight dock)
+        height (fn [^js ev]
+                 (js/Math.round (max 120 (min (+ start-h (- start-y (.-clientY ev)))
+                                              (* 0.85 js/innerHeight)))))
+        move (fn [ev] (.setProperty (.-style page) "--dock-h" (str (height ev) "px")))]
+    (.preventDefault ev)
+    (letfn [(up [ev]
+              (js/window.removeEventListener "pointermove" move)
+              (js/window.removeEventListener "pointerup" up)
+              (state/set-dock-height! (height ev)))]
+      (js/window.addEventListener "pointermove" move)
+      (js/window.addEventListener "pointerup" up))))
+
+(defn key!
+  "Handles a key pressed anywhere on the page. Ctrl-` opens the
+  REPL's dock, or closes it, on a page that has the dock."
+  [^js ev]
+  (when (and (.-ctrlKey ev) (= "Backquote" (.-code ev))
+             (not= :beside (:layout (derived/lesson @state/app-state))))
+    (.preventDefault ev)
+    (state/toggle-dock!)))
+
 (defn- export-name [s] (str "orrery-" (name (:lesson s)) "-step-" (:step s) ".json"))
 
 (defn- copy-export!
@@ -100,6 +133,8 @@
     :run (state/submit-input!)
     :surprise (state/surprise!)
     :repl/editor (editor-hook! e (first args))
+    :repl/dock (state/toggle-dock!)
+    :repl/resize (resize-dock! e)
     :repl/line-numbers (state/toggle-line-numbers!)
     :repl/eval (state/eval-repl!)
     :repl/run (state/run-repl! (first args))

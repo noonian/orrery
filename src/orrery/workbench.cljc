@@ -33,7 +33,10 @@
    ;; :graph? is nil until the switch is touched. While it is nil the
    ;; lesson decides (see derived/graph?).
    :graph? nil :graph-filter? false :graph-zoom nil :export-status nil
-   :line-numbers? false})
+   :line-numbers? false
+   ;; The REPL's dock along the bottom of a lesson: open or closed,
+   ;; and its height in pixels, nil for the height it opens at.
+   :repl-open? false :dock-height nil})
 
 (defn initial
   "Returns the page before it has opened anything."

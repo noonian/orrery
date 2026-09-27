@@ -37,6 +37,7 @@
   ;; orrery.* namespace lives on, and assigning it erases them all.
   (set! (.-orreryPage js/window)
         #js {:snapshot (fn [] (clj->js (derived/snapshot @state/app-state)))})
+  (js/window.addEventListener "keydown" #(dispatch/key! %))
   (js/window.addEventListener "hashchange" (fn [_] (state/load-lesson! (lesson-from-hash))))
   (state/load-lesson! (lesson-from-hash))
   (render!)

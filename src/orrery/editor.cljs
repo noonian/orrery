@@ -54,8 +54,9 @@
   `callbacks` holds :on-change, called with the text after every
   change, :on-eval, and :on-recall, called with :back or :forward,
   which returns true when it recalled an input. `attrs` are set on
-  the editor's textarea, and its id among them."
-  [node {:keys [text line-numbers? attrs]} {:keys [on-change] :as callbacks}]
+  the editor's textarea, and its id among them. The editor takes the
+  focus when `focus?` is true."
+  [node {:keys [text line-numbers? attrs focus?]} {:keys [on-change] :as callbacks}]
   (let [ed (createEditor node
                          #js {:language "clojure"
                               :value text
@@ -70,6 +71,7 @@
                          (editorCommands (keymap callbacks) #js ["\"\"" "()" "[]" "{}"]))
         ta (.-textarea ed)]
     (doseq [[k v] attrs] (.setAttribute ta (name k) v))
+    (when focus? (.focus ta))
     ed))
 
 (defn sync!

@@ -830,7 +830,38 @@ the one the page most wants to welcome. The other mode stays
     the history stays, being the REPL's own mark and not the word.
     The textarea says so to a screen reader (`aria-label`), and the
     browser suite checks that the REPL's page does not say "prompt".
-
+17. **A lesson's layout, and the REPL in a dock.** Decided
+    2026-09-27. The Captain said a lesson did not feel responsive,
+    and wanted the REPL in view wherever the page is scrolled.
+    Screenshots at 390, 800, 1280 and 1600 pixels showed why. On a
+    wide screen a link in the prose opened a class in a table below
+    the fold. The page stopped at 1100 pixels, and under the short
+    class list of the right column the space stood empty. On a
+    narrow screen the e-graph came after the whole form. The REPL
+    was the last thing on the page. Now a lesson is three parts:
+    the text, the e-graph and the controls. From 1100 pixels the
+    text and the controls are the left column, which scrolls with
+    the page. The e-graph is the right column, which sticks to the
+    top of the viewport and scrolls inside itself, so what a link
+    does happens in view. Under 1100 pixels the parts stack in the
+    order text, e-graph, controls. The page is 1500 pixels at most.
+    The fork's two class lists stand side by side when the column
+    is 900 pixels wide or more, which a container query decides.
+    The REPL is a dock along the bottom of every lesson. A dock at
+    the top would fight the sticky replay bar, and the Captain
+    chose the bottom over a drawer at the side. It starts closed,
+    as one bar that says what was evaluated last. Open, it holds
+    the REPL panel under the bar and resizes from its top edge.
+    Ctrl-` opens and closes it. Whether it is open is kept across
+    lessons (`[:ui :repl-open?]`), as the graph switch is. An
+    evaluation opens it, so code that opens a lesson keeps the REPL
+    in view. Its height is the style variable `--dock-h`, which the
+    page's padding and the e-graph column read, so nothing is hidden
+    under it. The panels moved out of `orrery.views.lesson` into
+    `orrery.views.panels`, public and reading no lesson, so a page
+    that is not a lesson can arrange them. The Captain wants such a
+    page, for playing with e-graphs rather than learning, once this
+    layout has settled.
 ## Status
 
 Phase 1 delivered, 2026-09-25 (the Captain's "make it so", with the
@@ -1034,7 +1065,19 @@ suites are 78 tests and 27865 assertions on the JVM and Jolt, 68
 facts on node, 104 specs in the browser; the release bundle is 1.47
 MB (360 KB gzipped), 16 KB gzipped of it the editor.
 
-Next: the editor's second step, the handling of lines (Clojure's
-indentation among it) and evaluation at the caret; then the REPL
-page's layout and its documentation; then the later items of
-section 7, per-rule timings at scale and static deployment.
+A lesson's layout and the REPL's dock, 2026-09-27 (section 12,
+decision 17): `orrery.views.panels`; the grid of `.lesson-grid` and
+the dock in `public/style.css`; `[:repl/dock]` and `[:repl/resize]`
+in `orrery.actions`, and Ctrl-` in `orrery.dispatch`;
+`layout.spec.js` checks the columns at both widths, the dock's
+shortcut and its memory across lessons, its last line, its resizing,
+and that nothing hides under it. The suites are 79 tests and 27890
+assertions on the JVM and Jolt, 68 facts on node, 110 specs in the
+browser.
+
+Next: the Captain's judgement of the layout at 1100 pixels; the
+page for playing with e-graphs, routed before the lessons; the
+editor's second step, the handling of lines (Clojure's indentation
+among it) and evaluation at the caret; then the REPL page's layout
+and its documentation; then the later items of section 7, per-rule
+timings at scale and static deployment.
