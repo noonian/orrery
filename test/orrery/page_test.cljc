@@ -184,7 +184,9 @@
         (is (> (position lesson :div.panel.repl) (position lesson :table.classes)))
         (is (empty? (elements lesson :div.workbench.beside)))))
     (testing "no fields: the editor is the input"
-      (is (= ["repl-input"] (map (comp :id second) (elements h :textarea))) "the one place to type")
+      (is (empty? (elements h :textarea)) "prism-code-editor makes the editor's textarea")
+      (is (= ["repl-input"] (map #(-> % second :replicant/on-render second :attrs :id) (elements h :div.editor)))
+          "the one place to type")
       (is (empty? (texts h :pre.call)))
       (is (not (contains? hs [:run]))))
     (testing "every panel that reads a run, each saying what it is the work of"

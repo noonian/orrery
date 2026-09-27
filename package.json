@@ -11,5 +11,8 @@
   "devDependencies": {
     "@playwright/test": "1.63.0",
     "shadow-cljs": "3.5.3"
+  },
+  "dependencies": {
+    "prism-code-editor": "5.4.0"
   }
 }

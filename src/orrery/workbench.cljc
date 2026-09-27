@@ -32,7 +32,8 @@
   {:print :notation :playing nil :selected nil :hover nil :drawing? false
    ;; :graph? is nil until the switch is touched. While it is nil the
    ;; lesson decides (see derived/graph?).
-   :graph? nil :graph-filter? false :graph-zoom nil :export-status nil})
+   :graph? nil :graph-filter? false :graph-zoom nil :export-status nil
+   :line-numbers? false})
 
 (defn initial
   "Returns the page before it has opened anything."

@@ -287,6 +287,7 @@
   (repl/repl-panel {:input (get-in s [:repl :input])
                     :history (get-in s [:repl :history])
                     :mode (get-in s [:ui :print])
+                    :line-numbers? (get-in s [:ui :line-numbers?])
                     :beside? beside?}))
 
 (defn- workbench

@@ -259,6 +259,8 @@
 
 (defn set-repl-input! [text] (swap! app-state update :repl assoc :input text :recall nil))
 
+(defn toggle-line-numbers! [] (swap! app-state update-in [:ui :line-numbers?] not))
+
 (defn clear-repl! [] (swap! app-state assoc :repl (:repl (workbench/initial))))
 
 (defn- evaluate!

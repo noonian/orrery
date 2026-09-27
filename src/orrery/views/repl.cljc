@@ -64,6 +64,8 @@
 (defn repl-panel
   "Renders the REPL panel.
 
+  `line-numbers?` numbers the lines of the editor.
+
   `beside?` is true on the REPL page, where the panel stands beside
   the e-graph. There the editor is taller, and the history scrolls
   inside the panel. The style sheet does the second
@@ -75,7 +77,7 @@
   The id of the panel is not `repl`. That is the address of the
   REPL's page, and a browser scrolls to the element that an address
   names."
-  [{:keys [input history mode beside?]}]
+  [{:keys [input history mode line-numbers? beside?]}]
   [:div.panel.repl {:id "repl-panel"}
    (common/title "the REPL" (when beside? "user"))
    [:p.hint
@@ -85,7 +87,7 @@
     (if beside?
       "Every name is listed above this panel."
       (list [:a {:href "#repl"} "The REPL page"] " lists every name."))
-    " Press Ctrl-Enter to evaluate. The up arrow brings back what you evaluated before."]
+    " Press Ctrl-Enter to evaluate. The up arrow brings back what you evaluated before. Tab indents the line; Ctrl-M (Ctrl-Shift-M on a Mac) lets Tab leave the editor."]
    (into [:div.history {:id "repl-history" :replicant/on-render [:repl/scroll]}]
          (for [[i {:keys [in out error] :as entry}] (map-indexed vector history)]
            [:div.entry {:replicant/key i}
@@ -94,14 +96,21 @@
             (if (contains? entry :error)
               [:pre.error error]
               (result-view (:ok entry) i mode (:printed entry)))]))
-   [:textarea {:id "repl-input" :rows (if beside? 5 3) :value input :placeholder "(eg/class-count g)"
-               :aria-label "the REPL's editor"
-               :spellcheck "false" :autocapitalize "off" :autocomplete "off"
-               :on {:input [:repl/input]
-                    :keydown [:repl/keydown]}}]
+   ;; prism-code-editor builds the editor inside this element, and
+   ;; Replicant leaves what it builds alone (`orrery.editor`).
+   [:div.editor {:class (when beside? "tall")
+                 :replicant/on-render [:repl/editor {:text input
+                                                     :line-numbers? line-numbers?
+                                                     :attrs {:id "repl-input"
+                                                             :aria-label "the REPL's editor"
+                                                             :placeholder "(eg/class-count g)"}}]}]
    [:div.row
     [:button.primary {:id "repl-eval" :on {:click [:repl/eval]}} "eval"]
-    [:button {:id "repl-clear" :on {:click [:repl/clear]}} "clear"]]])
+    [:button {:id "repl-clear" :on {:click [:repl/clear]}} "clear"]
+    [:label.check
+     [:input {:id "repl-line-numbers" :type "checkbox" :checked (boolean line-numbers?)
+              :on {:change [:repl/line-numbers]}}]
+     " line numbers"]]])
 
 ;; ---------------------------------------------------------------------------
 ;; the names in scope

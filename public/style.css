@@ -203,7 +203,7 @@ table.classes td.poly .notation, table.classes td.best .notation, table.classes 
   .beside .repl-column { position: sticky; top: 8px; align-self: start; }
   .beside .repl { display: flex; flex-direction: column; max-height: calc(100vh - 16px); }
   .beside .repl .history { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
-  .beside .repl textarea, .beside .repl .row, .beside .repl .hint, .beside .repl .panel-head { flex: 0 0 auto; }
+  .beside .repl .editor, .beside .repl .row, .beside .repl .hint, .beside .repl .panel-head { flex: 0 0 auto; }
 }
 .beside .replay { top: 0; }
 .docs { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; margin-bottom: 16px; }
@@ -230,7 +230,33 @@ a.act[data-act=eval]:hover code { border-color: var(--accent); }
 .repl pre.result { background: var(--surface-2); padding: 6px 8px; border-radius: 6px; }
 .repl .row { display: flex; gap: 8px; align-items: center; margin: 6px 0; flex-wrap: wrap; }
 .repl .summary { font-size: 14px; color: var(--ink-2); }
-.repl textarea { margin-top: 4px; }
+.repl .editor { margin-top: 4px; }
+.repl .check { font-size: 14px; color: var(--ink-2); display: inline-flex; gap: 4px; align-items: center; margin-left: auto; }
+
+/* the REPL's editor (prism-code-editor), coloured from the page's variables */
+.prism-code-editor {
+  font-family: var(--mono); font-size: 15px; color: var(--ink);
+  border: 1px solid var(--border); border-radius: 6px;
+  min-height: 4.8em; max-height: 40vh;
+  --pce-bg: var(--surface); --pce-cursor: var(--ink); --pce-selection: var(--match);
+  --pce-selection-match: var(--selected); --pce-line-number: var(--muted);
+  --pce-bg-highlight: transparent; --pce-border-highlight: none;
+}
+.prism-code-editor.pce-focus { border-color: var(--accent); }
+.editor.tall .prism-code-editor { min-height: 7.5em; }
+.pce-textarea::placeholder { color: var(--muted); }
+.prism-code-editor .token.comment { color: var(--muted); font-style: italic; }
+.prism-code-editor .token.string, .prism-code-editor .token.char { color: var(--good); }
+.prism-code-editor .token.number, .prism-code-editor .token.boolean { color: var(--merged-ink); }
+.prism-code-editor .token.symbol { color: var(--accent); }
+.prism-code-editor .token.keyword, .prism-code-editor .token.function { color: var(--ink); font-weight: 600; }
+.prism-code-editor .token.operator { color: var(--bad); }
+.prism-code-editor .token.bracket-level-0, .prism-code-editor .token.bracket-level-4, .prism-code-editor .token.bracket-level-8 { color: var(--accent); }
+.prism-code-editor .token.bracket-level-1, .prism-code-editor .token.bracket-level-5, .prism-code-editor .token.bracket-level-9 { color: var(--good); }
+.prism-code-editor .token.bracket-level-2, .prism-code-editor .token.bracket-level-6, .prism-code-editor .token.bracket-level-10 { color: var(--merged-ink); }
+.prism-code-editor .token.bracket-level-3, .prism-code-editor .token.bracket-level-7, .prism-code-editor .token.bracket-level-11 { color: var(--ink-2); }
+.prism-code-editor .token.bracket-error { color: var(--bad); text-decoration: underline wavy; }
+.prism-code-editor .active-bracket { box-shadow: inset 0 0 0 1px var(--border); background: var(--surface-2); }
 
 table.classes tr.match { background: var(--match); }
 table.classes tr.hovered { background: var(--selected); }

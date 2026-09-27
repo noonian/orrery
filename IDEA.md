@@ -772,8 +772,9 @@ the one the page most wants to welcome. The other mode stays
     check, no build would refuse and no suite but the browser's
     could reach, and which said a second time what the button beside
     a value already did.
-15. **What the editor is made of.** Open; surveyed and measured
-    2026-09-26. The editor is a textarea. The Captain asked what
+15. **What the editor is made of.** Decided 2026-09-27:
+    `prism-code-editor`, after the survey below (2026-09-26), when
+    the editor was a textarea. The Captain asked what
     exists that would make it better to type in, light if possible,
     not built from CodeMirror by hand, with a preference for
     Clojure's own ergonomics of evaluation. Anything on React is out
@@ -804,7 +805,22 @@ the one the page most wants to welcome. The other mode stays
     a release leaves out. Dataspex renders with Replicant and can
     follow an atom, but in the page it takes the global dispatch and
     styles `html` and `body`; it is a tool for beside the page, not
-    in it.
+    in it. The Captain chose prism-code-editor, to be built on in
+    steps: first the swap with the page's behaviour kept, then the
+    handling of lines and evaluation at the caret, then the REPL
+    page's layout, then its documentation, each settling what the
+    next describes. In the first step the page's state keeps the
+    editor's text; `orrery.editor` builds the editor from a
+    life-cycle hook on an empty element, which Replicant leaves
+    alone, and is given callbacks by `orrery.dispatch`. Ctrl-Enter
+    and Cmd-Enter evaluate; the arrows recall in the first and last
+    lines; Tab indents the lines with spaces, not tab characters
+    (the Captain), Ctrl-M letting Tab leave the editor; brackets and
+    double quotes close, a single quote does not; the colours are
+    the page's variables, so the editor follows the light and dark
+    themes; line numbers are a checkbox beside the buttons, off by
+    default and kept across pages (`[:ui :line-numbers?]`), since
+    some who read an example may want them.
 16. **What the place to type is called.** Decided 2026-09-26: the
     editor. It was the prompt, in the page's prose and in the code.
     The Captain: to the general public that word now means what is
@@ -1007,6 +1023,18 @@ assertions on the JVM and Jolt, 68 facts on node, 122 in the tile,
 97 specs in the browser; the release bundle is 1.41 MB (342 KB
 gzipped), ten kilobytes of it this.
 
-Next: what the editor is made of (section 12, question 15), and
-the later items of section 7, per-rule timings at scale and static
-deployment.
+The editor, 2026-09-27 (section 12, decision 15, its first step):
+prism-code-editor 5.4.0, pinned in `package.json`, its `layout.css`
+copied into `public/prism-layout.css`; `orrery.editor`; the hook
+`[:repl/editor opts]` and `[:repl/line-numbers]` in
+`orrery.actions`; `editor.spec.js` checks the colours, the closing
+of brackets, Enter and Tab, undo, the caret after a recall, the
+prose leaving the editor's text alone, and the line numbers. The
+suites are 78 tests and 27865 assertions on the JVM and Jolt, 68
+facts on node, 104 specs in the browser; the release bundle is 1.47
+MB (360 KB gzipped), 16 KB gzipped of it the editor.
+
+Next: the editor's second step, the handling of lines (Clojure's
+indentation among it) and evaluation at the caret; then the REPL
+page's layout and its documentation; then the later items of
+section 7, per-rule timings at scale and static deployment.

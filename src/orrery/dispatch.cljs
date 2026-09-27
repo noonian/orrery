@@ -7,38 +7,45 @@
   with the DOM event. orrery.app sets that dispatch with
   replicant.dom/set-dispatch!. This is the only place a DOM event is
   read."
-  (:require [clojure.string :as str]
-            [orrery.derived :as derived]
+  (:require [orrery.derived :as derived]
+            [orrery.editor :as editor]
             [orrery.state :as state]))
 
 (defn- dom-event [e] (:replicant/dom-event e))
 
 (defn- target-value [e] (.. (dom-event e) -target -value))
 
-(defn- editor-key!
-  "Handles a key pressed in the REPL's editor.
+(defn- recall!
+  "Brings back an earlier input when `dir` is :back, or a later one
+  when it is :forward. Returns true when there was one to bring back."
+  [dir]
+  (let [{:keys [history recall]} (:repl @state/app-state)]
+    (when (case dir :back (seq history) :forward recall)
+      (state/recall-repl! dir)
+      true)))
 
-  Ctrl-Enter or Cmd-Enter evaluates. The up arrow brings back an
-  earlier input when the caret is in the first line. The down arrow
-  brings back a later input when the caret is in the last line. A
-  terminal does the same. Inside text of several lines the arrows
-  move the caret."
-  [d]
-  (let [el (.-target d)
-        text (.-value el)
-        plain? (not (or (.-shiftKey d) (.-altKey d) (.-ctrlKey d) (.-metaKey d)))
-        {:keys [history recall]} (:repl @state/app-state)]
-    (cond
-      (and (= "Enter" (.-key d)) (or (.-ctrlKey d) (.-metaKey d)))
-      (do (.preventDefault d) (state/eval-repl!))
+(def ^:private editor-callbacks
+  {:on-change (fn [text]
+                (when (not= text (get-in @state/app-state [:repl :input]))
+                  (state/set-repl-input! text)))
+   :on-eval state/eval-repl!
+   :on-recall recall!})
 
-      (and plain? (= "ArrowUp" (.-key d)) (seq history)
-           (not (str/includes? (subs text 0 (.-selectionStart el)) "\n")))
-      (do (.preventDefault d) (state/recall-repl! :back))
-
-      (and plain? (= "ArrowDown" (.-key d)) recall
-           (not (str/includes? (subs text (.-selectionEnd el)) "\n")))
-      (do (.preventDefault d) (state/recall-repl! :forward)))))
+(defn- editor-hook!
+  "Handles the life cycle of the REPL's editor. The view renders an
+  empty element for it, and the element's hook carries the text and
+  whether to number the lines. The hook builds the editor when the
+  element mounts, and Replicant remembers the editor on the element.
+  When the text or the numbering changes, the hook brings the editor
+  in line. When the element unmounts, it removes the editor."
+  [e {:keys [text] :as opts}]
+  (let [ed (:replicant/memory e)]
+    (case (:replicant/life-cycle e)
+      :replicant.life-cycle/mount
+      ((:replicant/remember e) (editor/mount! (:replicant/node e) opts editor-callbacks))
+      :replicant.life-cycle/unmount
+      (some-> ed editor/remove!)
+      (some-> ed (editor/sync! opts)))))
 
 (defn- export-name [s] (str "orrery-" (name (:lesson s)) "-step-" (:step s) ".json"))
 
@@ -92,8 +99,8 @@
     :field (state/set-field! (first args) (target-value e))
     :run (state/submit-input!)
     :surprise (state/surprise!)
-    :repl/input (state/set-repl-input! (target-value e))
-    :repl/keydown (editor-key! (dom-event e))
+    :repl/editor (editor-hook! e (first args))
+    :repl/line-numbers (state/toggle-line-numbers!)
     :repl/eval (state/eval-repl!)
     :repl/run (state/run-repl! (first args))
     :repl/clear (state/clear-repl!)
