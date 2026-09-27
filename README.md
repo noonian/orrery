@@ -2,13 +2,14 @@
 
 An e-graph explorer for understanding, named for the clockwork model
 of the planets you turn by hand to see how the system moves: watch
-cromulent and bendix work, step by step, in the browser. Two pages
-to start from, the basics for a reader who has met none of this and
-an introduction to what an e-graph is and why it is interesting, and
-eleven lessons from "a term is a tree" to "differentiation is
-simplification", each a real execution you can scrub forwards and
-backwards, with a REPL underneath; and a page for the REPL itself,
-its editor beside every panel.
+[cromulent](https://github.com/noonian/cromulent) and
+[bendix](https://github.com/noonian/bendix) work, step by step, in the
+browser. Two pages to start from, the basics for a reader who has met
+none of this and an introduction to what an e-graph is and why it is
+interesting, and eleven lessons from "a term is a tree" to
+"differentiation is simplification", each a real execution you can
+scrub forwards and backwards, with a REPL underneath; and a page for
+the REPL itself, its editor beside every panel.
 
 What it is: an interactive tool for exploring e-graphs and learning
 how they work, its author's learning included. It embeds cromulent,
@@ -37,6 +38,12 @@ or, for the built page without the watcher:
 ```sh
 npm run release && bin/serve.sh   # http://localhost:8379
 ```
+
+cromulent and bendix come from GitHub at the shas pinned in
+`deps.edn`. The `:local` alias uses the checkouts at `../cromulent`
+and `../bendix` instead: `clojure -M:local:test`, `jolt
+-M:local:test`, and `npm run watch:local`, `release:local`,
+`smoke:local` and `e2e:local` for the builds.
 
 ## Checking it
 

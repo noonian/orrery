@@ -342,7 +342,7 @@ Decided 2026-09-25, replacing the first draft's scittle route.
 
 - **Compiled ClojureScript.** shadow-cljs compiles cromulent's `.cljc`
   (unchanged: the files the JVM and Jolt suites test, on the classpath
-  through `:local/root`) and orrery's own namespaces into one bundle
+  through a git dep, or `:local/root` under the `:local` alias) and orrery's own namespaces into one bundle
   that `public/index.html` loads. The first draft loaded the source
   through scittle with no build step; the Captain named the compiled
   page as the end state, and the port is the same either way, so the

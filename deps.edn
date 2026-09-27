@@ -1,16 +1,18 @@
 {:paths ["src"]
  :deps {org.clojure/clojure {:mvn/version "1.12.0"}
-        noonian/cromulent {:local/root "../cromulent"}
-        noonian/bendix {:local/root "../bendix"}}
+        io.github.noonian/cromulent {:git/url "git@github.com:noonian/cromulent.git"
+                                     :git/sha "7512173f21645c33d2910483ec08e7d6b785b0c6"}
+        io.github.noonian/bendix {:git/url "git@github.com:noonian/bendix.git"
+                                  :git/sha "30ade0b2de508d90d8031c713a5f35697d09ee6a"}}
  :aliases
- {:test {:extra-paths ["test"]
+ {;; the cromulent and bendix checkouts beside this one in place of the
+  ;; pinned shas: clojure -M:local:test, npx shadow-cljs -A:local watch app
+  :local {:override-deps {io.github.noonian/cromulent {:local/root "../cromulent"}
+                          io.github.noonian/bendix {:local/root "../bendix"}}}
+  :test {:extra-paths ["test"]
          :main-opts ["-m" "orrery.test-runner"]}
-  ;; the browser and node builds (shadow-cljs reads this alias); the
-  ;; cromulent and bendix test paths carry cromulent.smoke and
-  ;; bendix.smoke, the cross-runtime facts (tools.deps warns that an
-  ;; external path is deprecated; bendix's test alias relies on the same)
-  :cljs {:extra-paths ["../cromulent/test" "../bendix/test"]
-         :extra-deps {thheller/shadow-cljs {:mvn/version "3.5.3"}
+  ;; the browser and node builds (shadow-cljs reads this alias)
+  :cljs {:extra-deps {thheller/shadow-cljs {:mvn/version "3.5.3"}
                       no.cjohansen/replicant {:mvn/version "2026.07.1"}
                       org.babashka/sci {:mvn/version "0.15.58"}}}}
  :tasks
