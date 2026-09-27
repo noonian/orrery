@@ -217,6 +217,7 @@
   (when (derived/graph? s)
     (let [selected (get-in s [:ui :selected])]
       (graph/graph-view {:layout (derived/graph-at s)
+                         :mode (get-in s [:ui :print])
                          :root (derived/root-at s)
                          :selected selected
                          :hovered (get-in s [:ui :hover])

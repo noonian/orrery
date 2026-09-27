@@ -15,25 +15,17 @@
     [:code.native (pr-str t)]
     [:span.notation {:title (pr-str t)} (notation/term->str t)]))
 
-(def ^:private digits (zipmap "0123456789" (range 10)))
-
-(defn- ref-id
-  "Returns the class id that `tok`, a printed #id, refers to."
-  [tok]
-  (reduce (fn [n c] (+ (* 10 n) (digits c))) 0 (subs tok 1)))
-
 (defn enode-view
-  "Renders an e-node with its children as class ids. In the notation,
-  each id is a link that opens its class."
+  "Renders an e-node with its children as class ids. In both print
+  modes, each id takes its own colour and opens its class, so that an
+  id never reads as a number."
   [node mode]
-  (if (= :native mode)
-    [:code.native (pr-str node)]
-    (into [:span.notation]
-          (map (fn [tok]
-                 (if (re-matches #"#\d+" tok)
-                   [:span.ref {:on {:click [:select (ref-id tok)]}} tok]
-                   tok))
-               (re-seq #"#\d+|[^#]+" (notation/enode->str node))))))
+  (into (if (= :native mode) [:code.native] [:span.notation])
+        (map (fn [part]
+               (if (map? part)
+                 [:span.ref {:on {:click [:select (:id part)]}} (:text part)]
+                 part))
+             (notation/enode-parts node mode))))
 
 (defn title
   "Renders the heading of a panel. `text` says what the panel shows.

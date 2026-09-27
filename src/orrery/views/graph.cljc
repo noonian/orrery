@@ -38,7 +38,7 @@
   [:marker {:id id :viewBox "0 0 8 8" :refX 7 :refY 4 :markerWidth 7 :markerHeight 7 :orient "auto"}
    [:path {:d "M0 0 L8 4 L0 8 z"}]])
 
-(defn- class-view [{:keys [id x y w h sub nodes]} {:keys [root selected hovered added absorbing new-classes matches]}]
+(defn- class-view [{:keys [id x y w h sub nodes]} {:keys [root selected hovered added absorbing new-classes matches mode]}]
   (let [added-here (get added id #{})
         ref (notation/class-ref id)]
     [:g.eclass {:replicant/key id
@@ -57,15 +57,18 @@
      [:text.cid {:x (+ x graph/box-pad) :y (+ y 13)} ref]
      (when sub
        [:text.sub {:x (+ x graph/box-pad (* graph/char-w (+ 2 (count ref)))) :y (+ y 13)} sub])
-     (for [{:keys [node label] nx :x ny :y nw :w nh :h} nodes]
+     (for [{:keys [node] nx :x ny :y nw :w nh :h} nodes]
        [:g.enode {:class (when (contains? added-here node) "added")}
         [:rect {:x (+ x nx) :y (+ y ny) :width nw :height nh :rx 5}]
-        [:text {:x (+ x nx (quot nw 2)) :y (+ y ny 15) :text-anchor "middle"} label]])]))
+        (into [:text {:x (+ x nx (quot nw 2)) :y (+ y ny 15) :text-anchor "middle"}]
+              (map (fn [part] (if (map? part) [:tspan.ref (:text part)] part)))
+              (notation/enode-parts node mode))])]))
 
 (defn graph-view
   "Renders the graph panel. Takes a map with these keys:
 
   - `layout` is the layout that `orrery.graph/layout` returns.
+  - `mode` is the print mode.
   - `root` is the input's class.
   - `selected` is the opened class and `hovered` is the lit class.
   - `diff` is what the step changed.
@@ -75,10 +78,10 @@
   - `filter?` says whether the picture is restricted to what the
     opened class reaches.
   - `filterable?` says whether a class is open to filter by."
-  [{:keys [layout root selected hovered diff matches zoom filter? filterable?]}]
+  [{:keys [layout mode root selected hovered diff matches zoom filter? filterable?]}]
   (let [{:keys [width height classes edges]} layout
         lit (or hovered selected)
-        marks {:root root :selected selected :hovered hovered :matches matches
+        marks {:mode mode :root root :selected selected :hovered hovered :matches matches
                :added (:added diff) :absorbing (:absorbing diff) :new-classes (:new-classes diff)}]
     [:div.panel.graph {:id "graph"}
      [:div.graph-tools
@@ -98,6 +101,7 @@
       [:span [:span.swatch {:style {:background "var(--added)"}}] "node added this step"]
       [:span [:span.swatch {:style {:border-color "var(--merged-ink)" :border-width "2px"}}] "class absorbed a merge"]
       [:span [:span.swatch {:style {:border-color "var(--added-ink)" :border-width "2px"}}] "new class"]
+      [:span "a coloured id inside a node names a class, not a number"]
       [:span "a dashed edge closes a cycle; hover a box to light its row, click it to open the class"]]
      [:div.graph-scroll
       [:svg {:viewBox (str "0 0 " width " " height)

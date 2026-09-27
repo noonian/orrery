@@ -181,3 +181,26 @@
   (if (vector? node)
     (first (render node (fn [id] [(class-ref id) 6]) true))
     (leaf-str node)))
+
+(def ^:private digits (zipmap "0123456789" (range 10)))
+
+(defn- ref-id
+  "Returns the class id that `tok`, a printed #id, refers to."
+  [tok]
+  (reduce (fn [n c] (+ (* 10 n) (digits c))) 0 (subs tok 1)))
+
+(defn enode-parts
+  "Returns the e-node `node` printed in the print mode `mode`, as a
+  vector of parts. A part is a string of text, or a map
+  `{:id id :text s}` for a child's class id, so that a view can
+  draw the ids apart from the text. The texts of the parts join to
+  the printed node: `pr-str` in the native format, `enode->str` in
+  the notation."
+  [node mode]
+  (cond
+    (not (vector? node)) [(if (= :native mode) (pr-str node) (leaf-str node))]
+    (= :native mode) (-> ["[" (pr-str (nth node 0))]
+                         (into (mapcat (fn [id] [" " {:id id :text (str id)}])) (subvec node 1))
+                         (conj "]"))
+    :else (mapv (fn [tok] (if (re-matches #"#\d+" tok) {:id (ref-id tok) :text tok} tok))
+                (re-seq #"#\d+|[^#]+" (enode->str node)))))

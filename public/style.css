@@ -168,7 +168,8 @@ table.classes td.poly .notation, table.classes td.best .notation, table.classes 
 .node { display: inline-block; margin: 1px 6px 1px 0; padding: 0 5px; border-radius: 4px; background: var(--surface-2); white-space: nowrap; }
 .node.added { background: var(--added); color: var(--added-ink); }
 .ref { cursor: pointer; text-decoration: underline dotted; }
-.node .ref, .dnode .ref { text-decoration: none; }
+/* a class id inside a node takes the accent colour in both print modes, so an id never reads as a number */
+.node .ref, .dnode .ref { text-decoration: none; color: var(--accent); }
 .node .ref:hover, .dnode .ref:hover { text-decoration: underline dotted; }
 
 /* the opened class, in the replay bar under the transport; capped so a class with many nodes (lesson 7's has thirty) scrolls inside the bar instead of taking the viewport from the list */
@@ -314,6 +315,7 @@ table.stats td.applied { color: var(--added-ink); font-weight: 600; }
 .graph .sub { fill: var(--ink-2); font-size: 11px; font-style: italic; }
 .graph .enode rect { fill: var(--surface-2); stroke: var(--hairline); }
 .graph .enode text { fill: var(--ink); }
+.graph .enode .ref { fill: var(--accent); text-decoration: none; }
 .graph .enode.added rect { fill: var(--added); }
 .graph .enode.added text { fill: var(--added-ink); }
 .graph .edge { fill: none; stroke: var(--ink-2); stroke-width: 1; opacity: .75; }

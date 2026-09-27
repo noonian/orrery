@@ -42,6 +42,7 @@
       [:span [:span.swatch {:style {:background "var(--added-ink)"}}] "new class"]
       [:span [:span.swatch {:style {:background "var(--root)"}}] "the input's class"]
       (when (seq matches) [:span [:span.swatch {:style {:background "var(--match)"}}] "a rule matches here"])
+      [:span "a coloured id inside a node names a class, not a number"]
       [:span "click a class, or a #id, to open it in the bar above"]]
      [:table.classes
       [:thead [:tr [:th "class"] [:th "nodes"] (when normal? [:th "polynomial"]) [:th "best"] [:th "parents"]]]

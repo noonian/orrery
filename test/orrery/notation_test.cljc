@@ -59,3 +59,13 @@
   (is (= "#2^#2" (notation/enode->str [:expt 2 2])) "an e-node's exponent is a class, never a number")
   (is (= "sin #4" (notation/enode->str [:sin 4])))
   (is (= "#7" (notation/class-ref 7))))
+
+(deftest enode-parts-set-the-ids-apart
+  (is (= ["[" ":*" " " {:id 7 :text "7"} " " {:id 12 :text "12"} "]"] (notation/enode-parts [:* 7 12] :native)))
+  (is (= [{:id 7 :text "#7"} "·" {:id 12 :text "#12"}] (notation/enode-parts [:* 7 12] :notation)))
+  (is (= [":x"] (notation/enode-parts :x :native)))
+  (is (= ["2"] (notation/enode-parts 2 :notation)))
+  (doseq [node [[:* 7 12] [:expt 2 2] [:sin 4] [:D 3 1] [:neg 5] :x 2 [:+ 1 2 3]]]
+    (let [text (fn [mode] (apply str (map #(if (map? %) (:text %) %) (notation/enode-parts node mode))))]
+      (is (= (pr-str node) (text :native)) "the parts join to the native format")
+      (is (= (notation/enode->str node) (text :notation)) "the parts join to the notation"))))
