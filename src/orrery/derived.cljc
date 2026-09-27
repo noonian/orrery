@@ -135,6 +135,16 @@
       :conflict "a contradiction"
       nil)))
 
+(defn graph?
+  "Is the picture drawn? The learner's choice once the switch has
+  been touched, and the lesson's until then: off, unless its panels
+  ask for :graph, as the introduction's do."
+  [s]
+  (let [choice (get-in s [:ui :graph?])]
+    (if (some? choice)
+      choice
+      (contains? (:panels (lesson s)) :graph))))
+
 (defn graph-at
   "The picture of the e-graph at the current step (orrery.graph/layout):
   every class, or, with the filter on and a class opened, what that

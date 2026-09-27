@@ -7,7 +7,9 @@
   page shows. Prose is data so the JVM tests can walk it and the page
   can render it; there is no markdown. For \"surprise me\", the draw
   that makes a candidate and the features the lesson wants high
-  (orrery.generate, orrery.score)."
+  (orrery.generate, orrery.score). Before the lessons comes the
+  introduction, numbered 0 and shaped like one of them: what an
+  e-graph is and why, over one small run, and where the page opens."
   (:require [bendix.core :as bx]
             [bendix.rules :as rules]
             [clojure.walk :as walk]
@@ -36,6 +38,14 @@
     ["mul-0" [:* ?a 0] 0]
     ["mul-1" [:* ?a 1] ?a]])
 
+(def intro-rules
+  "The four rules of the example egg's paper opens with: one that
+  spoils (a·2)/2 for a rewriter, and three that take it to a."
+  '[["mul-2-to-shift" [:* ?x 2] [:<< ?x 1]]
+    ["regroup" [:/ [:* ?x ?y] ?z] [:* ?x [:/ ?y ?z]]]
+    ["cancel" [:/ ?x ?x] 1]
+    ["mul-1" [:* ?x 1] ?x]])
+
 (defn rules-of
   "Rule maps from [name lhs rhs] data; a rule that is already a map
   (bendix's normal-form rules) passes through."
@@ -57,12 +67,13 @@
   scrubs to step k; [:select t label] opens the class of t, and
   [:select t label k] scrubs to k first; [:cost key label] sets the
   cost; [:alternative label text] chooses one of the lesson's
-  alternatives; [:print mode label] switches the print mode; [:cite
-  key …] cites works of `reading` on the idea it follows, as short
-  author-year links. The prose is written in the explorable voice:
-  each paragraph says what is on the page and hands the reader one
-  of these to pull, and cites rather than recounts."
-  #{:notation :native :step :select :cost :alternative :print :cite})
+  alternatives; [:print mode label] switches the print mode; [:lesson
+  key label] goes to another lesson; [:cite key …] cites works of
+  `reading` on the idea it follows, as short author-year links. The
+  prose is written in the explorable voice: each paragraph says what
+  is on the page and hands the reader one of these to pull, and
+  cites rather than recounts."
+  #{:notation :native :step :select :cost :alternative :print :lesson :cite})
 
 (def reading
   "The works the prose cites, by key: who, what, where, the year, the
@@ -88,6 +99,8 @@
                :short "Tate et al. 2009" :url "https://doi.org/10.1145/1480881.1480915"}
    :willsey-2021 {:who "Max Willsey, Chandrakana Nandi, Yisu Remy Wang, Oliver Flatt, Zachary Tatlock and Pavel Panchekha" :what "egg: Fast and Extensible Equality Saturation" :where "POPL" :year 2021
                   :short "Willsey et al. 2021" :url "https://doi.org/10.1145/3434304"}
+   :panchekha-2015 {:who "Pavel Panchekha, Alex Sanchez-Stern, James Wilcox and Zachary Tatlock" :what "Automatically Improving Accuracy for Floating Point Expressions" :where "PLDI" :year 2015
+                    :short "Panchekha et al. 2015" :url "https://doi.org/10.1145/2737924.2737959"}
    :bachmair-2000 {:who "Leo Bachmair, Ashish Tiwari and Laurent Vigneron" :what "Congruence Closure Modulo Associativity and Commutativity" :where "FroCoS" :year 2000
                    :short "Bachmair, Tiwari & Vigneron 2000" :url "https://doi.org/10.1007/10720084_16"}
    :zucker-2025 {:who "Philip Zucker" :what "Omelets Need Onions: E-graphs Modulo Theories via Bottom-up E-matching" :where "arXiv 2504.14340" :year 2025
@@ -158,6 +171,27 @@
                  [(str "a copy, with " (notation/term->str lhs) " = " (notation/term->str rhs) " asserted; rebuild pending") g1]
                  ["the copy, after rebuild" g2]]
                 id)))
+
+;; ---------------------------------------------------------------------------
+;; the introduction
+
+(def intro
+  {:key :intro :n 0 :title "What is an e-graph?" :needs :cromulent :kind :embiggen
+   :inputs [term-input rules-input]
+   :values {:term [:/ [:* :a 2] 2] :rules intro-rules}
+   :opts {:scheduler :simple}
+   :costs [:ast-size]
+   :alternatives [{:label "(a·2)/2" :values {:term [:/ [:* :a 2] 2]}}
+                  {:label "what shifting first leaves: (a << 1)/2" :values {:term [:/ [:<< :a 1] 2]}}
+                  {:label "other numbers: (x·3)/3" :values {:term [:/ [:* :x 3] 3]}}
+                  {:label "twice over: ((a·2)/2·2)/2" :values {:term [:/ [:* [:/ [:* :a 2] 2] 2] 2]}}]
+   :panels #{:graph}
+   :prose
+   [[:p "A simplifier rewrites: it finds a pattern in a term and puts something better in its place. In " [:notation [:/ [:* :a 2] 2]] " the product is a shift, " [:notation [:<< :a 1]] ", which a machine prefers, and the twos cancel, which leaves " [:notation :a] ". A rewriter that shifts first holds " [:notation [:/ [:<< :a 1] 2]] " and can no longer cancel: " [:alternative "what shifting first leaves: (a << 1)/2" "start from there"] " and the same rules find nothing to do. No order of rules is right for every term: the phase-ordering problem" [:cite :tate-2009] "."]
+    [:p "An e-graph" [:cite :nelson-1981] " does not choose. " [:alternative "(a·2)/2" "Give it (a·2)/2"] ": each distinct subterm is a node, stored once, and nodes known to be equal share a class, a box in the picture. " [:step 0 "At the input"] " that is four classes of one node each. A rule does not replace what it matches, it adds to its class: " [:step 1 "after one iteration"] " the " [:select [:* :a 2] "class of a·2" 1] " holds the shift beside the product, and the product is still there for the next rule."]
+    [:p "Run the rules until none has anything to add: equality saturation" [:cite :tate-2009 :willsey-2021] ". " [:step 2 "The twos cancel"] "; " [:step 3 "a times one is a"] ", and the input's class and the class of " [:notation :a] " become one; " [:step 4 "a fourth iteration"] " finds nothing new. Nothing was thrown away, so the order the rules fired in never mattered. Choosing comes last: a cost function ranks the terms a class stands for, and extraction reads off the cheapest, here " [:notation :a] "."]
+    [:p "That is why e-graphs are interesting: rewriting without regret, the choice of an answer kept apart from the search for one, and many terms in few nodes. " [:select [:/ [:* :a 2] 2] "The input's class" 4] " stands for infinitely many, since " [:notation :a] " is " [:notation [:/ [:* :a 2] 2]] ", whose " [:notation :a] " is " [:notation [:/ [:* :a 2] 2]] ". E-graphs are at work in theorem provers" [:cite :detlefs-nelson-saxe-2005 :de-moura-bjorner-2007] ", optimizing compilers" [:cite :tate-2009] " and tools that make floating-point arithmetic more accurate" [:cite :panchekha-2015] "."]
+    [:p "The lessons take this page apart: " [:lesson :tree "a term as a tree"] ", " [:lesson :sharing "sharing"] ", " [:lesson :congruence "equality"] ", " [:lesson :rule "a rule"] ", " [:lesson :saturation "saturation"] " and " [:lesson :taste "the choice of an answer"] "; then " [:lesson :blowup "what holding everything costs"] ", " [:lesson :fix "the fix"] " and " [:lesson :polynomial-rule "a rule over it"] "; " [:lesson :what-if "a what-if"] "; and " [:lesson :differentiation "differentiation"] ". Everything below is the engine running, not a drawing of it: scrub the steps, click a box, change the term or the rules and run them."]]})
 
 ;; ---------------------------------------------------------------------------
 ;; the lessons
@@ -360,7 +394,8 @@
     [:p "Which term is the answer is the cost's decision. Bendix's default cost charges a derivative node no more than a sine, so for " [:alternative "sin(sin(sin x))" "sin(sin(sin x))"] " under " [:cost :bendix "bendix's default"] " it keeps the derivative unevaluated: the node is cheaper than the product of three cosines. The " [:cost :no-D "no-D cost"] " counts what is still under a derivative before it counts size, so a derivative-free spelling wins whenever one exists, and when none does, " [:alternative "x·|x|: no rule for abs" "x·|x|"] " say, the D stays and the answer says so."]]})
 
 (def all
-  [tree
+  [intro
+   tree
    sharing
    congruence
    rule
@@ -373,6 +408,17 @@
    differentiation])
 
 (defn by-key [k] (some (fn [l] (when (= k (:key l)) l)) all))
+
+(def start
+  "Where the page opens when the address names no lesson: the
+  introduction."
+  :intro)
+
+(defn heading
+  "What a lesson goes by, its number and its title; the introduction,
+  numbered 0, goes by its title alone."
+  [{:keys [n title]}]
+  (if (pos? n) (str n ". " title) title))
 
 (defn live?
   "Does the lesson run today?"

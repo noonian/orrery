@@ -210,7 +210,7 @@
       (round-trips? v))))
 
 (deftest every-draw-round-trips
-  (doseq [l lessons/all
+  (doseq [l lessons/all :when (:surprise l)   ; the introduction offers none
           seed (range 30)
           :let [values (generate/draw l (generate/stream seed) (:values l))]
           [k v] values]

@@ -83,6 +83,18 @@ example, and a "try another" that draws from the example bank
 Lessons 1 to 7 and 10 need cromulent only; 8, 9 and 11 need bendix,
 ported in phase 2. All eleven are live.
 
+Before them comes **the introduction**, *What is an e-graph?*
+(2026-09-26; section 12, decision 10), where the page opens: what an
+e-graph is and why it is interesting, in five short paragraphs over
+one run, the example egg's paper opens with. `(a·2)/2` under four
+rules: a rewriter that turns the product into a shift first is left
+with `(a << 1)/2` and nothing to cancel, which is an alternative the
+prose hands over; the e-graph keeps the shift beside the product,
+saturates in four iterations to four classes and eight nodes, and
+extraction reads off `a`. It is lesson data like the others,
+numbered 0 and headed by its title alone, with the picture drawn
+unasked and no "surprise me"; its last paragraph links every lesson.
+
 ## 3. What it shows
 
 The panels, each mapped to what exists:
@@ -103,6 +115,9 @@ The panels, each mapped to what exists:
   2026-09-26: it takes the room), switched on from the tools row
   under the replay bar and kept on across lessons; zoom in and out
   or fit the width, and a filter to what the opened class reaches.
+  The introduction alone draws it unasked, its e-graph being four to
+  six boxes and its prose pointing at them; the switch is the
+  learner's from the first touch, there as anywhere.
   Past a few dozen classes the picture is a wall, lesson 7's blowup
   on purpose, and the class list is primary. Why not the
   egraphs-good visualizer: section 9 and section 12, decision 9.
@@ -549,6 +564,27 @@ the one the page most wants to welcome. The other mode stays
    else on the JVM and Jolt; dagre (29 KB gzipped) is the fallback
    if it ever falls short, elkjs (470 KB) the one after. The exporter
    was wanted either way and is independent of the picture.
+10. **Where the page opens.** Decided 2026-09-26: on an
+    introduction. It opened on lesson 7, the blowup, arbitrarily,
+    and the Captain asked for a page that says succinctly what an
+    e-graph is and why it is interesting, to ground the reader
+    before the lessons. The introduction is
+    lesson data, not a page of another kind: a static page would have
+    been the one place where the picture is a cartoon, and as a
+    lesson it gets the widgets, the checks of every suite and the
+    instrument for nothing. Numbered 0, so `#0` names it and a hash
+    that names nothing falls to it (`lessons/start`);
+    `lessons/heading` prints it without the number. Its example is
+    the phase-ordering one, because it shows the reason for an
+    e-graph before the mechanism. Two things it does that a lesson
+    does not. It draws the picture unasked: `:graph` in its panels,
+    read by `derived/graph?` until the learner touches the switch
+    (`:graph?` is nil until then), so decision 9's default stands
+    everywhere else. And it offers no "surprise me": a reader being
+    grounded wants one example, and the draws are per lesson. One
+    widget came with it, `[:lesson key label]`, a link to a lesson.
+    Its own example is also its first alternative, so the prose can
+    bring the reader back from the dead end.
 
 ## Status
 
@@ -666,6 +702,24 @@ and both exports in the browser, the download read back and parsed.
 The suites are 55 tests and 25676 assertions on the JVM and Jolt, 65
 facts on node, 108 in the tile, 69 specs in the browser; the release
 bundle is 1.28 MB (319 KB gzipped), the picture and the export adding fifteen kilobytes.
+
+The introduction, 2026-09-26 (section 2; section 12, decision 10):
+`orrery.lessons/intro` with `intro-rules`, `start` and `heading`,
+first in `all`; the `:lesson` widget; Panchekha et al. 2015 in the
+reading list, for the sentence on where e-graphs are at work;
+`orrery.derived/graph?`, with `:graph?` in the atom nil until the
+switch is touched; its expectations in `orrery.expect`, the curated
+run and four alternatives. `lessons_test` checks that the page opens
+on it and that its prose links every lesson, `page_test` that the
+picture is the lesson's until the switch is touched; the three tests
+that draw skip a page with no "surprise me"; `intro.spec.js` drives
+it in the browser, the dead end and back, the steps, the classes,
+the picture here and not on a lesson, the links. Its prose is 341
+words, the longest page by a little, the lessons running 155 to 280.
+The suites are 58 tests and 26287 assertions on the JVM and Jolt, 66
+facts on node, 114 in the tile, 76 specs in the browser; the release
+bundle is 1.35 MB (328 KB gzipped), and the commit before it builds
+to the same 328 KB.
 
 Next: the later items of section 7, per-rule timings at scale and
 static deployment.

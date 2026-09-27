@@ -40,7 +40,7 @@
     (is (= 0.0 (score/score {} fs)))))
 
 (deftest every-lesson-has-a-bank
-  (doseq [l lessons/all]
+  (doseq [l lessons/all :when (:surprise l)]   ; the introduction offers none
     (let [c (score/surprise l (:values l) {} 7)
           wants (get-in l [:surprise :wants])]
       (is (map? (:drawn c)) (:title l))

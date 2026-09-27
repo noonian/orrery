@@ -7,8 +7,9 @@
   row in the list and clicking it opens the class, as in the tree.
   The controls: zoom in and out or fit the width, and restrict the
   picture to what the opened class reaches. Off by default, since it
-  takes the room; the tools row above it turns it on and off.
-  Every handler is data over orrery.actions."
+  takes the room, except on the introduction, whose e-graph is small
+  and whose prose points at it; the tools row above it turns it on
+  and off. Every handler is data over orrery.actions."
   (:require [orrery.graph :as graph]
             [orrery.notation :as notation]))
 

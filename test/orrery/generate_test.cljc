@@ -34,7 +34,7 @@
       (is (every? #(= :+ (first %)) (filter vector? (tree-seq vector? rest t)))))))
 
 (deftest every-draw-is-a-term-the-page-takes
-  (doseq [l lessons/all
+  (doseq [l lessons/all :when (:surprise l)   ; the introduction offers none
           seed (range 30)
           :let [values (generate/draw l (generate/stream seed) (:values l))]
           [k v] values]

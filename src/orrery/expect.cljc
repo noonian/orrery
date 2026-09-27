@@ -18,7 +18,22 @@
 (def runs
   "By lesson key, then by alternative label (nil for the curated
   example): the keys of `observe` that must match."
-  {:tree
+  {:intro
+   {nil {:steps 5 :iterations 4 :stop-reason :saturated :classes-per-step [4 6 5 4 4] :classes 4 :nodes 8
+         :nodes-per-iteration [8 8 8 8]
+         :applied-per-iteration [{"mul-2-to-shift" 1 "regroup" 1 "cancel" 0 "mul-1" 0}
+                                 {"mul-2-to-shift" 0 "regroup" 0 "cancel" 1 "mul-1" 0}
+                                 {"mul-2-to-shift" 0 "regroup" 0 "cancel" 0 "mul-1" 1}
+                                 {"mul-2-to-shift" 0 "regroup" 0 "cancel" 0 "mul-1" 0}]
+         :best-cost 1 :best-terms {:ast-size :a}}
+    "(a·2)/2" {:iterations 4 :stop-reason :saturated :classes 4 :nodes 8 :best-terms {:ast-size :a}}
+    "what shifting first leaves: (a << 1)/2" {:iterations 1 :stop-reason :saturated :classes-per-step [5 5] :classes 5 :nodes 5
+                                              :applied-per-iteration [{"mul-2-to-shift" 0 "regroup" 0 "cancel" 0 "mul-1" 0}]
+                                              :best-cost 5 :best-terms {:ast-size [:/ [:<< :a 1] 2]}}
+    "other numbers: (x·3)/3" {:iterations 4 :stop-reason :saturated :classes 4 :nodes 7 :best-terms {:ast-size :x}}
+    "twice over: ((a·2)/2·2)/2" {:iterations 4 :stop-reason :saturated :classes-per-step [6 8 7 4 4] :classes 4 :nodes 8
+                                 :best-terms {:ast-size :a}}}
+   :tree
    {nil {:steps 1 :classes 5 :nodes 5 :tree-nodes 5}
     "(x + 1)·(y − 2)" {:classes 7 :nodes 7 :tree-nodes 7}
     "sin(2·x)" {:classes 4 :nodes 4 :tree-nodes 4}
@@ -141,7 +156,7 @@
                values (if alt (merge (:values lesson) (:values alt)) (:values lesson))
                run (run/run-all (lessons/make-run lesson values (or (:opts alt) {})))
                actual (narrow expected (observe lesson values run))]]
-     {:name (str (:n lesson) ". " (:title lesson) (when label (str " · " label)))
+     {:name (str (lessons/heading lesson) (when label (str " · " label)))
       :expected expected :actual actual :ok? (= expected actual)})))
 
 (defn notation-checks

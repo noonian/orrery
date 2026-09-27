@@ -20,7 +20,7 @@
             [orrery.score :as score]))
 
 (defonce app-state
-  (atom {:lesson :blowup
+  (atom {:lesson lessons/start
          :input {:fields {} :values {} :error nil :alternative nil :opts {}}
          :run nil
          :run-id 0
@@ -29,7 +29,8 @@
          :cost :ast-size
          :repl {:input "" :history []}
          :ui {:print :notation :playing nil :selected nil :hover nil :drawing? false
-              :graph? false :graph-filter? false :graph-zoom nil :export-status nil}}))
+              ;; :graph? is nil until the switch is touched: the lesson decides (derived/graph?)
+              :graph? nil :graph-filter? false :graph-zoom nil :export-status nil}}))
 
 (def lesson derived/lesson)
 
@@ -238,7 +239,11 @@
 ;; ---------------------------------------------------------------------------
 ;; the graph picture and the export
 
-(defn toggle-graph! [] (swap! app-state update-in [:ui :graph?] not))
+(defn toggle-graph!
+  "Draw the picture or hide it; from here on the choice is the
+  learner's, on every lesson."
+  []
+  (swap! app-state (fn [s] (assoc-in s [:ui :graph?] (not (derived/graph? s))))))
 
 (defn toggle-graph-filter! [] (swap! app-state update-in [:ui :graph-filter?] not))
 

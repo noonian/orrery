@@ -18,7 +18,7 @@
   (let [h (subs (or js/location.hash "") 1)
         n (js/parseInt h 10)]
     (or (some (fn [l] (when (and (= n (:n l)) (lessons/live? l)) (:key l))) lessons/all)
-        :blowup)))
+        lessons/start)))
 
 (defn ^:dev/after-load reload! [] (render!))
 

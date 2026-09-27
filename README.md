@@ -2,8 +2,9 @@
 
 An e-graph explorer for understanding, named for the clockwork model
 of the planets you turn by hand to see how the system moves: watch
-cromulent and bendix work, step by step, in the browser. Eleven
-lessons from "a term is a tree" to "differentiation is
+cromulent and bendix work, step by step, in the browser. An
+introduction, what an e-graph is and why it is interesting, and
+eleven lessons from "a term is a tree" to "differentiation is
 simplification", each a real execution you can scrub forwards and
 backwards, with a REPL underneath.
 
@@ -45,6 +46,13 @@ The page's self-test tile runs them on load.
 
 ## Lessons
 
+The page opens on the introduction, *What is an e-graph?*: the
+rewriter's dilemma over `(a·2)/2`, where shifting first loses the
+cancellation; the e-graph that keeps both forms; saturation, and the
+choice of `a` at the end; why that is interesting and where it is
+used; and a link to every lesson. It is a live run like the lessons,
+at `#0` or with no hash at all, with the picture of the graph drawn.
+
 1. A term is a tree
 2. Sharing
 3. Equality and congruence
@@ -84,7 +92,9 @@ the class it points at, layered with the leaves at the bottom, the
 same marks as the list, and the polynomial in the box on the bendix
 lessons; hover a box to light its row, click it to open the class,
 zoom or fit the width, or draw only what the opened class reaches.
-It is off by default because it takes the room. The same row copies
+It is off by default because it takes the room, except on the
+introduction, and once you touch the switch the choice is yours on
+every page. The same row copies
 or downloads the step as egraph-serialize JSON, the format egg's and
 egglog's tools read, every node costed under the cost in force.
 

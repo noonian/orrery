@@ -62,6 +62,25 @@
     (when graph?
       (is (some #(= [:tree/open (derived/root-at s)] %) hs) (str where ": the graph draws the input's class")))))
 
+(deftest the-picture-is-the-lessons-until-the-switch-is-touched
+  (let [zoom? (fn [l choice]
+                (let [run (run/run-all (lessons/make-run l))
+                      _ (derived/clear-cache!)
+                      s (assoc-in (state-for l run (run/last-step run)) [:ui :graph?] choice)]
+                  (boolean (some #(= [:graph/zoom :fit] %) (handlers (page/page s))))))]
+    (is (zoom? lessons/intro nil) "the introduction draws its picture unasked")
+    (is (not (zoom? lessons/intro false)) "and hides it when told to")
+    (is (not (zoom? lessons/sharing nil)) "a lesson does not")
+    (is (zoom? lessons/sharing true) "until it is asked")))
+
+(deftest the-prose-links-the-lessons
+  (let [l lessons/intro
+        run (run/run-all (lessons/make-run l))
+        _ (derived/clear-cache!)
+        h (page/page (state-for l run (run/last-step run)))
+        hrefs (set (keep :href (filter map? (tree-seq coll? seq h))))]
+    (is (every? hrefs (map #(str "#" %) (range 12))))))
+
 (deftest the-repl-panel-builds-with-a-history
   (let [l lessons/tree
         run (run/run-all (lessons/make-run l))

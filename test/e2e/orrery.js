@@ -3,9 +3,9 @@
 import { expect } from '@playwright/test';
 
 // Lesson number → the key the page reports, so opening /#n also
-// proves the hash landed on the right lesson.
+// proves the hash landed on the right lesson; 0 is the introduction.
 export const keys = {
-  1: 'tree', 2: 'sharing', 3: 'congruence', 4: 'rule',
+  0: 'intro', 1: 'tree', 2: 'sharing', 3: 'congruence', 4: 'rule',
   5: 'saturation', 6: 'taste', 7: 'blowup', 8: 'fix',
   9: 'polynomial-rule', 10: 'what-if', 11: 'differentiation',
 };

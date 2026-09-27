@@ -37,6 +37,9 @@
       :cost (is (contains? costs a) (where w))
       :alternative (is (contains? labels a) (where w))
       :print (is (contains? #{:native :notation} a) (where w))
+      :lesson (do (is (string? b) (where w))
+                  (is (some-> (lessons/by-key a) lessons/live?) (where w))
+                  (is (not= a (:key l)) (where w)))
       :cite (do (is (seq (rest w)) (where w))
                 (is (every? #(contains? lessons/reading %) (rest w)) (where w)))))
   (is (seq (lessons/widgets lessons/tree))))
@@ -51,6 +54,17 @@
     (is (every? work [:who :what :where :year :short]) (str k))
     (when-let [url (:url work)]
       (is (re-find #"^https://" url) (str k)))))
+
+(deftest the-page-opens-on-the-introduction
+  (let [l (lessons/by-key lessons/start)]
+    (is (= lessons/intro l (first lessons/all)))
+    (is (lessons/live? l))
+    (is (= "What is an e-graph?" (lessons/heading l)) "the introduction goes by its title alone")
+    (is (= "7. The blowup" (lessons/heading lessons/blowup)))
+    (is (= (range 12) (sort (map :n lessons/all))) "the introduction is 0, the lessons 1 to 11")
+    (is (= (set (map :key (rest lessons/all)))
+           (set (map second (filter #(= :lesson (first %)) (lessons/widgets l)))))
+        "its prose links every lesson")))
 
 (deftest stepping-is-one-run
   (let [stepped (run/run-all (lessons/make-run lessons/blowup))

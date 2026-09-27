@@ -39,10 +39,10 @@
   "Lesson prose with its widgets resolved (orrery.lessons/widget-kinds):
   a term in either spelling, links that scrub to a step, open the
   class of a term (at a step, if one is named), set a cost, choose an
-  alternative or switch the print mode, and citations as superscript
-  author-year links to the papers. A class link whose term the
-  e-graph on show does not hold, because the input was edited, is
-  plain text."
+  alternative, switch the print mode or go to another lesson, and
+  citations as superscript author-year links to the papers. A class
+  link whose term the e-graph on show does not hold, because the
+  input was edited, is plain text."
   [s x]
   (cond
     (and (vector? x) (contains? lessons/widget-kinds (first x)))
@@ -57,6 +57,7 @@
         :cost (act :cost [:cost a] b)
         :alternative (act :alternative [:alternative a] b)
         :print (act :print [:print a] b)
+        :lesson [:a {:href (str "#" (:n (lessons/by-key a)))} b]
         :cite (into [:sup.cite] (interpose ", " (for [k (rest x)] (work-link k (:short (get lessons/reading k))))))))
     (vector? x) (into [(first x)] (map #(prose s %) (rest x)))
     :else x))
@@ -77,8 +78,8 @@
            (if (lessons/live? l)
              [:a {:href (str "#" (:n l))
                   :class (when (= current (:key l)) "current")}
-              (str (:n l) ". " (:title l))]
-             [:span.coming (str (:n l) ". " (:title l) " · coming")])])))
+              (lessons/heading l)]
+             [:span.coming (str (lessons/heading l) " · coming")])])))
 
 (defn- input-area [s l]
   (let [{:keys [fields error alternative drawn]} (:input s)
@@ -151,7 +152,7 @@
   "The row under the replay bar: the graph picture's switch, and the
   e-graph on show as egraph-serialize JSON, copied or downloaded."
   [s]
-  (let [graph? (get-in s [:ui :graph?])]
+  (let [graph? (derived/graph? s)]
     [:div.tools {:id "tools"}
      [:button {:id "graph-toggle" :class (when graph? "current") :on {:click [:graph/toggle]}}
       (if graph? "hide the graph" "draw the graph")]
@@ -164,7 +165,7 @@
        [:span.status {:id "export-status"} m])]))
 
 (defn- graph-panel [s matches]
-  (when (get-in s [:ui :graph?])
+  (when (derived/graph? s)
     (let [selected (get-in s [:ui :selected])]
       (graph/graph-view {:layout (derived/graph-at s)
                          :root (derived/root-at s)
@@ -222,7 +223,7 @@
      (nav (:key l))
      (when l
        [:section.lesson
-        [:h2 (str (:n l) ". " (:title l))]
+        [:h2 (lessons/heading l)]
         (into [:div.prose] (map #(prose s %) (:prose l)))
         (reading-view l)
         (when (and r g)
