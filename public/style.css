@@ -81,6 +81,16 @@ textarea, input[type=text] {
 .lesson-nav a.current { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 .lesson-nav span.coming { color: var(--muted); border-style: dashed; }
 
+/* what the site is: over the page it opens on, and in a line under every page */
+.about { max-width: 720px; margin: 0 0 20px; padding: 10px 14px; border-left: 3px solid var(--accent); border-radius: 0 8px 8px 0; background: var(--surface); font-size: 15px; color: var(--ink-2); }
+.about .label { display: block; margin-bottom: 4px; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
+.about p { margin: 0 0 6px; }
+.about p:last-child { margin: 0; }
+.about b { color: var(--ink); }
+.colophon { margin: 24px 0 0; padding-top: 10px; border-top: 1px solid var(--hairline); font-size: 13px; color: var(--muted); }
+.colophon p { margin: 0; max-width: 720px; }
+.colophon a { color: inherit; }
+
 .lesson h2 { font-size: 24px; margin: 0 0 8px; }
 .lesson h2 small { color: var(--muted); font-weight: normal; font-size: 15px; margin-left: 8px; }
 .prose { max-width: 720px; }
@@ -101,6 +111,21 @@ sup.cite a:hover { text-decoration: underline; }
 @media (min-width: 900px) { .workbench { grid-template-columns: 340px minmax(0, 1fr); } }
 .panel { background: var(--surface); border: 1px solid var(--hairline); border-radius: 10px; padding: 12px 14px; overflow-x: auto; } /* the background always holds its content: what is wider than the panel scrolls inside it */
 .panel h3 { margin: 0 0 8px; font-size: 14px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600; }
+
+/* a panel's heading with what it is the work of beside it; the operation over the fields that are its arguments */
+.panel-head { display: flex; align-items: baseline; gap: 10px; margin: 0 0 8px; }
+.panel-head h3 { margin: 0; }
+.panel-head .of { margin-left: auto; font-size: 13px; color: var(--muted); white-space: nowrap; }
+.says { font-size: 14px; line-height: 1.4; color: var(--ink-2); margin: 0 0 6px; }
+.says code { font-size: 13px; }
+pre.call { font-family: var(--mono); font-size: 13px; line-height: 1.5; background: var(--surface-2); border-radius: 6px; padding: 6px 8px; margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.operation { margin: 0 0 12px; padding: 0 0 12px; border-bottom: 1px solid var(--hairline); }
+.operation .panel-head h3 { color: var(--ink); }
+.arg { font-family: var(--mono); font-size: 14px; font-weight: 600; color: var(--ink); }
+.field h3 { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; text-transform: none; letter-spacing: 0; }
+.field h3 .says { margin: 0; font-size: 13px; font-weight: normal; color: var(--muted); }
+.best .says { margin: 6px 0; font-size: 13px; color: var(--muted); }
+.best .cost-picker .arg { margin-right: 2px; }
 
 .input-area .row { display: flex; gap: 8px; align-items: center; margin-top: 8px; flex-wrap: wrap; }
 .input-area .error { color: var(--bad); font-size: 15px; margin-top: 6px; }

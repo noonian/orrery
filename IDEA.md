@@ -83,21 +83,58 @@ example, and a "try another" that draws from the example bank
 Lessons 1 to 7 and 10 need cromulent only; 8, 9 and 11 need bendix,
 ported in phase 2. All eleven are live.
 
-Before them comes **the introduction**, *What is an e-graph?*
-(2026-09-26; section 12, decision 10), where the page opens: what an
-e-graph is and why it is interesting, in five short paragraphs over
-one run, the example egg's paper opens with. `(a·2)/2` under four
+Before them come two pages (2026-09-26; section 12, decisions 10
+and 11), lesson data like the others but without a number, headed by
+their titles alone and addressed by their keys, `#basics` and
+`#intro`, each with the picture drawn unasked and no "surprise me".
+
+**The basics**, *Many ways to write one thing*, "Start here" in the
+navigation, is where the page opens. It is for a reader who does not
+know what rewriting or simplifying is and has no identity by heart,
+who may write code or may only like such things: six, half a dozen
+and 2·3 are one number; `(x + 0)·1` is a long way to write `x`; a
+rule is a shape and another shape that always means the same, and
+the two it uses, adding nothing and times one, can be checked with a
+number in hand; simplifying is finding a shorter way to write
+something; an e-graph crosses nothing out, collects every way the
+rules turn up and keeps the ways that mean the same in one box; and
+at the end it chooses the shortest. The run is two iterations, five
+classes becoming three, and its prose does without the words "term",
+"node", "rewriting", "congruence" and "extraction". Its last link is
+the introduction.
+
+**The introduction**, *What is an e-graph?*, is the next page: what
+an e-graph is and why it is interesting, in five short paragraphs
+over one run, the example egg's paper opens with. `(a·2)/2` under four
 rules: a rewriter that turns the product into a shift first is left
 with `(a << 1)/2` and nothing to cancel, which is an alternative the
 prose hands over; the e-graph keeps the shift beside the product,
 saturates in four iterations to four classes and eight nodes, and
-extraction reads off `a`. It is lesson data like the others,
-numbered 0 and headed by its title alone, with the picture drawn
-unasked and no "surprise me"; its last paragraph links every lesson.
+extraction reads off `a`. Its last paragraph links every lesson.
 
 ## 3. What it shows
 
 The panels, each mapped to what exists:
+
+- **What each panel is the work of** (2026-09-26; section 12,
+  decision 12). The inputs sit under the operation they are the
+  arguments of (`orrery.lessons/operations`, a lesson naming one):
+  the algorithm in a word, add, union then rebuild, union in a copy,
+  saturate, simplify, differentiate; the function that is it, as the
+  REPL under the page names it, `eg/add`, `eg/union · eg/rebuild`,
+  `rw/saturate`, `bx/simplify`, `bx/differentiate`; what it does in
+  a sentence; and the call (`lessons/call`), its arguments named as
+  the fields are and the runner options in force written out one to
+  a line, the lesson's under the alternative's. A field is headed by
+  its argument's name and what that is, `term` the expression to
+  start from, where it used to say "the term"; a problem still
+  names the field in words. Beside the heading of every other panel
+  is the function or the value it shows: the run its operation, or
+  "from the REPL" for a run adopted there; best so far `ex/extract`,
+  with the call and its three arguments said under the term, and the
+  cost picker headed `cost`; the class list `g at this step`, and in
+  lesson 10's fork `(first timeline)` beside it; the iterations
+  `:stats`; the matches `pat/ematch`; the tree `term`.
 
 - **The graph** (2026-09-26). Classes as boxes, nodes inside, an
   edge from each node's child slot to the class it points at, drawn
@@ -115,9 +152,10 @@ The panels, each mapped to what exists:
   2026-09-26: it takes the room), switched on from the tools row
   under the replay bar and kept on across lessons; zoom in and out
   or fit the width, and a filter to what the opened class reaches.
-  The introduction alone draws it unasked, its e-graph being four to
-  six boxes and its prose pointing at them; the switch is the
-  learner's from the first touch, there as anywhere.
+  The two pages before the lessons alone draw it unasked, their
+  e-graphs being three to six boxes and their prose pointing at
+  them; the switch is the learner's from the first touch, there as
+  anywhere.
   Past a few dozen classes the picture is a wall, lesson 7's blowup
   on purpose, and the class list is primary. Why not the
   egraphs-good visualizer: section 9 and section 12, decision 9.
@@ -572,9 +610,10 @@ the one the page most wants to welcome. The other mode stays
     lesson data, not a page of another kind: a static page would have
     been the one place where the picture is a cartoon, and as a
     lesson it gets the widgets, the checks of every suite and the
-    instrument for nothing. Numbered 0, so `#0` names it and a hash
-    that names nothing falls to it (`lessons/start`);
-    `lessons/heading` prints it without the number. Its example is
+    instrument for nothing. It has no number (it was 0 for a few
+    hours, until decision 11 put a page before it): `#intro` names
+    it, by `lessons/address`, and `lessons/heading` prints its title
+    alone. Its example is
     the phase-ordering one, because it shows the reason for an
     e-graph before the mechanism. Two things it does that a lesson
     does not. It draws the picture unasked: `:graph` in its panels,
@@ -585,6 +624,68 @@ the one the page most wants to welcome. The other mode stays
     widget came with it, `[:lesson key label]`, a link to a lesson.
     Its own example is also its first alternative, so the prose can
     bring the reader back from the dead end.
+11. **A page more basic than the introduction, and the page opens
+    there.** Decided 2026-09-26. The Captain, on the introduction:
+    a good start, but it assumes a reader who knows what rewriting
+    and simplifying are; there should be another for one who does
+    not, who knows no identity off the top of their head, who may
+    write code or may just like nerdy things, and the introduction
+    stays. So the basics come first and the introduction second, and
+    `lessons/start` is the basics: a reader who knows more is one
+    click from the next page, and a reader who knows less has
+    nowhere else to begin. What it may assume is that a letter can
+    stand for a number. Its rules are the two anyone can check with
+    a number in hand; its words are the reader's, a way of writing,
+    a box, crossing out, with "class", "rule", "simplifying" and
+    "saturating" each introduced where the page shows the thing; it
+    says that `#3` points at a box, since every panel writes nodes
+    that way, and why the opened box claims infinitely many, since
+    the panel will say so. It does not say why collecting beats
+    crossing out: that is the introduction's example, and its last
+    link. The navigation calls it "Start here" (`:nav`), its heading
+    says what it is about. Two pages without numbers wanted
+    addresses, so a lesson's address is its number or, without one,
+    its key (`lessons/address`, `by-address`), and a hash that names
+    nothing, `#0` now among them, falls to the basics.
+12. **What the panels are called.** Decided 2026-09-26. The Captain:
+    the panels want better labels, saying which algorithm or
+    function they belong to, simplify as against saturate, so that
+    the arguments have a context, where they said only "the term"
+    and "the rules". The inputs were never a form; they are the
+    arguments of a call, and the page now says which (section 3).
+    The words come first and the function second, because the first
+    reader is the basics' and the second is the one who will type
+    the call at the REPL. The call is schematic, not text to paste:
+    at the REPL `term` and `rules` are namespaces, and a rule is a
+    map; what it promises is the function, the order of its
+    arguments and the options in force. The page does not call
+    `rw/saturate` or `bx/simplify`, it steps what they are made of,
+    `start`, `step` and `finish`, and for bendix the e-graph, the
+    runner, `materialize-all` and the extraction, so the label names
+    the function whose run it is, which section 12's decision 6
+    made the same run. The options shown are the lesson's under the
+    alternative's, not the page's defaults: every lesson names its
+    scheduler, the one default of `rw/saturate` the page does not
+    share.
+13. **The site says what it is, and how it was written.** Decided
+    2026-09-26. The Captain: before the prose starts linking into
+    the running widgets, the site has to say what it is, an
+    interactive tool for exploration and education, the author's
+    education included, that embeds an immutable persistent e-graph
+    library and a nascent CAS with interactive widgets for
+    understanding their behaviour; and it has to be clear that it is
+    largely written using LLMs. So `orrery.lessons/about`, three
+    short paragraphs with nothing in them to pull, stands over the
+    heading of the page the site opens on (`views.lesson/about-view`,
+    on `lessons/start` only), and `lessons/colophon` says the same
+    in a line under every page, with a link back, because a reader
+    who arrives at a lesson by its address would otherwise never be
+    told. The sentence about LLMs is the Captain's, about orrery, and
+    stands alone as its own paragraph; it claims nothing about how
+    cromulent and bendix were written. The statement names the two
+    libraries without linking them, since neither has a public
+    address yet. Its last line hands the reader who knew none of its
+    words to the basics under it.
 
 ## Status
 
@@ -720,6 +821,38 @@ The suites are 58 tests and 26287 assertions on the JVM and Jolt, 66
 facts on node, 114 in the tile, 76 specs in the browser; the release
 bundle is 1.35 MB (328 KB gzipped), and the commit before it builds
 to the same 328 KB.
+
+The basics and the labels, 2026-09-26 (section 2; section 3;
+section 12, decisions 11 and 12): `orrery.lessons/basics` with
+`basics-rules`, first in `all` and the page's `start`; the
+introduction without its number; `nav-label`, `address` and
+`by-address`, with `orrery.app` reading the hash through them;
+`operations`, `operation` and `call`, an `:operation` on every
+lesson, and every input with its `:arg`, its `:label` for a problem
+and its `:says`; `orrery.views.common/title`, the operation over the
+fields in `orrery.views.lesson`, and a run adopted from the REPL
+marked `:from :repl`. `lessons_test` checks the two pages and the
+addresses, that every lesson names what it runs, that every field's
+argument is in the call and that a line of the call fits the panel;
+`page_test` that every page in either print mode heads its inputs
+with the operation, its fields with their arguments and its panels
+with what they show; `basics.spec.js` and `labels.spec.js` drive
+both in the browser. The basics are 316 words. The suites are 60
+tests and 26953 assertions on the JVM and Jolt, 67 facts on node,
+120 in the tile, 86 specs in the browser; the release bundle is
+1.36 MB (332 KB gzipped).
+
+What the site is, 2026-09-26 (section 12, decision 13):
+`orrery.lessons/about` and `colophon`, `about-view` and
+`colophon-view` in `orrery.views.lesson`. `lessons_test` checks that
+the statement says what the Captain asked it to say, the sentence
+about LLMs among it, and that nothing in it links into the widgets;
+`page_test` that it stands over the heading and the heading over the
+first link that does something, on the opening page only, and that
+every page carries the line; `about.spec.js` checks the same in the
+browser by where the elements are. The suites are 62 tests and 27009
+assertions on the JVM and Jolt, 67 facts on node, 120 in the tile,
+88 specs in the browser.
 
 Next: the later items of section 7, per-rule timings at scale and
 static deployment.

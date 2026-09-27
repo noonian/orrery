@@ -55,16 +55,93 @@
     (when-let [url (:url work)]
       (is (re-find #"^https://" url) (str k)))))
 
-(deftest the-page-opens-on-the-introduction
-  (let [l (lessons/by-key lessons/start)]
-    (is (= lessons/intro l (first lessons/all)))
+(defn- links [l] (map second (filter #(= :lesson (first %)) (lessons/widgets l))))
+
+(deftest the-page-opens-on-the-basics
+  (let [l (lessons/by-key lessons/start)
+        [before numbered] (split-with (comp nil? :n) lessons/all)]
+    (is (= [lessons/basics lessons/intro] before) "two pages before the lessons, the basics first")
+    (is (= lessons/basics l))
     (is (lessons/live? l))
-    (is (= "What is an e-graph?" (lessons/heading l)) "the introduction goes by its title alone")
-    (is (= "7. The blowup" (lessons/heading lessons/blowup)))
-    (is (= (range 12) (sort (map :n lessons/all))) "the introduction is 0, the lessons 1 to 11")
-    (is (= (set (map :key (rest lessons/all)))
-           (set (map second (filter #(= :lesson (first %)) (lessons/widgets l)))))
-        "its prose links every lesson")))
+    (is (= (range 1 12) (map :n numbered)) "the lessons are 1 to 11, in order")
+    (testing "a page before the lessons goes by its title alone, and by its key in the address"
+      (is (= "Many ways to write one thing" (lessons/heading l)))
+      (is (= "Start here" (lessons/nav-label l)))
+      (is (= "What is an e-graph?" (lessons/heading lessons/intro) (lessons/nav-label lessons/intro)))
+      (is (= "7. The blowup" (lessons/heading lessons/blowup) (lessons/nav-label lessons/blowup)))
+      (is (= ["basics" "intro" "1" "11"] (map lessons/address [l lessons/intro lessons/tree lessons/differentiation]))))
+    (testing "every address finds its lesson, and nothing else finds one"
+      (doseq [x lessons/all]
+        (is (= x (lessons/by-address (lessons/address x)))))
+      (is (apply distinct? (map lessons/address lessons/all)))
+      (is (every? nil? (map lessons/by-address ["" "0" "12" "nowhere"]))))
+    (is (= [:intro] (links l)) "the basics hand the reader to the introduction")
+    (is (= (set (map :key numbered)) (set (links lessons/intro))) "whose prose links every lesson")))
+
+(defn- said
+  "What hiccup says: its strings, in order."
+  [x]
+  (apply str (filter string? (tree-seq coll? seq x))))
+
+(deftest the-site-says-what-it-is
+  (let [text (said lessons/about)]
+    (is (every? #(and (vector? %) (= :p (first %))) lessons/about))
+    (is (empty? (lessons/widgets {:prose lessons/about})) "nothing in it links into the widgets")
+    (doseq [word ["interactive tool" "exploring" "learning" "author's" "cromulent" "bendix"
+                  "immutable, persistent" "nascent computer algebra system" "widgets"
+                  "largely written using LLMs"]]
+      (is (re-find (re-pattern word) text) word)))
+  (testing "and in a line under every page, with the way back"
+    (is (re-find #"largely written using LLMs" (said lessons/colophon)))
+    (is (= [[:lesson lessons/start "What this is"]] (lessons/widgets {:prose [lessons/colophon]})))))
+
+(deftest every-lesson-names-what-it-runs
+  (doseq [l lessons/all
+          :let [{:keys [name says call] f :fn} (lessons/operation l)
+                lines (lessons/call l {})
+                where (:title l)]]
+    (is (contains? lessons/operations (:operation l)) where)
+    (is (every? #(and (string? %) (seq %)) [name f says]) where)
+    (is (seq call) where)
+    (is (<= (count call) (count lines)) where)
+    (is (not-any? #(re-find #"opts" %) lines) (str where ": the options are written out"))
+    (is (every? #(<= (count %) 36) lines) (str where ": a line fits the panel"))
+    (testing "the fields are the call's arguments"
+      (doseq [{:keys [arg label says] :as input} (:inputs l)]
+        (is (every? #(and (string? %) (seq %)) [arg label says]) (str where " " (:key input)))
+        (is (string? (lessons/input-says input :notation)) where)
+        (is (some #(re-find (re-pattern (str "(^|[ (\\[])" arg "($|[ ),\\]])")) %) lines)
+            (str where ": " arg " is an argument of " (pr-str lines)))))
+    (is (apply distinct? (map :arg (:inputs l))) where))
+  (testing "the options in force are the lesson's under the alternative's"
+    (is (= ["(eg/add (eg/egraph) term)"
+            "(rw/saturate g rules"
+            "  {:scheduler :simple})"]
+           (lessons/call lessons/basics {})))
+    (is (= ["(eg/add (eg/egraph) term)"
+            "(rw/saturate g rules"
+            "  {:scheduler :backoff"
+            "   :match-limit 4"
+            "   :ban-length 2"
+            "   :iter-limit 30})"]
+           (lessons/call lessons/saturation {})))
+    (is (= ["  {:scheduler :simple" "   :match-limit 4" "   :ban-length 2" "   :iter-limit 30" "   :node-limit 100})"]
+           (subvec (lessons/call lessons/saturation {:scheduler :simple :node-limit 100}) 2)))
+    (is (= ["(bx/simplify term"
+            "  {:rules rules"
+            "   :cost cost"
+            "   :scheduler :simple"
+            "   :iter-limit 12"
+            "   :node-limit 5000})"]
+           (lessons/call lessons/fix {})))
+    (is (= ["(bx/simplify term" "  {:rules rules/trig" "   :cost cost" "   :scheduler :simple})"]
+           (lessons/call lessons/polynomial-rule {})))
+    (is (= ["(bx/differentiate term x" "  {:scheduler :simple})"]
+           (lessons/call lessons/differentiation {})))
+    (is (= ["(eg/add (eg/egraph) term)"] (lessons/call lessons/tree {})))
+    (is (= ["(rw/saturate g rules" "  {})"]
+           (rest (lessons/call (dissoc lessons/basics :opts) {})))
+        "no options, an empty map")))
 
 (deftest stepping-is-one-run
   (let [stepped (run/run-all (lessons/make-run lessons/blowup))

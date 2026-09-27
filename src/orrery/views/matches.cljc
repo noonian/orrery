@@ -1,11 +1,12 @@
 (ns orrery.views.matches
   "The matches of each pattern rule in the e-graph on show: the class
   and the bindings, which the next iteration will apply."
-  (:require [orrery.notation :as notation]))
+  (:require [orrery.notation :as notation]
+            [orrery.views.common :as common]))
 
 (defn matches-panel [{:keys [matches]}]
   [:div.panel.matches {:id "matches"}
-   [:h3 "matches in this step"]
+   (common/title "matches in this step" "pat/ematch")
    (if (every? (comp empty? :matches) matches)
      [:p.hint "no rule matches anything here"]
      (into [:div]

@@ -7,11 +7,16 @@
   page shows. Prose is data so the JVM tests can walk it and the page
   can render it; there is no markdown. For \"surprise me\", the draw
   that makes a candidate and the features the lesson wants high
-  (orrery.generate, orrery.score). Before the lessons comes the
-  introduction, numbered 0 and shaped like one of them: what an
-  e-graph is and why, over one small run, and where the page opens."
+  (orrery.generate, orrery.score). Each names its operation, what
+  its workbench runs (`operations`), and its inputs are that
+  operation's arguments. Before the lessons come two pages shaped
+  like them and without a number: the basics, from nothing, where
+  the page opens, and the introduction, what an e-graph is and why.
+  Before those, `about`: what the site is, said once, over the page
+  it opens on, and in a line under every page (`colophon`)."
   (:require [bendix.core :as bx]
             [bendix.rules :as rules]
+            [clojure.string :as str]
             [clojure.walk :as walk]
             [cromulent.core :as eg]
             [cromulent.rewrite :as rw]
@@ -38,6 +43,11 @@
     ["mul-0" [:* ?a 0] 0]
     ["mul-1" [:* ?a 1] ?a]])
 
+(def basics-rules
+  "Two facts anyone can check with a number in hand."
+  '[["add-0" [:+ ?a 0] ?a]
+    ["mul-1" [:* ?a 1] ?a]])
+
 (def intro-rules
   "The four rules of the example egg's paper opens with: one that
   spoils (a·2)/2 for a rewriter, and three that take it to a."
@@ -52,14 +62,98 @@
   [rule-data]
   (mapv (fn [r] (if (map? r) r (let [[n lhs rhs] r] (rw/rule n lhs rhs)))) rule-data))
 
-(def term-input {:key :term :label "the term" :type :term})
-(def rules-input {:key :rules :label "the rules, as [name pattern replacement]"
-                  :notation-label "the rules, one per line, as name: pattern → replacement" :type :rules})
+(def term-input
+  {:key :term :arg "term" :label "the term" :says "the expression to start from" :type :term})
+
+(def rules-input
+  {:key :rules :arg "rules" :label "the rules" :type :rules
+   :says "what may be written as what, as [name pattern replacement]"
+   :notation-says "what may be written as what, one per line as name: pattern → replacement"})
 
 (defn input-label
-  "An input's heading in the print mode in force."
-  [{:keys [label notation-label]} mode]
-  (if (and (= :notation mode) notation-label) notation-label label))
+  "What an input goes by in a sentence, a problem with it, say."
+  [input]
+  (:label input))
+
+(defn input-says
+  "What an input is, in the print mode in force: the words beside its
+  argument's name over the field."
+  [{:keys [says notation-says]} mode]
+  (if (and (= :notation mode) notation-says) notation-says says))
+
+(def operations
+  "What a workbench runs, by key: the algorithm in a word; the
+  function that is it, as the REPL under the page names it; what it
+  does, in a sentence; and the call, in lines narrow enough for the
+  panel, its arguments named as the fields over them are, g being
+  the e-graph and opts standing for the runner options in force
+  (`call`). The page steps the same functions one iteration or one
+  call at a time, so that there is something to scrub."
+  {:add
+   {:name "add" :fn "eg/add"
+    :says "Put the term into an empty e-graph, subterms first, each distinct subterm once."
+    :call ["(eg/add (eg/egraph) term)"]}
+   :union
+   {:name "union, then rebuild" :fn "eg/union · eg/rebuild"
+    :says "Add the wrapper over each side, say that the two sides are equal, and let rebuild find what follows from it."
+    :call ["(eg/add g wrapper)  ; for each side"
+           "(eg/union g lhs rhs)"
+           "(eg/rebuild g)"]}
+   :what-if
+   {:name "union, in a copy" :fn "eg/union · eg/rebuild"
+    :says "Add the term; then, in a copy of the e-graph, say that lhs equals rhs, and rebuild. The original is a value and does not change."
+    :call ["(eg/add (eg/egraph) term)"
+           "(eg/union g lhs rhs)"
+           "(eg/rebuild g)"]}
+   :saturate
+   {:name "saturate" :fn "rw/saturate"
+    :says "Add the term to an empty e-graph, g, and run every rule over it, again and again, until none adds anything or a limit stops the run."
+    :call ["(eg/add (eg/egraph) term)"
+           "(rw/saturate g rules"
+           "  {opts})"]}
+   :simplify
+   {:name "simplify" :fn "bx/simplify"
+    :says "Saturate the term under the rules in an e-graph whose classes each carry a polynomial, write every polynomial in as a term, and extract the cheapest term under the cost."
+    :call ["(bx/simplify term"
+           "  {:rules rules"
+           "   :cost cost"
+           "   opts})"]}
+   :differentiate
+   {:name "differentiate" :fn "bx/differentiate"
+    :says "Simplify the derivative of term by x, the term D(term, x), under the derivative rules and the cost that charges what is still under a D."
+    :call ["(bx/differentiate term x"
+           "  {opts})"]}})
+
+(defn operation
+  "What a lesson's workbench runs: the entry of `operations` it names,
+  under whatever of it the lesson says for itself."
+  [lesson]
+  (merge (get operations (:operation lesson)) (:operation-says lesson)))
+
+(def ^:private shown-opts
+  "The runner options a call shows, in this order."
+  [:scheduler :match-limit :ban-length :iter-limit :node-limit])
+
+(defn call
+  "The lines of a lesson's call under the runner options in force,
+  the lesson's under opts: the line that says opts becomes a line
+  per option, aligned under the first."
+  [lesson opts]
+  (let [opts (merge (:opts lesson) opts)
+        entries (vec (for [k shown-opts :when (contains? opts k)]
+                       (str k " " (pr-str (get opts k)))))
+        n (count entries)]
+    (vec (mapcat (fn [line]
+                   (if-let [[_ before after] (re-matches #"^(.*)opts(.*)$" line)]
+                     (if (zero? n)
+                       [(str before after)]
+                       (map-indexed (fn [i entry]
+                                      (str (if (zero? i) before (apply str (repeat (count before) " ")))
+                                           entry
+                                           (when (= i (dec n)) after)))
+                                    entries))
+                     [line]))
+                 (:call (operation lesson))))))
 
 (def widget-kinds
   "The vectors in prose that the page resolves rather than renders as
@@ -173,10 +267,45 @@
                 id)))
 
 ;; ---------------------------------------------------------------------------
-;; the introduction
+;; what the site is
+
+(def about
+  "What the site is, in prose with nothing to pull: it stands over
+  the page the site opens on, before any paragraph that links into
+  the running widgets."
+  [[:p [:b "orrery"] " is an interactive tool for exploring e-graphs and learning how they work, its author's learning included. It embeds two libraries and runs them live in this page: " [:b "cromulent"] ", an e-graph that is an immutable, persistent value, and " [:b "bendix"] ", a nascent computer algebra system built on it. The panels are widgets over what those libraries really compute, there to be scrubbed, opened and changed until the behaviour makes sense."]
+   [:p "It is largely written using LLMs."]])
+
+(def colophon
+  "The same in a line, under every page, with the way back to `about`."
+  [:p "orrery is an interactive tool for exploring e-graphs, over cromulent and bendix run live in the page, and is largely written using LLMs. " [:lesson :basics "What this is"] "."])
+
+;; ---------------------------------------------------------------------------
+;; the two pages before the lessons
+
+(def basics
+  {:key :basics :nav "Start here" :title "Many ways to write one thing" :needs :cromulent :kind :embiggen
+   :operation :saturate
+   :inputs [term-input rules-input]
+   :values {:term [:* [:+ :x 0] 1] :rules basics-rules}
+   :opts {:scheduler :simple}
+   :costs [:ast-size]
+   :alternatives [{:label "(x + 0)·1" :values {:term [:* [:+ :x 0] 1]}}
+                  {:label "nothing to do: x·y" :values {:term [:* :x :y]}}
+                  {:label "two letters: (x + 0)·(y·1)" :values {:term [:* [:+ :x 0] [:* :y 1]]}}
+                  {:label "twice as long: ((x + 0)·1 + 0)·1" :values {:term [:* [:+ [:* [:+ :x 0] 1] 0] 1]}}]
+   :panels #{:graph}
+   :prose
+   [[:p "Six, half a dozen and 2·3 are three ways to write one number. " [:notation [:* [:+ :x 0] 1]] " is a long way to write " [:notation :x] ", whatever number " [:notation :x] " is: adding nothing changes nothing, and one times anything is that thing. (The dot is times.)"]
+    [:p "A fact like that is a rule: a shape, and another shape that always means the same. " [:notation '[:+ ?a 0]] " → " [:notation '?a] " says that anything plus zero is the thing itself, " [:notation '?a] " standing for whatever is there; " [:notation '[:* ?a 1]] " → " [:notation '?a] " says the same of times one. Simplifying is using rules to find a shorter way to write something."]
+    [:p "The usual way is to cross out and write over, and the longer form is gone. An e-graph" [:cite :nelson-1981] " crosses nothing out. It collects every way of writing a thing that the rules turn up, and keeps the ways that mean the same together, in a class: a box in the picture."]
+    [:p [:step 0 "At the start"] " the five parts of the expression sit in five boxes, each written with pointers: # and a number is whatever that box holds. " [:step 1 "Run the rules once"] " and three boxes become one. " [:select [:* [:+ :x 0] 1] "Open it" 1] ": " [:notation :x] ", " [:notation [:+ :x 0]] " and " [:notation [:* [:+ :x 0] 1]] " are one thing written three ways, and more, since if " [:notation [:+ :x 0]] " is " [:notation :x] " then so is " [:notation [:+ [:+ :x 0] 0]] ", without end."]
+    [:p "Running the rules until they turn up nothing new is saturating" [:cite :tate-2009] "; here " [:step 2 "the second pass"] " finds nothing. Then comes the choice: asked for the best way to write what it was given, the e-graph looks in that box and takes the shortest, " [:notation :x] ". Collect every way, keep the ways that mean the same together, choose one at the end: that is the whole idea."]
+    [:p [:alternative "nothing to do: x·y" "Give it x·y"] ", where no rule applies, and it comes back as it went in; " [:alternative "two letters: (x + 0)·(y·1)" "give it two letters"] "; " [:alternative "(x + 0)·1" "put (x + 0)·1 back"] ", or type an expression of your own and run it. " [:lesson :intro "The next page"] " shows what collecting buys that crossing out cannot."]]})
 
 (def intro
-  {:key :intro :n 0 :title "What is an e-graph?" :needs :cromulent :kind :embiggen
+  {:key :intro :title "What is an e-graph?" :needs :cromulent :kind :embiggen
+   :operation :saturate
    :inputs [term-input rules-input]
    :values {:term [:/ [:* :a 2] 2] :rules intro-rules}
    :opts {:scheduler :simple}
@@ -198,6 +327,7 @@
 
 (def tree
   {:key :tree :n 1 :title "A term is a tree" :needs :cromulent :kind :script
+   :operation :add
    :script tree-script
    :inputs [term-input]
    :values {:term [:+ [:* 2 :x] :y]}
@@ -213,6 +343,7 @@
 
 (def sharing
   {:key :sharing :n 2 :title "Sharing" :needs :cromulent :kind :script
+   :operation :add
    :script tree-script
    :inputs [term-input]
    :values {:term [:* [:+ :x 1] [:+ :x 1]]}
@@ -228,10 +359,11 @@
 
 (def congruence
   {:key :congruence :n 3 :title "Equality and congruence" :needs :cromulent :kind :script
+   :operation :union
    :script congruence-script
-   :inputs [{:key :lhs :label "one side" :type :term}
-            {:key :rhs :label "the other side" :type :term}
-            {:key :wrapper :label "a term over each side, ?x standing for the side" :type :pattern}]
+   :inputs [{:key :lhs :arg "lhs" :label "one side" :says "one side of the equation" :type :term}
+            {:key :rhs :arg "rhs" :label "the other side" :says "the other side" :type :term}
+            {:key :wrapper :arg "wrapper" :label "the term over each side" :says "a term over each side, ?x standing for the side" :type :pattern}]
    :values {:lhs [:* :a 2] :rhs [:<< :a 1] :wrapper '[:/ ?x 2]}
    :alternatives [{:label "x + 0 = x, under a sine" :values {:lhs [:+ :x 0] :rhs :x :wrapper '[:sin ?x]}}
                   {:label "deeper: (?x + 1)·(?x + 1)" :values {:lhs [:* :a 2] :rhs [:<< :a 1] :wrapper '[:* [:+ ?x 1] [:+ ?x 1]]}}]
@@ -244,6 +376,7 @@
 
 (def rule
   {:key :rule :n 4 :title "A rule" :needs :cromulent :kind :embiggen
+   :operation :saturate
    :inputs [term-input rules-input]
    :values {:term [:+ [:* :a 2] [:* :b 2]]
             :rules '[["mul-2-to-shift" [:* ?x 2] [:<< ?x 1]]]}
@@ -260,6 +393,7 @@
 
 (def saturation
   {:key :saturation :n 5 :title "Saturation" :needs :cromulent :kind :embiggen
+   :operation :saturate
    :inputs [term-input rules-input]
    :values {:term (sum-of 4) :rules ac-rules}
    :opts {:scheduler :backoff :match-limit 4 :ban-length 2 :iter-limit 30}
@@ -276,6 +410,7 @@
 
 (def taste
   {:key :taste :n 6 :title "Extraction is taste" :needs :cromulent :kind :embiggen
+   :operation :saturate
    :inputs [term-input rules-input]
    :values {:term [:+ :a :a]
             :rules '[["double" [:+ ?x ?x] [:* ?x 2]]
@@ -295,6 +430,7 @@
 
 (def blowup
   {:key :blowup :n 7 :title "The blowup" :needs :cromulent :kind :embiggen
+   :operation :saturate
    :inputs [term-input rules-input]
    :values {:term (sum-of 5) :rules ac-rules}
    :opts {:scheduler :simple :iter-limit 12 :node-limit 5000}
@@ -312,10 +448,11 @@
 
 (def what-if
   {:key :what-if :n 10 :title "What if" :needs :cromulent :kind :script
+   :operation :what-if
    :script what-if-script
    :inputs [term-input
-            {:key :lhs :label "what if this…" :type :term}
-            {:key :rhs :label "…equalled this" :type :term}]
+            {:key :lhs :arg "lhs" :label "what if this…" :says "what if this…" :type :term}
+            {:key :rhs :arg "rhs" :label "…equalled this" :says "…equalled this" :type :term}]
    :values {:term [:+ [:* :x :x] [:* 2 :x]] :lhs :x :rhs 2}
    :alternatives [{:label "x·y + y·x, what if y = x" :values {:term [:+ [:* :x :y] [:* :y :x]] :lhs :y :rhs :x}}
                   {:label "sin x + sin y, what if x = y" :values {:term [:+ [:sin :x] [:sin :y]] :lhs :x :rhs :y}}]
@@ -341,6 +478,7 @@
 
 (def fix
   {:key :fix :n 8 :title "The fix" :needs :bendix :kind :embiggen
+   :operation :simplify
    :inputs [term-input rules-input]
    :values {:term (sum-of 5) :rules ac-rules}
    :opts (assoc bendix-opts :iter-limit 12 :node-limit 5000)
@@ -358,6 +496,11 @@
 
 (def polynomial-rule
   {:key :polynomial-rule :n 9 :title "A rule over the polynomial" :needs :bendix :kind :embiggen
+   :operation :simplify
+   :operation-says {:call ["(bx/simplify term"
+                           "  {:rules rules/trig"
+                           "   :cost cost"
+                           "   opts})"]}
    :inputs [term-input]
    :values {:term [:+ [:+ [:+ :a s2] c2] :b] :rules rules/trig}
    :opts bendix-opts
@@ -375,8 +518,9 @@
 
 (def differentiation
   {:key :differentiation :n 11 :title "Differentiation is simplification" :needs :bendix :kind :embiggen
-   :inputs [{:key :term :label "the function" :type :term}
-            {:key :var :label "with respect to" :type :term}]
+   :operation :differentiate
+   :inputs [{:key :term :arg "term" :label "the function" :says "the function to differentiate" :type :term}
+            {:key :var :arg "x" :label "with respect to" :says "the variable to differentiate by" :type :term}]
    :values {:term [:sin [:* 2 :x]] :var :x :rules rules/derivative}
    :build (fn [{:keys [term var]}] [:D term var])
    :opts bendix-opts
@@ -394,7 +538,8 @@
     [:p "Which term is the answer is the cost's decision. Bendix's default cost charges a derivative node no more than a sine, so for " [:alternative "sin(sin(sin x))" "sin(sin(sin x))"] " under " [:cost :bendix "bendix's default"] " it keeps the derivative unevaluated: the node is cheaper than the product of three cosines. The " [:cost :no-D "no-D cost"] " counts what is still under a derivative before it counts size, so a derivative-free spelling wins whenever one exists, and when none does, " [:alternative "x·|x|: no rule for abs" "x·|x|"] " say, the D stays and the answer says so."]]})
 
 (def all
-  [intro
+  [basics
+   intro
    tree
    sharing
    congruence
@@ -411,14 +556,31 @@
 
 (def start
   "Where the page opens when the address names no lesson: the
-  introduction."
-  :intro)
+  basics."
+  :basics)
 
 (defn heading
-  "What a lesson goes by, its number and its title; the introduction,
-  numbered 0, goes by its title alone."
+  "What a lesson goes by, its number and its title; a page before
+  the lessons has no number and goes by its title alone."
   [{:keys [n title]}]
-  (if (pos? n) (str n ". " title) title))
+  (if n (str n ". " title) title))
+
+(defn nav-label
+  "What the navigation calls a lesson: its heading, unless it says
+  something shorter for itself."
+  [lesson]
+  (or (:nav lesson) (heading lesson)))
+
+(defn address
+  "A lesson's address, what follows # in the page's: its number, or
+  for a page before the lessons its key's name."
+  [{:keys [n key]}]
+  (if n (str n) (name key)))
+
+(defn by-address
+  "The lesson at an address, or nil."
+  [a]
+  (some (fn [l] (when (= a (address l)) l)) all))
 
 (defn live?
   "Does the lesson run today?"

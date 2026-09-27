@@ -6,7 +6,8 @@
   hiccup Replicant renders in the browser. Every event handler in it is data over
   orrery.actions and never a function, which is what lets the page
   build here at all."
-  (:require [clojure.test :refer [deftest is testing]]
+  (:require [clojure.string :as str]
+            [clojure.test :refer [deftest is testing]]
             [cromulent.core :as eg]
             [orrery.actions :as actions]
             [orrery.derived :as derived]
@@ -68,7 +69,8 @@
                       _ (derived/clear-cache!)
                       s (assoc-in (state-for l run (run/last-step run)) [:ui :graph?] choice)]
                   (boolean (some #(= [:graph/zoom :fit] %) (handlers (page/page s))))))]
-    (is (zoom? lessons/intro nil) "the introduction draws its picture unasked")
+    (is (zoom? lessons/basics nil) "the basics draw their picture unasked")
+    (is (zoom? lessons/intro nil) "and the introduction")
     (is (not (zoom? lessons/intro false)) "and hides it when told to")
     (is (not (zoom? lessons/sharing nil)) "a lesson does not")
     (is (zoom? lessons/sharing true) "until it is asked")))
@@ -79,7 +81,84 @@
         _ (derived/clear-cache!)
         h (page/page (state-for l run (run/last-step run)))
         hrefs (set (keep :href (filter map? (tree-seq coll? seq h))))]
-    (is (every? hrefs (map #(str "#" %) (range 12))))))
+    (is (every? hrefs (map #(str "#" (lessons/address %)) lessons/all)))))
+
+(defn- text
+  "What an element says: its strings, its attributes aside."
+  [x]
+  (cond (string? x) x
+        (map? x) ""
+        (coll? x) (apply str (map text x))
+        :else ""))
+
+(defn- texts
+  "What every element of hiccup with this tag says."
+  [hiccup tag]
+  (for [x (tree-seq coll? seq hiccup)
+        :when (and (vector? x) (= tag (first x)))]
+    (text x)))
+
+(deftest the-panels-say-what-they-are-the-work-of
+  (doseq [l lessons/all
+          mode [:notation :native]
+          :let [run (run/run-all (lessons/make-run l))
+                _ (derived/clear-cache!)
+                s (assoc-in (state-for l run (run/last-step run)) [:ui :print] mode)
+                h (page/page s)
+                op (lessons/operation l)
+                where (str (:title l) ", " (name mode))]]
+    (is (some #{(:name op)} (texts h :h3)) (str where ": the operation heads the inputs"))
+    (is (some #{(:fn op)} (texts h :code.of)) (str where ": and names its function"))
+    (is (some #{(str/join "\n" (lessons/call l {}))} (texts h :pre.call)) where)
+    (is (= (map :arg (:inputs l)) (remove #{"cost"} (texts h :code.arg)))
+        (str where ": a field per argument, by its name"))
+    (is (= (> (count (:costs l)) 1) (boolean (some #{"cost"} (texts h :code.arg))))
+        (str where ": and the cost, where there is one to choose"))
+    (is (some #{"g at this step"} (texts h :code.of)) (str where ": the classes are g"))
+    (when (derived/root-at s)
+      (is (some #{"ex/extract"} (texts h :code.of)) where)))
+  (testing "an alternative's options show in the call"
+    (let [l lessons/saturation
+          alt (first (filter #(= "five atoms under a node limit of 100" (:label %)) (:alternatives l)))
+          run (run/run-all (lessons/make-run l (merge (:values l) (:values alt)) (:opts alt)))
+          _ (derived/clear-cache!)
+          s (assoc-in (state-for l run 0) [:input :opts] (:opts alt))]
+      (is (some #(re-find #":node-limit 100" %) (texts (page/page s) :pre.call)))))
+  (testing "a run adopted from the REPL says so"
+    (let [l lessons/basics
+          run (assoc (run/run-all (lessons/make-run l)) :from :repl)
+          _ (derived/clear-cache!)]
+      (is (some #{"from the REPL"} (texts (page/page (state-for l run 0)) :code.of))))))
+
+(defn- page-at-the-end [l]
+  (let [run (run/run-all (lessons/make-run l))]
+    (derived/clear-cache!)
+    (page/page (state-for l run (run/last-step run)))))
+
+(defn- position
+  "Where in the page, in reading order, the first element with this
+  tag is, or nil."
+  [hiccup tag]
+  (first (keep-indexed (fn [i x] (when (and (vector? x) (= tag (first x))) i))
+                       (tree-seq coll? seq hiccup))))
+
+(deftest the-site-says-what-it-is-before-anything-links-into-the-widgets
+  (let [h (page-at-the-end (lessons/by-key lessons/start))]
+    (is (= [(text (into [:aside] lessons/about))]
+           (map #(subs % (count "what this is")) (texts h :aside.about))))
+    (is (< (position h :aside.about) (position h :h2) (position h :a.act))
+        "over the heading, and the heading over the first link that does something")
+    (is (empty? (filter #(and (vector? %) (= :a.act (first %)))
+                        (tree-seq coll? seq (first (filter #(and (vector? %) (= :aside.about (first %)))
+                                                           (tree-seq coll? seq h))))))
+        "and nothing in it to pull"))
+  (doseq [l lessons/all
+          :let [h (page-at-the-end l)]]
+    (is (= (= lessons/start (:key l)) (some? (position h :aside.about)))
+        (str (:title l) ": only the page the site opens on says it at length"))
+    (is (= [(text lessons/colophon)] (texts h :footer.colophon))
+        (str (:title l) ": every page says it in a line"))
+    (is (re-find #"largely written using LLMs" (first (texts h :footer.colophon))) (:title l))))
 
 (deftest the-repl-panel-builds-with-a-history
   (let [l lessons/tree

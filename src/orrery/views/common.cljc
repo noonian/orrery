@@ -33,6 +33,16 @@
                    tok))
                (re-seq #"#\d+|[^#]+" (notation/enode->str node))))))
 
+(defn title
+  "A panel's heading: what the panel shows and, beside it, what it is
+  the work of, a function or a value as the REPL under the page
+  names it."
+  ([text] (title text nil))
+  ([text of]
+   [:div.panel-head
+    [:h3 text]
+    (when of [:code.of of])]))
+
 (defn round
   "A non-negative number of milliseconds to the nearest integer."
   [x]

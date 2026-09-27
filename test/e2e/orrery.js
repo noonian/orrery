@@ -2,10 +2,11 @@
 // "try another", the inputs, the self-test tile, tables and the REPL.
 import { expect } from '@playwright/test';
 
-// Lesson number → the key the page reports, so opening /#n also
-// proves the hash landed on the right lesson; 0 is the introduction.
+// A lesson's address, what follows # → the key the page reports, so
+// opening it also proves the hash landed on the right lesson. The two
+// pages before the lessons have no number and go by their key.
 export const keys = {
-  0: 'intro', 1: 'tree', 2: 'sharing', 3: 'congruence', 4: 'rule',
+  basics: 'basics', intro: 'intro', 1: 'tree', 2: 'sharing', 3: 'congruence', 4: 'rule',
   5: 'saturation', 6: 'taste', 7: 'blowup', 8: 'fix',
   9: 'polynomial-rule', 10: 'what-if', 11: 'differentiation',
 };
@@ -20,7 +21,8 @@ export async function expectSnapshot(page, expected, timeout = 60_000) {
   await expect.poll(() => snapshot(page), { timeout }).toMatchObject(expected);
 }
 
-// Open lesson n on a fresh page and wait for its curated run.
+// Open the lesson at address n on a fresh page and wait for its
+// curated run.
 export async function openLesson(page, n) {
   await page.goto(`/#${n}`);
   await expectSnapshot(page, { lesson: keys[n], status: 'done' });

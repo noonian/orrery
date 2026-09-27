@@ -47,7 +47,7 @@ test.describe('3. Equality and congruence', () => {
     await submit(page, { wrapper: '[:* [:+ ?x 1] [:+ ?x 1]]' });
     await expectSnapshot(page, { status: 'done', classes: 6, nodes: 7 });
     await submit(page, { wrapper: '[:sin' });
-    await expect(page.locator('.input-area .error')).toContainText('a term over each side');
+    await expect(page.locator('.input-area .error')).toContainText('the term over each side: could not read that');
     await expectSnapshot(page, { classes: 6, nodes: 7 });
   });
 });

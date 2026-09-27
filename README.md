@@ -2,11 +2,21 @@
 
 An e-graph explorer for understanding, named for the clockwork model
 of the planets you turn by hand to see how the system moves: watch
-cromulent and bendix work, step by step, in the browser. An
-introduction, what an e-graph is and why it is interesting, and
+cromulent and bendix work, step by step, in the browser. Two pages
+to start from, the basics for a reader who has met none of this and
+an introduction to what an e-graph is and why it is interesting, and
 eleven lessons from "a term is a tree" to "differentiation is
 simplification", each a real execution you can scrub forwards and
 backwards, with a REPL underneath.
+
+What it is: an interactive tool for exploring e-graphs and learning
+how they work, its author's learning included. It embeds cromulent,
+an e-graph that is an immutable, persistent value, and bendix, a
+nascent computer algebra system built on it, runs them live in the
+page, and puts widgets over what they really compute. It is largely
+written using LLMs. The page says so itself, at length over the page
+it opens on, before any prose that links into the widgets, and in a
+line under every page.
 
 [IDEA.md](IDEA.md) is the design and status. The engine runs live in
 the page: cromulent's own `.cljc` compiled by shadow-cljs, no React
@@ -46,12 +56,22 @@ The page's self-test tile runs them on load.
 
 ## Lessons
 
-The page opens on the introduction, *What is an e-graph?*: the
-rewriter's dilemma over `(a·2)/2`, where shifting first loses the
+Two pages come before the lessons, each a live run like them, with
+the picture of the graph drawn.
+
+The page opens on the basics, *Many ways to write one thing* ("Start
+here" in the navigation, `#basics` or no hash at all), written for a
+reader who does not know what rewriting or simplifying is and has no
+identity by heart: `(x + 0)·1` is a long way to write `x`; a rule is
+a shape and another shape that always means the same; an e-graph
+crosses nothing out, collects every way of writing a thing and keeps
+the ways that mean the same in one box; then it chooses the shortest.
+
+The introduction, *What is an e-graph?* (`#intro`), is the next page:
+the rewriter's dilemma over `(a·2)/2`, where shifting first loses the
 cancellation; the e-graph that keeps both forms; saturation, and the
 choice of `a` at the end; why that is interesting and where it is
-used; and a link to every lesson. It is a live run like the lessons,
-at `#0` or with no hash at all, with the picture of the graph drawn.
+used; and a link to every lesson.
 
 1. A term is a tree
 2. Sharing
@@ -86,15 +106,27 @@ class holds 1680 arrangements in thirty nodes; a class that reaches
 itself holds infinitely many), what it points at and what points at
 it, and where it has been along the run.
 
+Every panel says what it is the work of. The inputs sit under the
+operation they are the arguments of: its name (add, union then
+rebuild, saturate, simplify, differentiate), the function that is it
+as the REPL names it (`rw/saturate`, `bx/simplify`), what it does in
+a sentence, and the call, with the runner options in force written
+out. Each field is headed by its argument's name, `term`, `rules`,
+`lhs`, `x`, and what that is. The other panels carry the function
+or the value beside their heading: the run its operation, "best so
+far" `ex/extract` and its three arguments, the cost picker `cost`,
+the class list `g at this step`, the iterations `:stats`, the
+matches `pat/ematch`.
+
 "Draw the graph", in the row under the transport, adds the picture:
 a box per class with its nodes inside and an edge from each node to
 the class it points at, layered with the leaves at the bottom, the
 same marks as the list, and the polynomial in the box on the bendix
 lessons; hover a box to light its row, click it to open the class,
 zoom or fit the width, or draw only what the opened class reaches.
-It is off by default because it takes the room, except on the
-introduction, and once you touch the switch the choice is yours on
-every page. The same row copies
+It is off by default because it takes the room, except on the two
+pages before the lessons, and once you touch the switch the choice
+is yours on every page. The same row copies
 or downloads the step as egraph-serialize JSON, the format egg's and
 egglog's tools read, every node costed under the cost in force.
 

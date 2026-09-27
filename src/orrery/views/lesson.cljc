@@ -5,7 +5,8 @@
   Every handler is data over orrery.actions, so the page builds on
   the JVM and Jolt too, which orrery.page-test does for every lesson
   at every step."
-  (:require [cromulent.core :as eg]
+  (:require [clojure.string :as str]
+            [cromulent.core :as eg]
             [orrery.costs :as costs]
             [orrery.derived :as derived]
             [orrery.eclass :as eclass]
@@ -57,10 +58,23 @@
         :cost (act :cost [:cost a] b)
         :alternative (act :alternative [:alternative a] b)
         :print (act :print [:print a] b)
-        :lesson [:a {:href (str "#" (:n (lessons/by-key a)))} b]
+        :lesson [:a {:href (str "#" (lessons/address (lessons/by-key a)))} b]
         :cite (into [:sup.cite] (interpose ", " (for [k (rest x)] (work-link k (:short (get lessons/reading k))))))))
     (vector? x) (into [(first x)] (map #(prose s %) (rest x)))
     :else x))
+
+(defn- about-view
+  "What the site is, on the page it opens on: over the heading, so
+  before any prose that links into the widgets."
+  [s l]
+  (when (= lessons/start (:key l))
+    (into [:aside.about {:id "about"} [:span.label "what this is"]]
+          (map #(prose s %) lessons/about))))
+
+(defn- colophon-view
+  "The site in a line, under every page."
+  [s]
+  [:footer.colophon {:id "colophon"} (prose s lessons/colophon)])
 
 (defn- reading-view
   "The works the lesson's prose cites, with links: its footnotes."
@@ -76,19 +90,31 @@
         (for [l lessons/all]
           [:li {:replicant/key (:key l)}
            (if (lessons/live? l)
-             [:a {:href (str "#" (:n l))
+             [:a {:href (str "#" (lessons/address l))
                   :class (when (= current (:key l)) "current")}
-              (lessons/heading l)]
-             [:span.coming (str (lessons/heading l) " · coming")])])))
+              (lessons/nav-label l)]
+             [:span.coming (str (lessons/nav-label l) " · coming")])])))
+
+(defn- operation-view
+  "What the workbench runs, over the fields that are its arguments:
+  the algorithm in a word and the function that is it, what it does,
+  and the call under the runner options in force."
+  [s l]
+  (when-let [{:keys [name says] f :fn} (lessons/operation l)]
+    [:div.operation {:id "operation"}
+     (common/title name f)
+     [:p.says says]
+     [:pre.call {:id "call"} (str/join "\n" (lessons/call l (get-in s [:input :opts])))]]))
 
 (defn- input-area [s l]
   (let [{:keys [fields error alternative drawn]} (:input s)
         drawing? (get-in s [:ui :drawing?])
         mode (get-in s [:ui :print])]
     [:div.panel.input-area
-     (for [{:keys [key type] :as input} (:inputs l)]
+     (operation-view s l)
+     (for [{:keys [key type arg] :as input} (:inputs l)]
        [:div.field {:replicant/key key}
-        [:h3 (lessons/input-label input mode)]
+        [:h3 [:code.arg arg] [:span.says (lessons/input-says input mode)]]
         [:textarea {:id (str "input-" (name key)) :rows (if (= :rules type) 4 2)
                     :value (get fields key "")
                     :on {:input [:field key]}}]])
@@ -118,11 +144,11 @@
           [:div.drawn {:id "drawn"} (score/explain drawn (get-in l [:surprise :wants]))])])]))
 
 (defn- run-panel
-  "The counters and how the run ended; the transport is the replay
-  bar over the class list."
-  [s r g]
+  "The counters and how the run ended, under the function whose run
+  it is; the transport is the replay bar over the class list."
+  [s l r g]
   [:div.panel {:style {:margin-top "16px"}}
-   [:h3 "the run"]
+   (common/title "the run" (if (= :repl (:from r)) "from the REPL" (:fn (lessons/operation l))))
    (common/tiles {:classes (eg/class-count g) :nodes (eg/node-count g)
                   :step (:step s) :n (run/last-step r)
                   :status (:status r) :stop-reason (:stop-reason r) :ms (:ms r)})
@@ -183,12 +209,15 @@
         {:keys [cost term]} (best root)
         picker (filter (comp (set (:costs l)) :key) costs/all)]
     [:div.panel.best {:style {:margin-top "16px"}}
-     [:h3 "best so far"]
+     (common/title "best so far" "ex/extract")
      [:div.term {:id "best-notation"} (common/term-view term :notation)]
      [:div {:id "best-term"} (common/term-view term :native)]
      [:div.changed (str "cost " (costs/cost-str cost) " under " (costs/label (:cost s)))]
+     [:p.says {:id "extract-says"}
+      [:code "(ex/extract g root cost)"] ": the cheapest term of " [:code "root"] ", the input's class, in "
+      [:code "g"] ", the e-graph at this step"]
      (when (> (count picker) 1)
-       (into [:div.cost-picker]
+       (into [:div.cost-picker [:code.arg "cost"]]
              (for [c picker]
                [:label {:replicant/key (:key c) :title (:blurb c)}
                 [:input {:type "radio" :name "cost" :value (name (:key c)) :checked (= (:key c) (:cost s))
@@ -196,11 +225,12 @@
                 " " (:label c)])))]))
 
 (defn- class-panel
-  "The class list over the e-graph at step k; the opened class there
-  marks its own row and its relatives' rows."
-  [title g s k opts]
+  "The class list over the e-graph at step k, under what the REPL
+  calls that e-graph; the opened class there marks its own row and
+  its relatives' rows."
+  [title of g s k opts]
   [:div.panel
-   [:h3 title]
+   (common/title title of)
    (classes/class-list (merge {:g g :mode (get-in s [:ui :print])
                                :selected (get-in s [:ui :selected])
                                :hovered (get-in s [:ui :hover])
@@ -223,6 +253,7 @@
      (nav (:key l))
      (when l
        [:section.lesson
+        (about-view s l)
         [:h2 (lessons/heading l)]
         (into [:div.prose] (map #(prose s %) (:prose l)))
         (reading-view l)
@@ -230,19 +261,19 @@
           [:div.workbench
            [:div
             (input-area s l)
-            (run-panel s r g)
+            (run-panel s l r g)
             (when (derived/root-at s) (best-panel s l))
             (when (contains? panels :matches)
               [:div {:style {:margin-top "16px"}}
                (matches/matches-panel {:matches matches})])
             (when (contains? panels :stats)
               [:div.panel {:style {:margin-top "16px"}}
-               [:h3 "the iterations"]
+               (common/title "the iterations" ":stats")
                (stats/stats-table {:stats (:stats r) :rules (:rules r) :step (:step s)})])]
            [:div
             (when (contains? panels :tree)
               [:div.panel {:style {:margin-bottom "16px"}}
-               [:h3 "the tree"]
+               (common/title "the tree" "term")
                (tree/tree-view {:g g :term (get-in s [:input :values :term])
                                 :hovered (or (get-in s [:ui :hover]) (get-in s [:ui :selected]))})])
             (replay-bar s r g)
@@ -250,14 +281,15 @@
             (graph-panel s matches)
             (if (contains? panels :fork)
               [:div.fork
-               (class-panel "the original, step 0" (derived/egraph-at s 0) s 0 {:root (:root r)})
-               (class-panel (str "this step: " (nth (:labels r) (:step s) "")) g s (:step s)
+               (class-panel "the original, step 0" "(first timeline)" (derived/egraph-at s 0) s 0 {:root (:root r)})
+               (class-panel (str "this step: " (nth (:labels r) (:step s) "")) "g at this step" g s (:step s)
                             {:diff (derived/diff-at s) :best (derived/best-at s) :root (derived/root-at s)})]
-              (class-panel "the classes" g s (:step s)
+              (class-panel "the classes" "g at this step" g s (:step s)
                            {:diff (derived/diff-at s) :best (derived/best-at s) :root (derived/root-at s)
                             :matches (derived/matched-classes matches)}))]])
         (when r
           [:div {:style {:margin-top "16px"}}
            (repl/repl-panel {:input (get-in s [:repl :input])
                              :history (get-in s [:repl :history])
-                             :mode mode})])])]))
+                             :mode mode})])])
+     (colophon-view s)]))

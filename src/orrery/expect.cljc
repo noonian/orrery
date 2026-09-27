@@ -18,7 +18,20 @@
 (def runs
   "By lesson key, then by alternative label (nil for the curated
   example): the keys of `observe` that must match."
-  {:intro
+  {:basics
+   {nil {:steps 3 :iterations 2 :stop-reason :saturated :classes-per-step [5 3 3] :classes 3 :nodes 5
+         :nodes-per-iteration [5 5]
+         :applied-per-iteration [{"add-0" 1 "mul-1" 1} {"add-0" 0 "mul-1" 0}]
+         :best-cost 1 :best-terms {:ast-size :x}}
+    "(x + 0)·1" {:iterations 2 :stop-reason :saturated :classes 3 :nodes 5 :best-terms {:ast-size :x}}
+    "nothing to do: x·y" {:iterations 1 :stop-reason :saturated :classes-per-step [3 3] :classes 3 :nodes 3
+                          :applied-per-iteration [{"add-0" 0 "mul-1" 0}]
+                          :best-cost 3 :best-terms {:ast-size [:* :x :y]}}
+    "two letters: (x + 0)·(y·1)" {:iterations 2 :stop-reason :saturated :classes-per-step [7 5 5] :classes 5 :nodes 7
+                                  :best-cost 3 :best-terms {:ast-size [:* :x :y]}}
+    "twice as long: ((x + 0)·1 + 0)·1" {:iterations 2 :stop-reason :saturated :classes-per-step [7 3 3] :classes 3 :nodes 5
+                                        :best-terms {:ast-size :x}}}
+   :intro
    {nil {:steps 5 :iterations 4 :stop-reason :saturated :classes-per-step [4 6 5 4 4] :classes 4 :nodes 8
          :nodes-per-iteration [8 8 8 8]
          :applied-per-iteration [{"mul-2-to-shift" 1 "regroup" 1 "cancel" 0 "mul-1" 0}

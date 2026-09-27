@@ -133,7 +133,7 @@
         fields (get-in s [:input :fields])
         results (for [{:keys [key type] :as input} (:inputs l)]
                   (let [text (get fields key "")
-                        label (lessons/input-label input (print-mode s))
+                        label (lessons/input-label input)
                         r (case type
                             :term (input/read-term text)
                             :pattern (input/read-pattern text)
@@ -294,7 +294,7 @@
                 (:timeline v) (map-indexed (fn [i g] [(if (zero? i) "the input" (str "iteration " i)) g]) (:timeline v))
                 :else [["from the REPL" (:egraph v)]])
         run (assoc (run/script steps) :stats (or (:stats v) []) :iterations (or (:iterations v) 0)
-                   :stop-reason (or (:stop-reason v) :done))]
+                   :stop-reason (or (:stop-reason v) :done) :from :repl)]
     (install-run! run)))
 
 (defn adopt-entry!
