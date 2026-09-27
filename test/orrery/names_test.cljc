@@ -48,7 +48,7 @@
     (is (seq named) (str alias ": the row names something the namespace holds"))))
 
 (deftest the-names-bound
-  (is (= '[g timeline state show! push! *1 doc] (mapv :name names/bound)))
+  (is (= '[g timeline sel state show! push! *1 doc] (mapv :name names/bound)))
   (is (every? (comp seq :says) names/bound))
   (is (empty? (filter names/aliases (map :name names/bound))) "a bound name is no namespace's"))
 

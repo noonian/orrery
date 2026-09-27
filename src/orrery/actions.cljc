@@ -42,6 +42,8 @@
    :repl/line-numbers "[:repl/line-numbers]: number the editor's lines, or stop"
    :repl/eval "[:repl/eval how]: evaluate the form at the buffer's caret (:form) or every form in the buffer (:all)"
    :repl/to-buffer "[:repl/to-buffer i]: add the code of history entry i to the end of the buffer"
+   :repl/code "[:repl/code code]: add code to the end of the buffer, and open the dock"
+   :repl/snippets "[:repl/snippets]: show the snippets of code for the buffer, or hide them"
    :repl/run "[:repl/run code]: evaluate code from a link in the prose, as if it had been typed"
    :repl/clear "[:repl/clear]: empty the history"
    :repl/scroll "[:repl/scroll]: a life-cycle hook, not an event: the history, rendered, scrolls to its last entry"

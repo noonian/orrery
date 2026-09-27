@@ -56,9 +56,10 @@
 
 (defn- state?
   "Returns true when `v` looks like a state of the page. The check
-  is only as strict as printing needs."
+  is only as strict as printing needs. A sorted map is none, as in
+  `diff/egraph?`."
   [v]
-  (and (map? v) (contains? v :run-id) (vector? (get-in v [:repl :history]))))
+  (and (map? v) (not (sorted? v)) (contains? v :run-id) (vector? (get-in v [:repl :history]))))
 
 (defn abridge
   "Returns `v` as the history prints it. The result is a value to

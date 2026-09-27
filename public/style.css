@@ -356,8 +356,18 @@ table.stats td.applied { color: var(--added-ink); font-weight: 600; }
 .dock .history .empty { color: var(--muted); font-size: 14px; margin: 4px 0; }
 .dock .in-row { display: flex; gap: 8px; align-items: flex-start; }
 .dock .in-row pre.in { flex: 1 1 auto; min-width: 0; }
-.dock .to-buffer { flex: 0 0 auto; font-size: 12px; padding: 1px 8px; color: var(--ink-2); background: var(--surface-2); border-color: transparent; }
-.dock .to-buffer:hover, .dock .to-buffer:focus-visible { color: var(--ink); border-color: var(--border); }
+.to-buffer { flex: 0 0 auto; font-size: 12px; padding: 1px 8px; color: var(--ink-2); background: var(--surface-2); border-color: transparent; }
+.to-buffer:hover, .to-buffer:focus-visible { color: var(--ink); border-color: var(--border); }
+.panel-head .to-buffer { margin-left: auto; align-self: center; }
+.panel-head .of ~ .to-buffer { margin-left: 0; }
+/* a trace of what a button or a link of the page did: quieter than an evaluation */
+.dock .trace { border-left: 3px dotted var(--hairline); padding-left: 10px; font-size: 13px; color: var(--muted); }
+.dock .trace-row { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.dock .trace .mark { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; border: 1px solid var(--hairline); border-radius: 4px; padding: 0 4px; }
+.dock .trace .what { font-style: italic; }
+.dock .trace .says { font-family: var(--mono); font-size: 12px; }
+.dock .trace code.in { flex: 1 1 auto; min-width: 0; font-family: var(--mono); font-size: 12px; color: var(--muted); white-space: pre-wrap; word-break: break-word; }
+.dock .trace .in-row { margin-top: 2px; }
 .dock-tools { display: flex; gap: 8px; align-items: center; justify-content: flex-end; flex-wrap: wrap; }
 .dock.open .dock-tools { padding-top: 4px; }
 .dock.open .dock-tools .check { margin: 0 auto 0 0; }
@@ -369,14 +379,24 @@ table.stats td.applied { color: var(--added-ink); font-weight: 600; }
 .prism-code-editor .pce-line.evaluated { background: var(--match); transition: background .3s; }
 
 /* the keys and the names in scope, over the dock's right end */
-.repl-help { position: absolute; right: 16px; bottom: calc(100% + 8px); width: min(560px, calc(100vw - 32px)); max-height: 70vh; overflow: auto;
+.repl-help { position: absolute; right: 16px; bottom: calc(100% + 8px); width: min(560px, calc(100vw - 32px)); overflow: auto;
+             /* the room above the dock: 100% is the dock's height */
+             max-height: min(70vh, calc(100vh - 100% - 24px));
              box-sizing: border-box; padding: 12px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
              box-shadow: 0 8px 24px rgba(0, 0, 0, .15); font-size: 14px; color: var(--ink-2); }
 .repl-help h3 { margin: 12px 0 6px; }
-.repl-help .help-head { display: flex; align-items: center; }
+.repl-help .help-head { display: flex; align-items: center; position: sticky; top: -12px; margin-top: -12px; padding-top: 12px; background: var(--surface); }
 .repl-help .help-head h3 { margin-top: 0; }
 .repl-help .close { margin-left: auto; border: 0; background: none; font-size: 18px; padding: 0 6px; }
 .repl-help .note { margin: 4px 0 8px; }
 .repl-help dl.keys { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 12px; margin: 0; }
 .repl-help dd { margin: 0; }
 .repl-help kbd { font-family: var(--mono); font-size: 12px; padding: 1px 6px; border: 1px solid var(--border); border-radius: 4px; background: var(--surface-2); color: var(--ink); white-space: nowrap; }
+
+/* the snippets, in the same place as the keys */
+.repl-help .snippet-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.repl-help .snippet-head { display: flex; gap: 8px; align-items: center; }
+.repl-help .snippet-head .label { color: var(--ink); font-weight: 600; }
+.repl-help .snippet-head .to-buffer { margin-left: auto; }
+.repl-help .snippet-list .says { margin: 2px 0 4px; }
+.repl-help pre.code { margin: 0; padding: 6px 8px; border-radius: 6px; background: var(--surface-2); font-family: var(--mono); font-size: 12px; white-space: pre-wrap; word-break: break-word; }

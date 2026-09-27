@@ -8,7 +8,8 @@
 (deftest egraph-values
   (is (diff/egraph? (eg/egraph)))
   (is (not (diff/egraph? {:uf []})))
-  (is (not (diff/egraph? [:+ 1 2]))))
+  (is (not (diff/egraph? [:+ 1 2])))
+  (is (not (diff/egraph? (sorted-map 0 1 3 2))) "a sorted map with number keys"))
 
 (deftest the-egg-readme-merge
   ;; (a·2)/2 and (a<<1)/2 merge on rebuild once a·2 = a<<1

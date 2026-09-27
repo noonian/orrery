@@ -27,16 +27,29 @@
                  part))
              (notation/enode-parts node mode))))
 
+(defn snippet-button
+  "Renders a button that adds `code` to the end of the REPL's buffer
+  and opens the REPL's dock. `id`, when given, is the button's id."
+  ([code] (snippet-button nil code))
+  ([id code]
+   [:button.to-buffer (cond-> {:title (str "add this code to the end of the buffer:\n\n" code)
+                               :on {:click [:repl/code code]}}
+                        id (assoc :id id))
+    "to buffer"]))
+
 (defn title
   "Renders the heading of a panel. `text` says what the panel shows.
   `of`, when given, is shown beside it and says what made the
   content of the panel: a function or a value, as the REPL under the
-  page names it."
+  page names it. `code`, when given, is the code that computes what
+  the panel shows, and a button adds it to the REPL's buffer."
   ([text] (title text nil))
-  ([text of]
+  ([text of] (title text of nil))
+  ([text of code]
    [:div.panel-head
     [:h3 text]
-    (when of [:code.of of])]))
+    (when of [:code.of of])
+    (when code (snippet-button code))]))
 
 (defn round
   "Rounds `x`, a non-negative number of milliseconds, to the nearest

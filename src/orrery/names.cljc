@@ -58,10 +58,11 @@
 
 (def bound
   "The names bound in the `user` namespace. Each row holds the name
-  (:name) and one line that says what it is (:says). `g` and
-  `timeline` are bound again before every evaluation."
+  (:name) and one line that says what it is (:says). `g`,
+  `timeline` and `sel` are bound again before every evaluation."
   [{:name 'g :says "the e-graph on show, which is the e-graph of the run at the step on show"}
    {:name 'timeline :says "every step of the run on show, a vector of e-graphs"}
+   {:name 'sel :says "the id of the class that is open on the page, or nil when none is"}
    {:name 'state :says "the page, held in an atom; swapping the atom changes the page"}
    {:name 'show! :says "(show! v) puts v on show: an e-graph, a [g id] pair, a runner's result or a run"}
    {:name 'push! :says "(push! g) or (push! g label) makes g the next step of the run on show"}

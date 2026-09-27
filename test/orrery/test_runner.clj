@@ -16,7 +16,8 @@
             [orrery.export-test]
             [orrery.workbench-test]
             [orrery.names-test]
-            [orrery.forms-test]))
+            [orrery.forms-test]
+            [orrery.snippets-test]))
 
 (defn -main [& _]
   (let [{:keys [fail error]} (t/run-tests 'orrery.notation-test
@@ -34,5 +35,6 @@
                                           'orrery.export-test
                                           'orrery.workbench-test
                                           'orrery.names-test
-                                          'orrery.forms-test)]
+                                          'orrery.forms-test
+                                          'orrery.snippets-test)]
     (System/exit (if (pos? (+ fail error)) 1 0))))

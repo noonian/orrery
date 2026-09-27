@@ -898,6 +898,47 @@ the one the page most wants to welcome. The other mode stays
     shows the keys and the names in scope. A link in the prose no
     longer opens the dock. The closed dock shows the result in its
     line, and a click on that line opens the dock.
+19. **Traces of the page in the history, and snippets for the
+    buffer.** Decided 2026-09-27. The Captain asked for two things.
+    The first was to show in the history, more quietly than an
+    evaluation, what a widget, a link or a lesson does to what the
+    REPL sees. The second was to have prewritten code for the buffer.
+    What the REPL sees is `g`, `timeline` and now `sel`, the class
+    that is open, bound before every evaluation as `g` is. Each
+    button, link or page that changes one of them takes a step of
+    `orrery.workbench`: `scrub`, `select`, `visit`, `alternative`,
+    `submit` or `surprise`. The last four moved there from
+    `orrery.state`, so that each one is a function of the state.
+    `workbench/traced` takes the step and appends a trace:
+    `{:trace what-was-done :in code :kind step :says what-changed}`.
+    `workbench/code` writes the code from the step's var, as in
+    `(swap! state wb/scrub 3)`, so the trace names the function that
+    ran. A surprise is traced with its seed, and the same seed draws
+    the same candidate again. A trace is left out when the run, the
+    step and the open class are unchanged. A trace of a scrub or a
+    selection replaces a trace of the same kind right before it, so
+    playing a run leaves one trace. The first page the browser opens
+    is not traced. The arrows recall only what was typed, the closed
+    dock shows the last evaluation, and `*1` is untouched. Putting a
+    history entry on show is traced without code, since no code names
+    that value. The Captain agreed to snippets from three sources: a
+    trace's code, which goes to the buffer as an entry's code does;
+    the code behind three parts of the page, the run's counters, the
+    opened class and the export; and a library of code for what no
+    panel shows, listed by a "snippets" button in the dock.
+    `orrery.snippets` holds both tables. The panel buttons read "to
+    buffer", as the history's do. The proposal had been to make each
+    panel's `.of` label the button, but the run panel's label names
+    the function that made the run, not what its counters compute.
+    The opened class and the export row have no label at all. The
+    suites check that every snippet uses only names in scope. The
+    browser suite evaluates every snippet on a lesson, and it checks
+    that a trace's code, evaluated, gives the page the trace recorded.
+    Writing that spec showed that a sorted map with number keys could
+    not be printed at the REPL. A keyword lookup on such a map throws
+    in ClojureScript, and `diff/egraph?`, `workbench/run?`,
+    `runner-result?` and the printer's state check each looked one
+    up. They now rule out a sorted map first.
 ## Status
 
 Phase 1 delivered, 2026-09-25 (the Captain's "make it so", with the

@@ -76,6 +76,14 @@
   (state/to-buffer! i)
   (focus! "repl-buffer" true))
 
+(defn- add-code!
+  "Adds `code` to the end of the buffer, opens the dock, and puts the
+  caret at the buffer's end. The buffer is built when the dock opens,
+  so the focus waits for the render."
+  [code]
+  (state/add-code! code)
+  (js/requestAnimationFrame #(focus! "repl-buffer" true)))
+
 (defn- editor-hook!
   "Handles the life cycle of one of the REPL's editors. The view
   renders an empty element for it, and the element's hook carries the
@@ -185,6 +193,8 @@
     :repl/eval (do (state/eval-buffer! (first args) (some-> (js/document.getElementById "repl-buffer") .-selectionStart))
                    (focus! "repl-buffer"))
     :repl/to-buffer (to-buffer! (first args))
+    :repl/code (add-code! (first args))
+    :repl/snippets (state/toggle-snippets!)
     :repl/run (state/run-repl! (first args))
     :repl/clear (state/clear-repl!)
     :repl/scroll (let [el (:replicant/node e)] (set! (.-scrollTop el) (.-scrollHeight el)))

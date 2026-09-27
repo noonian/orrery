@@ -15,6 +15,10 @@
   repaints between iterations, the counters climb, and a stop button
   works between iterations. Per-lesson limits bound the worst tick.
 
+  An action that changes what the REPL sees (the e-graph on show,
+  the run, the class that is open) is traced in the REPL's history
+  with the code that does the same (`workbench/traced`).
+
   The stepping follows the value, not the action that put it there.
   `changed!` starts the stepping whenever a different run is on show
   and that run is still running, whoever swapped it in."
@@ -23,12 +27,10 @@
             [orrery.diff :as diff]
             [orrery.eclass :as eclass]
             [orrery.forms :as forms]
-            [orrery.input :as input]
             [orrery.lessons :as lessons]
             [orrery.printed :as printed]
             [orrery.repl :as repl]
             [orrery.run :as run]
-            [orrery.score :as score]
             [orrery.workbench :as workbench]))
 
 (defn- state?
@@ -42,6 +44,12 @@
 (defonce app-state (atom (workbench/initial) :validator state?))
 
 (def lesson workbench/lesson)
+
+(defn- act!
+  "Takes the step `v` of orrery.workbench with the arguments `args`,
+  and traces it in the REPL's history under `label`."
+  [label v & args]
+  (swap! app-state #(apply workbench/traced % label v args)))
 
 ;; ---------------------------------------------------------------------------
 ;; the run loop
@@ -83,32 +91,19 @@
 ;; ---------------------------------------------------------------------------
 ;; input
 
-(def ^:private field-text workbench/field-text)
-
-(def ^:private input-for workbench/input-for)
-
-(def ^:private print-mode workbench/print-mode)
-
-(defn load-lesson! [k]
-  (when-let [l (lessons/by-key k)]
-    (when (lessons/live? l)
-      (swap! app-state #(-> % (workbench/open l) workbench/start)))))
-
-(defn choose-alternative! [alt]
-  (swap! app-state
-         (fn [s]
-           (let [l (lesson s)
-                 values (merge (:values l) (:values alt))]
-             (-> s
-                 (assoc :input (input-for (print-mode s) l values (or (:opts alt) {}) (:label alt)))
-                 workbench/start)))))
+(defn load-lesson!
+  "Opens the page of key `k` and starts its run. The first page the
+  browser opens is not traced, since nothing is in the history yet."
+  [k]
+  (if (nil? (:run @app-state))
+    (swap! app-state workbench/visit k)
+    (act! (str "opened " (lessons/heading (lessons/by-key k))) #'workbench/visit k)))
 
 (defn choose-alternative-by-label!
   "Chooses the lesson's alternative that has the label `label`. Links
   in the prose use this."
   [label]
-  (when-let [alt (some (fn [a] (when (= label (:label a)) a)) (:alternatives (lesson @app-state)))]
-    (choose-alternative! alt)))
+  (act! (str "tried " label) #'workbench/alternative label))
 
 (defn set-field! [k text]
   (swap! app-state assoc-in [:input :fields k] text))
@@ -117,30 +112,7 @@
   "Reads every field. Starts the run when every field can be read,
   and otherwise shows the first problem."
   []
-  (let [s @app-state
-        l (lesson s)
-        fields (get-in s [:input :fields])
-        results (for [{:keys [key type] :as input} (:inputs l)]
-                  (let [text (get fields key "")
-                        label (lessons/input-label input)
-                        r (case type
-                            :term (input/read-term text)
-                            :pattern (input/read-pattern text)
-                            :rules (input/read-rules text))]
-                    [key (or (:term r) (:pattern r) (:rules r)) (when (:error r) (str label ": " (:error r)))]))
-        error (some (fn [[_ _ e]] e) results)
-        ;; A value that has no field is kept. The fixed rule set of a
-        ;; bendix lesson is such a value.
-        values (into (get-in s [:input :values]) (map (fn [[k v _]] [k v])) results)
-        term (:term values)
-        limit input/leaf-limit]
-    (cond
-      error (swap! app-state assoc-in [:input :error] error)
-      (and term (= :embiggen (:kind l)) (> (input/leaf-count term) limit))
-      (swap! app-state assoc-in [:input :error]
-             (str "that has " (input/leaf-count term) " leaves; under these rules the page stops at " limit))
-      :else (do (swap! app-state update :input assoc :values values :error nil :alternative nil :opts {} :drawn nil)
-                (start-run!)))))
+  (act! "ran the input" #'workbench/submit))
 
 (defn surprise!
   "Draws a bank of candidates for the lesson over the rules and
@@ -151,24 +123,18 @@
   say that it is drawing."
   []
   (swap! app-state assoc-in [:ui :drawing?] true)
-  (js/setTimeout
-   (fn []
-     (let [s @app-state
-           l (lesson s)
-           opts (or (get-in s [:input :opts]) {})
-           c (score/surprise l (get-in s [:input :values]) opts (rand-int 1000000000))]
-       (swap! app-state (fn [s]
-                          (-> s
-                              (assoc :input (assoc (input-for (print-mode s) l (:values c) opts nil)
-                                                   :drawn (dissoc c :run :values)))
-                              (assoc-in [:ui :drawing?] false))))
-       (start-run!)))
-   0))
+  (js/setTimeout #(act! "drew a surprise" #'workbench/surprise (rand-int 1000000000)) 0))
 
 ;; ---------------------------------------------------------------------------
 ;; scrubbing and the rest of the UI
 
-(defn set-step! [k] (swap! app-state workbench/scrub k))
+(defn set-step!
+  "Scrubs to step `k`. `how` says how in the trace: scrubbed or
+  played."
+  ([k] (set-step! k "scrubbed"))
+  ([k how]
+   (let [n (some-> (:run @app-state) run/last-step)]
+     (act! (str how " to step " (if n (max 0 (min n k)) k)) #'workbench/scrub k))))
 
 (defn pause! []
   (when-let [id (get-in @app-state [:ui :playing])]
@@ -181,7 +147,7 @@
             (fn []
               (let [{:keys [step run]} @app-state]
                 (if (< step (run/last-step run))
-                  (set-step! (inc step))
+                  (set-step! (inc step) "played")
                   (pause!))))
             500)]
     (swap! app-state assoc-in [:ui :playing] id)))
@@ -194,14 +160,14 @@
   [mode]
   (swap! app-state
          (fn [s]
-           (let [old (print-mode s)
+           (let [old (workbench/print-mode s)
                  values (get-in s [:input :values])
                  refill (fn [fields]
                           (reduce (fn [fields {:keys [key type]}]
                                     (let [v (get values key)]
                                       (cond-> fields
-                                        (= (get fields key) (field-text old type v))
-                                        (assoc key (field-text mode type v)))))
+                                        (= (get fields key) (workbench/field-text old type v))
+                                        (assoc key (workbench/field-text mode type v)))))
                                   fields
                                   (:inputs (lesson s))))]
              (-> s (assoc-in [:ui :print] mode) (update-in [:input :fields] refill))))))
@@ -210,9 +176,11 @@
   "Opens the class with id `id` in the class list. Opening a class
   that is already open closes it."
   [id]
-  (swap! app-state update-in [:ui :selected] #(if (= % id) nil id)))
+  (if (= id (get-in @app-state [:ui :selected]))
+    (act! "closed the class" #'workbench/select nil)
+    (act! (str "opened class " id) #'workbench/select id)))
 
-(defn deselect! [] (swap! app-state assoc-in [:ui :selected] nil))
+(defn deselect! [] (act! "closed the class" #'workbench/select nil))
 
 (defn select-term!
   "Opens the class that holds the term `t`. Links in the prose use
@@ -222,7 +190,7 @@
   (when k (set-step! k))
   (let [s @app-state]
     (when-let [id (eclass/class-of (derived/current-egraph s) t)]
-      (swap! app-state assoc-in [:ui :selected] id))))
+      (act! (str "opened class " id) #'workbench/select id))))
 
 (defn hover! [id] (swap! app-state assoc-in [:ui :hover] id))
 
@@ -267,13 +235,30 @@
   [i]
   (swap! app-state update :repl workbench/to-buffer i))
 
+(defn add-code!
+  "Adds `code` to the end of the buffer and opens the dock."
+  [code]
+  (swap! app-state #(-> %
+                        (update :repl workbench/add-code code)
+                        (assoc-in [:ui :repl-open?] true))))
+
 (defn toggle-dock! [] (swap! app-state update-in [:ui :repl-open?] not))
 
 (defn open-dock! [] (swap! app-state assoc-in [:ui :repl-open?] true))
 
 (defn close-dock! [] (swap! app-state assoc-in [:ui :repl-open?] false))
 
-(defn toggle-repl-help! [] (swap! app-state update-in [:ui :repl-help?] not))
+(defn toggle-repl-help!
+  "Shows the REPL's keys and names, or hides them. Hides the
+  snippets, which stand in the same place."
+  []
+  (swap! app-state update :ui #(assoc % :repl-help? (not (:repl-help? %)) :repl-snippets? false)))
+
+(defn toggle-snippets!
+  "Shows the snippets, or hides them. Hides the keys and names, which
+  stand in the same place."
+  []
+  (swap! app-state update :ui #(assoc % :repl-snippets? (not (:repl-snippets? %)) :repl-help? false)))
 
 (defn set-dock-height! [px] (swap! app-state assoc-in [:ui :dock-height] px))
 
@@ -293,7 +278,7 @@
   that appends the entry must read the state again."
   [text]
   (let [s @app-state]
-    (repl/bind! (derived/current-egraph s) (:timeline (:run s)))
+    (repl/bind! (derived/current-egraph s) (:timeline (:run s)) (get-in s [:ui :selected]))
     (assoc (repl/eval-string text printed/printed) :in text)))
 
 (defn- evaluate-forms!
@@ -368,7 +353,9 @@
   "Makes the value of REPL history entry `i` the run on show."
   [i]
   (when-let [v (:ok (get-in @app-state [:repl :history i]))]
-    (show! v)))
+    (when (workbench/run-of v)
+      (swap! app-state #(workbench/trace % (workbench/put % v)
+                                         {:trace (str "put the value of entry " i " on show") :kind "show"})))))
 
 ;; The REPL holds the atom as `state`, and `show!` and `push!` under
 ;; their own names. This runs on every load, so that a reload hands

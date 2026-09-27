@@ -308,6 +308,7 @@
     (is (= "[#egraph[31 classes, 185 nodes]]" (printed/printed [g])) "an e-graph inside a value, by its counts")
     (is (re-find #"^\(0 1 2 .* 47 …\)$" (printed/printed (range))) "an endless sequence, cut")
     (is (= (inc printed/most) (count (re-seq #"[^ ()]+" (printed/printed (range))))) "at `most` elements and the mark")
+    (is (= "{0 \"x\", 3 \"1\"}" (printed/printed (sorted-map 0 "x" 3 "1"))) "a sorted map with number keys")
     (is (= "[[[[[[…]]]]]]" (printed/printed [[[[[[[1]]]]]]])) "and one nested deep, closed")
     (is (= "(atom {:a 1})" (printed/printed (atom {:a 1}))))
     (is (= "#function" (printed/printed inc)))

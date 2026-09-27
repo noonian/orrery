@@ -14,6 +14,7 @@
   (:require [orrery.costs :as costs]
             [orrery.eclass :as eclass]
             [orrery.notation :as notation]
+            [orrery.snippets :as snippets]
             [orrery.views.common :as common]))
 
 (defn- ref-chip [id]
@@ -42,6 +43,7 @@
     (when (not= id root) [:span.status (str (notation/class-ref id) " is part of it now")])
     (when (= root root-id) [:span.status "the input's class"])
     [:span.spacer]
+    (common/snippet-button "class-code" (:class snippets/panels))
     [:button.close {:title "close" :on {:click [:deselect]}} "×"]]
    [:div.detail-row.nodes
     [:span.label "nodes"]

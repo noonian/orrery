@@ -13,6 +13,11 @@
     - `page` returns the page of a lesson: `initial`, then `open`,
       then `start`, or `show` when it is given a run.
 
+  The buttons and links of the page take the steps `scrub`,
+  `select`, `visit`, `alternative`, `submit` and `surprise`. Each
+  one they take is traced in the REPL's history (`trace`), with the
+  code that takes the same step (`code`).
+
   orrery.state holds the atom and the timers, and swaps these steps
   in. The REPL swaps them into the same atom, under the alias `wb`.
   The suites build their pages from them on the JVM and Jolt.
@@ -21,11 +26,15 @@
   atom's validator asks this of every value the atom is given, so a
   line at the REPL cannot leave the page with nothing to draw."
   (:require [clojure.string :as str]
+            [cromulent.core :as eg]
             [orrery.costs :as costs]
             [orrery.diff :as diff]
+            [orrery.input :as input]
             [orrery.lessons :as lessons]
+            [orrery.names :as names]
             [orrery.notation :as notation]
-            [orrery.run :as run]))
+            [orrery.run :as run]
+            [orrery.score :as score]))
 
 (def ui
   "The flags a page starts with."
@@ -35,9 +44,10 @@
    :graph? nil :graph-filter? false :graph-zoom nil :export-status nil
    :line-numbers? false
    ;; The REPL's dock along the bottom of the page: open or closed,
-   ;; its height in pixels, nil for the height it opens at, and
-   ;; whether it shows its keys and the names in scope.
-   :repl-open? false :dock-height nil :repl-help? false})
+   ;; its height in pixels, nil for the height it opens at, whether
+   ;; it shows its keys and the names in scope, and whether it shows
+   ;; the snippets.
+   :repl-open? false :dock-height nil :repl-help? false :repl-snippets? false})
 
 (defn initial
   "Returns the page before it has opened anything."
@@ -139,6 +149,150 @@
   ([l run k] (scrub (page l run) k)))
 
 ;; ---------------------------------------------------------------------------
+;; the steps that the page's buttons and links take
+
+(defn select
+  "Returns `s` with the class of `id` open, or with no class open
+  when `id` is nil."
+  [s id]
+  (assoc-in s [:ui :selected] id))
+
+(defn visit
+  "Returns `s` with the page of key `k` opened and its run started.
+  Returns `s` unchanged when `k` names no page that can be opened."
+  [s k]
+  (let [l (lessons/by-key k)]
+    (if (and l (lessons/live? l)) (-> s (open l) start) s)))
+
+(defn alternative
+  "Returns `s` with the lesson's alternative of label `label` in the
+  input area and its run started. Returns `s` unchanged when the
+  lesson has no alternative with that label."
+  [s label]
+  (let [l (lesson s)]
+    (if-let [alt (some (fn [a] (when (= label (:label a)) a)) (:alternatives l))]
+      (-> s
+          (assoc :input (input-for (print-mode s) l (merge (:values l) (:values alt)) (or (:opts alt) {}) (:label alt)))
+          start)
+      s)))
+
+(defn submit
+  "Returns `s` with every field of the input area read and the run
+  started over what they hold. When a field cannot be read, returns
+  `s` with the first problem in the input area and the run left
+  alone."
+  [s]
+  (let [l (lesson s)
+        fields (get-in s [:input :fields])
+        results (for [{:keys [key type] :as in} (:inputs l)]
+                  (let [text (get fields key "")
+                        r (case type
+                            :term (input/read-term text)
+                            :pattern (input/read-pattern text)
+                            :rules (input/read-rules text))]
+                    [key (or (:term r) (:pattern r) (:rules r))
+                     (when (:error r) (str (lessons/input-label in) ": " (:error r)))]))
+        error (some (fn [[_ _ e]] e) results)
+        ;; A value that has no field is kept. The fixed rule set of a
+        ;; bendix lesson is such a value.
+        values (into (get-in s [:input :values]) (map (fn [[k v _]] [k v])) results)
+        term (:term values)
+        limit input/leaf-limit]
+    (cond
+      error (assoc-in s [:input :error] error)
+      (and term (= :embiggen (:kind l)) (> (input/leaf-count term) limit))
+      (assoc-in s [:input :error]
+                (str "that has " (input/leaf-count term) " leaves; under these rules the page stops at " limit))
+      :else (-> s
+                (update :input assoc :values values :error nil :alternative nil :opts {} :drawn nil)
+                start))))
+
+(defn surprise
+  "Returns `s` with a candidate drawn from `seed` in the input area
+  and its run started. The candidate is the pick of a bank drawn for
+  the lesson over the values and options in force
+  (`orrery.score/surprise`). The same seed draws the same candidate
+  again."
+  [s seed]
+  (let [l (lesson s)
+        opts (or (get-in s [:input :opts]) {})
+        c (score/surprise l (get-in s [:input :values]) opts seed)]
+    (-> s
+        (assoc :input (assoc (input-for (print-mode s) l (:values c) opts nil)
+                             :drawn (dissoc c :run :values)))
+        (assoc-in [:ui :drawing?] false)
+        start)))
+
+;; ---------------------------------------------------------------------------
+;; traces of the steps in the REPL's history
+
+(defn code
+  "Returns the code that takes the step `v` at the REPL, with the
+  arguments `args`. `v` is the var of a step that takes the state
+  first, such as `#'scrub`. The code swaps the step into `state`,
+  under the short name that orrery.names gives its namespace:
+  `(swap! state wb/scrub 3)`."
+  [v args]
+  (let [{:keys [ns name]} (meta v)
+        alias (some (fn [r] (when (= (str ns) (str (:ns r))) (:alias r))) names/namespaces)]
+    (str "(swap! state " alias "/" name (apply str (map #(str " " (pr-str %)) args)) ")")))
+
+(defn- seen
+  "Returns what the REPL sees of `s`: the run, the step on show and
+  the class that is open."
+  [s]
+  [(:run-id s) (:step s) (get-in s [:ui :selected])])
+
+(defn- says
+  "Returns what a step that led to `s` changed, as the REPL sees it:
+  the class that is open when `kind` is select, and otherwise the
+  e-graph on show."
+  [s kind]
+  (let [run (:run s)]
+    (cond
+      (= "select" kind) (str "sel: " (pr-str (get-in s [:ui :selected])))
+      (nil? run) nil
+      (= :running (:status run)) "g: a new run"
+      :else (let [g (run/egraph-at run (:step s))]
+              (str "g: step " (:step s) " of " (run/last-step run) ", "
+                   (eg/class-count g) " classes, " (eg/node-count g) " nodes")))))
+
+(def ^:private merged
+  "The kinds of trace that replace a trace of the same kind right
+  before them. Playing a run scrubs every half second, and one trace
+  of where it stopped says enough."
+  #{"scrub" "select"})
+
+(defn trace
+  "Returns `s'`, the state after a button or a link of the page took
+  a step from `s`, with a trace of that step in the REPL's history.
+  The trace is `entry`: `:trace` says what the learner did, `:in` is
+  the code that takes the same step, when there is such code, and
+  `:kind` names the step. Adds `:says`, what the step changed.
+
+  Returns `s'` with no trace when the REPL sees nothing new: the same
+  run, the same step and the same class open. A trace of a scrub or
+  a selection replaces a trace of the same kind right before it."
+  [s s' entry]
+  (if (= (seen s) (seen s'))
+    s'
+    (let [kind (:kind entry)
+          entry (cond-> entry (says s' kind) (assoc :says (says s' kind)))
+          history (get-in s' [:repl :history])
+          last-entry (peek history)]
+      (assoc-in s' [:repl :history]
+                (if (and (merged kind) (:trace last-entry) (= kind (:kind last-entry)))
+                  (conj (pop history) entry)
+                  (conj history entry))))))
+
+(defn traced
+  "Returns `s` after the step `v` with the arguments `args`, traced
+  in the REPL's history under `label` with the code that takes the
+  same step (`code`, `trace`)."
+  [s label v & args]
+  (trace s (apply @v s args) {:trace label :in (code v args) :kind (str (:name (meta v)))}))
+
+;; ---------------------------------------------------------------------------
 ;; the values of the REPL
 
 (defn run?
@@ -146,6 +300,7 @@
   [v]
   (boolean
    (and (map? v)
+        (not (sorted? v))
         (vector? (:timeline v))
         (seq (:timeline v))
         (every? diff/egraph? (:timeline v))
@@ -162,7 +317,7 @@
 (defn runner-result?
   "Returns true when `v` is what `rw/saturate` returns."
   [v]
-  (and (map? v) (diff/egraph? (:egraph v)) (vector? (:stats v))))
+  (and (map? v) (not (sorted? v)) (diff/egraph? (:egraph v)) (vector? (:stats v))))
 
 (defn run-of
   "Returns the REPL value `v` as a run, or nil when `v` is none of
@@ -231,25 +386,35 @@
 
   :recall is the index of the history entry that is on the line. It
   is nil while the line holds what is being typed. Going forward past
-  the last entry brings back what was being typed."
+  the last entry brings back what was being typed. Recall steps over
+  the traces of what the page's buttons did, since nobody typed
+  them."
   [{:keys [input history recall draft] :as r} dir]
-  (let [n (count history)
-        i (case dir
-            :back (if recall (max 0 (dec recall)) (dec n))
-            :forward (when recall (inc recall)))]
+  (let [typed (vec (keep-indexed (fn [i e] (when-not (:trace e) i)) history))
+        n (count typed)
+        at (when recall (count (take-while #(< % recall) typed)))
+        j (case dir
+            :back (if at (max 0 (dec at)) (dec n))
+            :forward (when at (inc at)))]
     (cond
-      (or (zero? n) (nil? i)) r
-      (>= i n) (assoc r :input (or draft "") :recall nil :draft nil)
-      :else (assoc r :input (:in (nth history i)) :recall i :draft (if recall draft input)))))
+      (or (zero? n) (nil? j)) r
+      (>= j n) (assoc r :input (or draft "") :recall nil :draft nil)
+      :else (let [i (nth typed j)]
+              (assoc r :input (:in (nth history i)) :recall i :draft (if recall draft input))))))
+
+(defn add-code
+  "Returns the REPL `r` with `code` added to the end of the buffer. A
+  blank line separates it from what the buffer already holds."
+  [{:keys [buffer] :as r} code]
+  (let [kept (str/trimr buffer)]
+    (assoc r :buffer (if (seq kept) (str kept "\n\n" code) code))))
 
 (defn to-buffer
   "Returns the REPL `r` with the code of history entry `i` added to
-  the end of the buffer. A blank line separates it from what the
-  buffer already holds."
-  [{:keys [buffer history] :as r} i]
+  the end of the buffer (`add-code`)."
+  [{:keys [history] :as r} i]
   (if-let [code (:in (get history i))]
-    (let [kept (str/trimr buffer)]
-      (assoc r :buffer (if (seq kept) (str kept "\n\n" code) code)))
+    (add-code r code)
     r))
 
 ;; ---------------------------------------------------------------------------

@@ -12,6 +12,7 @@
             [orrery.costs :as costs]
             [orrery.derived :as derived]
             [orrery.run :as run]
+            [orrery.snippets :as snippets]
             [orrery.views.classes :as classes]
             [orrery.views.common :as common]
             [orrery.views.detail :as detail]
@@ -29,7 +30,7 @@
   panel. It is in the replay bar, over the class list."
   [s r g of]
   [:div.panel
-   (common/title "the run" (if (= :repl (:from r)) "from the REPL" of))
+   (common/title "the run" (if (= :repl (:from r)) "from the REPL" of) (:run snippets/panels))
    (common/tiles {:classes (eg/class-count g) :nodes (eg/node-count g)
                   :step (:step s) :n (run/last-step r)
                   :status (:status r) :stop-reason (:stop-reason r) :ms (:ms r)})
@@ -70,6 +71,7 @@
       "this step as egraph-serialize JSON:"]
      [:button {:id "export-copy" :on {:click [:export/copy]}} "copy"]
      [:button {:id "export-download" :on {:click [:export/download]}} "download"]
+     (common/snippet-button "export-code" (:export snippets/panels))
      (when-let [m (get-in s [:ui :export-status])]
        [:span.status {:id "export-status"} m])]))
 
@@ -169,6 +171,7 @@
   [s]
   (repl/dock {:open? (get-in s [:ui :repl-open?])
               :help? (get-in s [:ui :repl-help?])
+              :snippets? (get-in s [:ui :repl-snippets?])
               :input (get-in s [:repl :input])
               :buffer (get-in s [:repl :buffer])
               :history (get-in s [:repl :history])

@@ -70,6 +70,13 @@
       (is (= [7 true] ((juxt :step :follow?) (wb/scrub shown 99))))
       (is (= [4 false] ((juxt :step :follow?) (wb/scrub shown 4)))))))
 
+(deftest a-sorted-map-is-no-run
+  (let [m (into (sorted-map) [[0 1] [3 2]])]
+    (is (not (wb/run? m)))
+    (is (not (wb/runner-result? m)))
+    (is (not (wb/pair? m)))
+    (is (nil? (wb/run-of m)) "a sorted map with number keys is printed, not shown")))
+
 (deftest a-value-of-the-repl-as-a-run
   (let [[g id] (eg/add (eg/egraph) [:+ :a :b])
         rules (lessons/rules-of lessons/ac-rules)
@@ -135,6 +142,104 @@
         (is (= ["(eg/ad" nil] ((juxt :input :recall) (forward (back typing)))))
         (is (= ["(eg/ad" nil] ((juxt :input :recall) (forward (forward (back (back typing)))))))))
     (is (= {:input "x" :history [] :recall nil} (back {:input "x" :history [] :recall nil})) "no history, nothing to recall")))
+
+(deftest the-editor-recalls-over-the-traces
+  (let [r {:input "" :recall nil
+           :history [{:in "(a)"} {:trace "scrubbed to step 1" :in "(swap! state wb/scrub 1)" :kind "scrub"}
+                     {:in "(b)"} {:trace "opened class 3" :in "(swap! state wb/select 3)" :kind "select"}]}
+        back #(wb/recall % :back)
+        forward #(wb/recall % :forward)]
+    (is (= ["(b)" 2] ((juxt :input :recall) (back r))))
+    (is (= ["(a)" 0] ((juxt :input :recall) (back (back r)))) "a trace is stepped over")
+    (is (= ["(a)" 0] ((juxt :input :recall) (back (back (back r))))))
+    (is (= ["(b)" 2] ((juxt :input :recall) (forward (back (back r))))))
+    (is (= ["" nil] ((juxt :input :recall) (forward (back r)))))
+    (let [only (assoc r :history [{:trace "x" :kind "scrub"}])]
+      (is (= only (back only)) "only traces, nothing to recall"))))
+
+(deftest the-steps-of-the-buttons
+  (let [s (wb/page (lessons/by-key :basics))
+        done (wb/show s (run/run-all (:run s)))]
+    (testing "select"
+      (is (= 2 (get-in (wb/select done 2) [:ui :selected])))
+      (is (nil? (get-in (wb/select (wb/select done 2) nil) [:ui :selected]))))
+    (testing "visit"
+      (let [v (wb/visit done :taste)]
+        (is (= :taste (:lesson v)))
+        (is (= (inc (:run-id done)) (:run-id v)))
+        (is (nil? (wb/problem v))))
+      (is (= done (wb/visit done :no-such-page))))
+    (testing "alternative"
+      (let [label "nothing to do: x·y"
+            a (wb/alternative done label)]
+        (is (= label (get-in a [:input :alternative])))
+        (is (= [:* :x :y] (get-in a [:input :values :term])))
+        (is (= (inc (:run-id done)) (:run-id a))))
+      (is (= done (wb/alternative done "no such label"))))
+    (testing "submit"
+      (let [ok (wb/submit (assoc-in done [:input :fields :term] "y·1"))
+            bad (wb/submit (assoc-in done [:input :fields :term] "y·"))]
+        (is (= [:* :y 1] (get-in ok [:input :values :term])))
+        (is (= (inc (:run-id done)) (:run-id ok)))
+        (is (string? (get-in bad [:input :error])))
+        (is (= (:run-id done) (:run-id bad)) "a field that cannot be read runs nothing")))
+    (testing "surprise draws the same candidate from the same seed"
+      (let [l (lessons/by-key :taste)
+            t (wb/page l)
+            a (wb/surprise t 42)
+            b (wb/surprise t 42)]
+        (is (= (get-in a [:input :values]) (get-in b [:input :values])))
+        (is (some? (get-in a [:input :drawn])))
+        (is (false? (get-in a [:ui :drawing?])))
+        (is (nil? (wb/problem a)))))))
+
+(deftest a-step-is-traced-with-its-code
+  (let [s (wb/page (lessons/by-key :basics))
+        done (wb/show s (run/run-all (:run s)))
+        n (run/last-step (:run done))
+        history #(get-in % [:repl :history])]
+    (testing "the code names the step under the REPL's short name"
+      (is (= "(swap! state wb/scrub 3)" (wb/code #'wb/scrub [3])))
+      (is (= "(swap! state wb/select nil)" (wb/code #'wb/select [nil])))
+      (is (= "(swap! state wb/visit :taste)" (wb/code #'wb/visit [:taste])))
+      (is (= "(swap! state wb/alternative \"a · b\")" (wb/code #'wb/alternative ["a · b"])))
+      (is (= "(swap! state wb/submit)" (wb/code #'wb/submit []))))
+    (testing "a trace says what changed"
+      (let [t (wb/traced done "scrubbed to step 0" #'wb/scrub 0)
+            e (peek (history t))]
+        (is (= 0 (:step t)))
+        (is (= {:trace "scrubbed to step 0" :in "(swap! state wb/scrub 0)" :kind "scrub"}
+               (dissoc e :says)))
+        (is (re-find #"^g: step 0 of \d+, \d+ classes, \d+ nodes$" (:says e))))
+      (is (= "sel: 1" (:says (peek (history (wb/traced done "opened class 1" #'wb/select 1)))))))
+    (testing "the traced step is the step the code takes"
+      (doseq [[v args] [[#'wb/scrub [0]] [#'wb/select [1]] [#'wb/visit [:intro]]
+                        [#'wb/alternative ["nothing to do: x·y"]] [#'wb/submit []]]]
+        ;; A run holds its start time and some atoms, so two runs made
+        ;; alike are compared by their timelines.
+        (let [seen #(-> % (dissoc :repl :run) (assoc :timeline (:timeline (:run %))))]
+          (is (= (seen (apply @v done args)) (seen (apply wb/traced done "x" v args))) (str v)))))
+    (testing "no trace when the REPL sees nothing new"
+      (is (empty? (history (wb/traced done "scrubbed" #'wb/scrub n))))
+      (is (empty? (history (wb/traced (assoc-in done [:input :fields :term] "y·") "ran the input" #'wb/submit)))
+          "a field that cannot be read"))
+    (testing "scrubs in a row leave one trace, of where they stopped"
+      (let [t (-> done
+                  (wb/traced "played to step 0" #'wb/scrub 0)
+                  (wb/traced "played to step 1" #'wb/scrub 1)
+                  (wb/traced "played to step 2" #'wb/scrub 2))]
+        (is (= ["played to step 2"] (mapv :trace (history t))))
+        (is (= ["played to step 2" nil "scrubbed to step 1"]
+               (mapv :trace (history (-> t
+                                         (update-in [:repl :history] conj {:in "(+ 1 2)" :ok 3})
+                                         (wb/traced "scrubbed to step 0" #'wb/scrub 0)
+                                         (wb/traced "scrubbed to step 1" #'wb/scrub 1)))))
+            "an evaluation between them keeps them apart")))))
+
+(deftest code-goes-to-the-buffer
+  (let [r {:input "" :buffer "" :history [] :recall nil}]
+    (is (= "(+ 1 2)" (:buffer (wb/add-code r "(+ 1 2)"))))
+    (is (= "(a)\n\n(b)" (:buffer (-> r (wb/add-code "(a)") (wb/add-code "(b)")))))))
 
 (deftest an-entry-goes-to-the-buffer
   (let [r {:input "" :buffer "" :history [{:in "(+ 1 2)" :ok 3} {:in "(let [x 1]\n  x)" :ok 1}] :recall nil}]

@@ -79,11 +79,13 @@
   (atom {:values () :error nil}))
 
 (defn bind!
-  "Binds `g` and `timeline` in the user namespace. `g` is the e-graph
-  the page shows, and `timeline` is every step of the run."
-  [g timeline]
+  "Binds `g`, `timeline` and `sel` in the user namespace. `g` is the
+  e-graph the page shows, `timeline` is every step of the run, and
+  `sel` is the id of the class that is open, or nil."
+  [g timeline sel]
   (sci/intern ctx 'user 'g g)
-  (sci/intern ctx 'user 'timeline timeline))
+  (sci/intern ctx 'user 'timeline timeline)
+  (sci/intern ctx 'user 'sel sel))
 
 (defn bind-page!
   "Makes the page's atom and functions available at the REPL.

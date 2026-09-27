@@ -12,14 +12,20 @@
   What an evaluation printed is shown over its value. A button names
   its history entry by index, and the value stays in the state.
 
+  The history also holds traces of what the page's buttons and links
+  did to what the REPL sees. A trace is quieter than an evaluation,
+  and it shows the code that does the same.
+
   The REPL stands in a dock along the bottom of every page. Closed,
   the dock is one line: the editor and what was evaluated last. Open,
-  it is the editor beside the history. A popover lists the keys and
-  the names in scope (`orrery.names`)."
+  it is the editor beside the history. One popover lists the keys and
+  the names in scope (`orrery.names`), and another lists snippets of
+  code for the buffer (`orrery.snippets`)."
   (:require [clojure.string :as str]
             [orrery.diff :as diff]
             [orrery.names :as names]
             [orrery.printed :as printed]
+            [orrery.snippets :as snippets]
             [orrery.views.classes :as classes]
             [orrery.views.common :as common]
             [orrery.workbench :as workbench]))
@@ -64,6 +70,26 @@
     :else
     [:pre.result (or text (printed/printed v))]))
 
+(defn- to-buffer-button [i]
+  [:button.to-buffer {:title "add this code to the end of the buffer"
+                      :on {:click [:repl/to-buffer i]}}
+   "to buffer"])
+
+(defn- trace-view
+  "Renders trace `i`: what a button or a link of the page did, what
+  it changed, and the code that does the same, when there is such
+  code."
+  [i {:keys [trace says in]}]
+  [:div.trace {:replicant/key i}
+   [:div.trace-row
+    [:span.mark "page"]
+    [:span.what trace]
+    (when says [:span.says says])]
+   (when in
+     [:div.in-row
+      [:code.in in]
+      (to-buffer-button i)])])
+
 (defn- history-view
   "Renders the history. Each entry has a button that adds its code to
   the buffer. The history scrolls down to its last entry when it is
@@ -73,16 +99,16 @@
          (when (empty? history)
            [:p.empty "Nothing is evaluated yet. The ? button lists the keys and the names in scope."])]
         (for [[i {:keys [in out error] :as entry}] (map-indexed vector history)]
-          [:div.entry {:replicant/key i}
+          (if (:trace entry)
+            (trace-view i entry)
+            [:div.entry {:replicant/key i}
            [:div.in-row
             [:pre.in (str "user=> " in)]
-            [:button.to-buffer {:title "add this code to the end of the buffer"
-                                :on {:click [:repl/to-buffer i]}}
-             "to buffer"]]
+            (to-buffer-button i)]
            (when out [:pre.out out])
            (if (contains? entry :error)
              [:pre.error error]
-             (result-view (:ok entry) i mode (:printed entry)))])))
+             (result-view (:ok entry) i mode (:printed entry)))]))))
 
 ;; ---------------------------------------------------------------------------
 ;; the last evaluation, in a line
@@ -162,6 +188,26 @@
      [:p.note [:a {:href "#repl"} "The REPL page"] " shows what you can do with these names."])])
 
 ;; ---------------------------------------------------------------------------
+;; the snippets
+
+(defn- snippets-view
+  "Renders the popover that lists the snippets of the library, each
+  with what it does, its code, and a button that adds it to the
+  buffer."
+  []
+  [:div.repl-help.snippets {:id "repl-snippets" :role "dialog" :aria-label "snippets for the buffer"}
+   [:div.help-head
+    [:h3 "snippets"]
+    [:button.close {:id "repl-snippets-close" :aria-label "close" :on {:click [:repl/snippets]}} "×"]]
+   [:p.note "Each snippet does something with g, the e-graph on show. Add one to the buffer, change it if you like, and press Ctrl-Enter in it."]
+   (into [:ul.snippet-list]
+         (for [{:keys [label says code]} snippets/library]
+           [:li {:replicant/key label}
+            [:div.snippet-head [:span.label label] (common/snippet-button code)]
+            [:p.says says]
+            [:pre.code code]]))])
+
+;; ---------------------------------------------------------------------------
 ;; the dock
 
 (defn- editor
@@ -189,8 +235,8 @@
   Replicant never builds it again.
 
   `here` is the key of the page on show. `help?` shows the keys and
-  the names in scope."
-  [{:keys [open? input buffer history mode line-numbers? help? here]}]
+  the names in scope, and `snippets?` the snippets."
+  [{:keys [open? input buffer history mode line-numbers? help? snippets? here]}]
   [:section.dock {:id "repl-dock" :class (if open? "open" "closed") :aria-label "the REPL"}
    [:div.dock-handle {:id "repl-resize" :title "drag to resize the REPL"
                       :on {:pointerdown [:repl/resize]}}]
@@ -203,7 +249,7 @@
                :placeholder ";; the buffer: Ctrl-Enter evaluates the form at the caret"}))
     (if open?
       (history-view history mode)
-      (last-view (peek history)))
+      (last-view (last (remove :trace history))))
     (into [:div.dock-tools]
           (concat
            (when open?
@@ -216,10 +262,14 @@
               [:button {:id "repl-eval-all" :title "Ctrl-Shift-Enter in the buffer" :on {:click [:repl/eval :all]}}
                "eval buffer"]
               [:button {:id "repl-clear" :title "empty the history" :on {:click [:repl/clear]}} "clear history"]])
-           [[:button.icon {:id "repl-help-toggle" :aria-expanded (str (boolean help?))
+           [[:button {:id "repl-snippets-toggle" :aria-expanded (str (boolean snippets?))
+                      :title "code that does something with g, for the buffer" :on {:click [:repl/snippets]}}
+             "snippets"]
+            [:button.icon {:id "repl-help-toggle" :aria-expanded (str (boolean help?))
                            :title "the keys and the names in scope" :on {:click [:repl/help]}} "?"]
             [:button.icon {:id "repl-toggle" :aria-expanded (str (boolean open?))
                            :title (if open? "close the REPL (Ctrl-`)" "open the REPL (Ctrl-`)")
                            :on {:click [:repl/dock]}}
              (if open? "▾" "▴")]]))]
-   (when help? (help here))])
+   (when help? (help here))
+   (when snippets? (snippets-view))])

@@ -10,9 +10,11 @@
   (:require [cromulent.core :as eg]))
 
 (defn egraph?
-  "Returns true when `x` is an e-graph value."
+  "Returns true when `x` is an e-graph value. A sorted map is none:
+  in ClojureScript, looking up a keyword in a sorted map with number
+  keys throws."
   [x]
-  (and (map? x) (vector? (:uf x)) (vector? (:classes x)) (map? (:memo x))))
+  (and (map? x) (not (sorted? x)) (vector? (:uf x)) (vector? (:classes x)) (map? (:memo x))))
 
 (defn between
   "Returns what changed from `g0` to `g1`. `g1` is later than `g0` in
