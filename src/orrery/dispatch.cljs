@@ -24,41 +24,71 @@
       (state/recall-repl! dir)
       true)))
 
-(defn- focus-editor!
-  "Puts the focus back in the editor. Opening or closing the dock
-  moves the editor's element, and a moved element loses the focus."
+(defn- focus!
+  "Puts the focus in the textarea whose id is `id`, with the caret at
+  the end of its text when `end?` is true."
+  ([id] (focus! id false))
+  ([id end?]
+   (when-let [ta (js/document.getElementById id)]
+     (.focus ta)
+     (when end?
+       (let [n (count (.-value ta))]
+         (.setSelectionRange ta n n))))))
+
+(defn- focus-dock!
+  "Puts the focus in the buffer when the dock is open, and on the
+  line when it is closed. Opening or closing the dock moves the
+  line's element, and a moved element loses the focus."
   []
-  (some-> (js/document.getElementById "repl-input") .focus))
+  (focus! (if (get-in @state/app-state [:ui :repl-open?]) "repl-buffer" "repl-input")))
+
+(defn- close-dock! []
+  (state/close-dock!)
+  (focus-dock!))
 
 (def ^:private editor-callbacks
-  {:on-change (fn [text]
-                (when (not= text (get-in @state/app-state [:repl :input]))
-                  (state/set-repl-input! text)))
-   :on-eval state/eval-repl!
-   :on-recall recall!
-   :on-open #(do (state/open-dock!) (focus-editor!))
-   :on-close #(do (state/close-dock!) (focus-editor!))
-   :open? #(boolean (get-in @state/app-state [:ui :repl-open?]))})
+  "The callbacks of each editor, by its role (`orrery.editor`)."
+  {:line {:on-change (fn [text]
+                       (when (not= text (get-in @state/app-state [:repl :input]))
+                         (state/set-repl-input! text)))
+          :on-eval state/eval-line!
+          :on-recall recall!
+          :on-close close-dock!
+          :open? #(boolean (get-in @state/app-state [:ui :repl-open?]))}
+   :buffer {:on-change (fn [text]
+                         (when (not= text (get-in @state/app-state [:repl :buffer]))
+                           (state/set-repl-buffer! text)))
+            :on-eval state/eval-buffer!
+            :on-close close-dock!
+            :open? #(boolean (get-in @state/app-state [:ui :repl-open?]))}})
 
 (defn- toggle-dock!
   "Opens the REPL's dock, or closes it, and puts the caret in the
-  editor."
+  buffer or on the line."
   []
   (state/toggle-dock!)
-  (focus-editor!))
+  (focus-dock!))
+
+(defn- to-buffer!
+  "Copies the code of history entry `i` into the buffer, and puts the
+  caret at the buffer's end."
+  [i]
+  (state/to-buffer! i)
+  (focus! "repl-buffer" true))
 
 (defn- editor-hook!
-  "Handles the life cycle of the REPL's editor. The view renders an
-  empty element for it, and the element's hook carries the text and
-  whether to number the lines. The hook builds the editor when the
-  element mounts, and Replicant remembers the editor on the element.
-  When the text or the numbering changes, the hook brings the editor
-  in line. When the element unmounts, it removes the editor."
-  [e {:keys [text] :as opts}]
+  "Handles the life cycle of one of the REPL's editors. The view
+  renders an empty element for it, and the element's hook carries the
+  editor's role, its text and whether to number the lines. The hook
+  builds the editor when the element mounts, and Replicant remembers
+  the editor on the element. When the text or the numbering changes,
+  the hook brings the editor in line. When the element unmounts, it
+  removes the editor."
+  [e {:keys [role] :as opts}]
   (let [ed (:replicant/memory e)]
     (case (:replicant/life-cycle e)
       :replicant.life-cycle/mount
-      ((:replicant/remember e) (editor/mount! (:replicant/node e) opts editor-callbacks))
+      ((:replicant/remember e) (editor/mount! (:replicant/node e) opts (editor-callbacks role)))
       :replicant.life-cycle/unmount
       (some-> ed editor/remove!)
       (some-> ed (editor/sync! opts)))))
@@ -152,8 +182,9 @@
     :repl/help (state/toggle-repl-help!)
     :repl/resize (resize-dock! e)
     :repl/line-numbers (state/toggle-line-numbers!)
-    :repl/eval (do (state/eval-repl! (first args) (some-> (js/document.getElementById "repl-input") .-selectionStart))
-                   (focus-editor!))
+    :repl/eval (do (state/eval-buffer! (first args) (some-> (js/document.getElementById "repl-buffer") .-selectionStart))
+                   (focus! "repl-buffer"))
+    :repl/to-buffer (to-buffer! (first args))
     :repl/run (state/run-repl! (first args))
     :repl/clear (state/clear-repl!)
     :repl/scroll (let [el (:replicant/node e)] (set! (.-scrollTop el) (.-scrollHeight el)))

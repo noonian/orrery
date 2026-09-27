@@ -19,8 +19,10 @@ test.describe('the REPL\'s page', () => {
     // no fields: the editor is the input
     await expect(page.locator('#run')).toHaveCount(0);
     await expect(page.locator('.field')).toHaveCount(0);
-    await expect(page.locator('textarea')).toHaveCount(1);
-    await expect(page.getByRole('textbox', { name: "the REPL's editor" })).toHaveId('repl-input');
+    await expect(page.locator('textarea')).toHaveCount(2);
+    await expect(page.getByRole('textbox', { name: "the REPL's line" })).toHaveId('repl-input');
+    await expect(page.getByRole('textbox', { name: "the REPL's buffer" })).toHaveId('repl-buffer');
+    await expect(page.locator('.prose')).toContainText('type code on the REPL\'s line and press Enter');
     await expect(page.locator('.prose')).toContainText('Ctrl-Enter evaluates the form at the caret');
     await expect(page.locator('.lesson')).not.toContainText(/prompt/i);
     await expect(page.locator('.panel h3')).toHaveText(
@@ -144,9 +146,8 @@ test.describe('the REPL\'s page', () => {
     await expectSnapshot(page, curated);
   });
 
-  test('closed, the up arrow brings back what was evaluated, the down arrow what was being typed', async ({ page }) => {
+  test('on the line, the up arrow brings back what was evaluated, the down arrow what was being typed', async ({ page }) => {
     await openLesson(page, 'repl');
-    await page.locator('#repl-toggle').click();
     const editor = page.locator('#repl-input');
     for (const code of ['(+ 1 1)', '(eg/node-count g)']) {
       await editor.fill(code);
@@ -165,7 +166,7 @@ test.describe('the REPL\'s page', () => {
     await expect(editor).toHaveValue('(eg/cla');
     await editor.press('ArrowUp');
     await editor.press('Control+Enter');
-    await expect(page.locator('#repl-last')).toHaveText(/⇒\s+6$/);
+    await expect(entries(page).last().locator('pre.result')).toHaveText('6');
     await expect(editor).toHaveValue('');
     // in text of several lines the arrows move the caret until it is in the first
     await editor.fill('(+ 1\n   2)');
@@ -173,11 +174,6 @@ test.describe('the REPL\'s page', () => {
     await expect(editor).toHaveValue('(+ 1\n   2)');
     await editor.press('ArrowUp');
     await expect(editor).toHaveValue('(eg/node-count g)');
-    // open, the arrows only move the caret
-    await page.locator('#repl-toggle').click();
-    await editor.fill('(+ 2 2)');
-    await editor.press('ArrowUp');
-    await expect(editor).toHaveValue('(+ 2 2)');
     await expect(entries(page)).toHaveCount(3);
   });
 

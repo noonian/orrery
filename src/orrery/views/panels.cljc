@@ -163,13 +163,14 @@
 
 (defn repl-dock
   "Renders the REPL in a dock along the bottom of the viewport. Closed,
-  the dock is one line: the editor and the last thing evaluated. Open,
-  it is the editor beside the history, with a handle along its top
+  the dock is the line and the last thing evaluated. Open, it is the
+  buffer beside the history and the line, with a handle along its top
   edge that resizes it."
   [s]
   (repl/dock {:open? (get-in s [:ui :repl-open?])
               :help? (get-in s [:ui :repl-help?])
               :input (get-in s [:repl :input])
+              :buffer (get-in s [:repl :buffer])
               :history (get-in s [:repl :history])
               :mode (get-in s [:ui :print])
               :line-numbers? (get-in s [:ui :line-numbers?])

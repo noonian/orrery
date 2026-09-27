@@ -66,7 +66,7 @@ export async function column(locator, name) {
 }
 
 // Open the REPL's dock along the bottom of the page, if it is closed.
-// The editor is there closed or open; open, the history is there too.
+// The line is there closed or open; open, the buffer and the history are too.
 export async function openRepl(page) {
   const toggle = page.locator('#repl-toggle');
   if ((await toggle.getAttribute('aria-expanded')) === 'false') await toggle.click();
@@ -74,13 +74,13 @@ export async function openRepl(page) {
   await expect(page.locator('#repl-input')).toBeVisible();
 }
 
-// Evaluate in the REPL, opening the dock first; the entry it appends.
-// The open dock keeps the editor's text.
+// Evaluate on the REPL's line, opening the dock first; the entry it
+// appends. Ctrl-Enter evaluates the line whatever it holds.
 export async function evalRepl(page, code) {
   await openRepl(page);
   const before = await page.locator('#repl-dock .entry').count();
   await page.locator('#repl-input').fill(code);
-  await page.locator('#repl-eval-all').click();
+  await page.locator('#repl-input').press('Control+Enter');
   await expect(page.locator('#repl-dock .entry')).toHaveCount(before + 1);
   return page.locator('#repl-dock .entry').last();
 }

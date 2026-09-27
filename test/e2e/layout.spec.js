@@ -29,7 +29,7 @@ test.describe('a lesson\'s layout', () => {
     expect(await y('.lesson-grid > .egraph')).toBeLessThan(await y('.lesson-grid > .controls'));
   });
 
-  test('the dock starts closed, one line with the editor; it opens with the button or Ctrl-`, and stays open across lessons', async ({ page }) => {
+  test('the dock starts closed, as the REPL\'s line; it opens with the button or Ctrl-`, and stays open across lessons', async ({ page }) => {
     await openLesson(page, 3);
     await expect(toggle(page)).toHaveAttribute('aria-expanded', 'false');
     await expect(page.locator('#repl-input')).toBeVisible();
@@ -38,7 +38,7 @@ test.describe('a lesson\'s layout', () => {
     await page.keyboard.press('Control+Backquote');
     await expect(toggle(page)).toHaveAttribute('aria-expanded', 'true');
     await expect(page.locator('#repl-history')).toBeVisible();
-    await expect(page.locator('#repl-input')).toBeFocused();
+    await expect(page.locator('#repl-buffer')).toBeFocused();
     await page.locator('.lesson-nav a', { hasText: '4. A rule' }).click();
     await expectSnapshot(page, { lesson: 'rule', status: 'done' });
     await expect(toggle(page)).toHaveAttribute('aria-expanded', 'true');

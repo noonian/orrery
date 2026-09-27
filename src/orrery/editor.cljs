@@ -1,38 +1,43 @@
 (ns orrery.editor
-  "Builds the REPL's editor from prism-code-editor. The editor lays
-  highlighted code over a real textarea. It colours brackets by depth,
-  marks the pair around the caret, closes brackets and double quotes,
-  and has its own undo.
+  "Builds the REPL's two editors from prism-code-editor. An editor
+  lays highlighted code over a real textarea. It colours brackets by
+  depth, marks the pair around the caret, closes brackets and double
+  quotes, and has its own undo.
 
-  The page's state holds the editor's text. The editor tells the page
-  of every change, and the page tells the editor when its text is
-  replaced: on a recall, or after the closed dock evaluates its line.
-  This namespace knows nothing of the state. It is given callbacks,
-  and orrery.dispatch supplies them.
+  The REPL has two editors, each with its own text:
 
-  The editor stands in the REPL's dock, which is closed or open. The
-  closed dock is one line, like a terminal's. The open dock is an
-  editor for several forms. The keys, besides prism-code-editor's
-  own:
+    - The line is the REPL's input, as a terminal's line is. It is the
+      closed dock, and it stands under the history in the open dock.
+    - The buffer is the editor on the left of the open dock, for
+      longer code. Nothing that the REPL does empties it.
 
-    - Enter, in the closed dock, evaluates the line when every
-      bracket in it is closed. When a bracket is open, it opens the
-      dock and starts a new line. In the open dock, Enter starts a new
-      line, indented as Clojure is (`orrery.forms/indent`).
-    - Shift-Enter starts a new line, and opens the dock.
-    - Ctrl-Enter or Cmd-Enter evaluates the form at the caret. In the
-      closed dock it evaluates the line.
+  The page's state holds both texts. An editor tells the page of
+  every change, and the page tells the editor when its text is
+  replaced: on a recall, after the line is evaluated, or when an
+  entry of the history is copied into the buffer. This namespace
+  knows nothing of the state. It is given callbacks, and
+  orrery.dispatch supplies them.
+
+  The keys of the line, besides prism-code-editor's own:
+
+    - Enter evaluates the line when every bracket in it is closed,
+      and empties it. When a bracket is open, Enter starts a new line,
+      indented as Clojure is (`orrery.forms/indent`).
+    - Shift-Enter starts a new line. Ctrl-Enter evaluates the line
+      whatever it holds.
+    - The up arrow in the first line brings back an earlier input, and
+      the down arrow in the last line a later one.
+
+  The keys of the buffer:
+
+    - Enter starts a new line, indented as Clojure is.
+    - Ctrl-Enter or Cmd-Enter evaluates the form at the caret.
     - Ctrl-Shift-Enter or Cmd-Shift-Enter evaluates every form.
-    - The up arrow brings back an earlier input, and the down arrow a
-      later one, in the closed dock.
-    - Escape closes the open dock.
-    - Tab indents the lines of the caret or the selection, with
-      spaces. Shift-Tab outdents them. Ctrl-M (Ctrl-Shift-M on a Mac)
-      lets Tab leave the editor, or indent again.
 
-  Text of several lines is never emptied by an evaluation, even in
-  the closed dock. Only a single line is evaluated as a terminal's
-  line."
+  In both, Escape closes the open dock, and Tab indents the lines of
+  the caret or the selection, with spaces. Shift-Tab outdents them.
+  Ctrl-M (Ctrl-Shift-M on a Mac) lets Tab leave the editor, or indent
+  again."
   (:require ["prism-code-editor" :refer [createEditor]]
             ["prism-code-editor/commands" :refer [defaultKeymap editHistory editorCommands
                                                   ignoreTab indentSelectedLines]]
@@ -51,8 +56,6 @@
 (defn- last-line? [^js ed]
   (let [[_ end] (.getSelection ed)]
     (not (str/includes? (subs (.-value ed) end) "\n"))))
-
-(defn- one-line? [^js ed] (not (str/includes? (.-value ed) "\n")))
 
 (defn- new-line!
   "Replaces the selection with a line break and the indentation of
@@ -82,52 +85,65 @@
     (js/setTimeout #(doseq [el els] (.remove (.-classList el) "evaluated")) 450)))
 
 (defn- evaluate!
-  "Evaluates as `how` says, :form or :all. In the closed dock, a
-  single line is evaluated as a terminal's line instead."
-  [^js ed {:keys [on-eval open?]} how]
+  "Evaluates the buffer as `how` says, :form or :all, and marks what
+  was evaluated."
+  [^js ed {:keys [on-eval]} how]
   (let [v (.-value ed)]
-    (if (and (not (open?)) (one-line? ed))
-      (on-eval :line nil)
-      (flash! ed v (on-eval how (first (.getSelection ed)))))
+    (flash! ed v (on-eval how (first (.getSelection ed))))
     true))
 
+(defn- common-keys
+  "Returns the keys that the line and the buffer share."
+  [{:keys [on-close open?]}]
+  {"Escape" (fn [_] (when (open?) (on-close) true))
+   "Tab" (fn [ed] (and (not ignoreTab) (indentSelectedLines ed) true))})
+
+(defn- line-keys [{:keys [on-eval on-recall]}]
+  {"Enter" (fn [ed]
+             (if (forms/complete? (.-value ed))
+               (do (on-eval) true)
+               (new-line! ed)))
+   "Shift+Enter" new-line!
+   "Ctrl+Enter" (fn [_] (on-eval) true)
+   "Mod+Enter" (fn [_] (on-eval) true)
+   "ArrowUp" (fn [ed] (and (first-line? ed) (on-recall :back)))
+   "ArrowDown" (fn [ed] (and (last-line? ed) (on-recall :forward)))})
+
+(defn- buffer-keys [callbacks]
+  {"Enter" new-line!
+   "Shift+Enter" new-line!
+   "Ctrl+Enter" (fn [ed] (evaluate! ed callbacks :form))
+   "Mod+Enter" (fn [ed] (evaluate! ed callbacks :form))
+   "Shift+Ctrl+Enter" (fn [ed] (evaluate! ed callbacks :all))
+   "Shift+Mod+Enter" (fn [ed] (evaluate! ed callbacks :all))})
+
 (defn- keymap
-  "Returns prism-code-editor's default keys with the REPL's in place.
-  A key's function returns true when it did something. Otherwise the
-  key does what it would have done."
-  [{:keys [on-eval on-recall on-open on-close open?] :as callbacks}]
+  "Returns prism-code-editor's default keys with those of `role`,
+  :line or :buffer, in place. A key's function returns true when it
+  did something. Otherwise the key does what it would have done."
+  [role callbacks]
   (js/Object.assign
    #js {} defaultKeymap
-   #js {"Enter" (fn [ed]
-                  (cond
-                    (open?) (new-line! ed)
-                    (not (one-line? ed)) (do (on-open) true)
-                    (forms/complete? (.-value ed)) (do (on-eval :line nil) true)
-                    :else (do (on-open) (new-line! ed))))
-        "Shift+Enter" (fn [ed] (when-not (open?) (on-open)) (new-line! ed))
-        "Ctrl+Enter" (fn [ed] (evaluate! ed callbacks :form))
-        "Mod+Enter" (fn [ed] (evaluate! ed callbacks :form))
-        "Shift+Ctrl+Enter" (fn [ed] (evaluate! ed callbacks :all))
-        "Shift+Mod+Enter" (fn [ed] (evaluate! ed callbacks :all))
-        "Escape" (fn [_] (when (open?) (on-close) true))
-        "ArrowUp" (fn [ed] (and (not (open?)) (first-line? ed) (on-recall :back)))
-        "ArrowDown" (fn [ed] (and (not (open?)) (last-line? ed) (on-recall :forward)))
-        "Tab" (fn [ed] (and (not ignoreTab) (indentSelectedLines ed) true))}))
+   (clj->js (merge (common-keys callbacks)
+                   (case role
+                     :line (line-keys callbacks)
+                     :buffer (buffer-keys callbacks))))))
 
 (defn mount!
-  "Builds an editor inside the element `node` and returns it.
-  `callbacks` holds:
+  "Builds an editor inside the element `node` and returns it. `role`
+  is :line or :buffer. `callbacks` holds:
 
     - :on-change, called with the text after every change;
-    - :on-eval, called with :line, :form or :all and the caret's
-      position, which returns the forms it evaluated;
-    - :on-recall, called with :back or :forward, which returns true
-      when it recalled an input;
-    - :on-open and :on-close, which open and close the dock;
-    - :open?, which returns true when the dock is open.
+    - :on-eval, which evaluates. The line calls it with no arguments.
+      The buffer calls it with :form or :all and the caret's position,
+      and it returns the forms it evaluated;
+    - :on-recall, for the line, called with :back or :forward, which
+      returns true when it recalled an input;
+    - :on-close, which closes the dock, and :open?, which returns
+      true when the dock is open.
 
   `attrs` are set on the editor's textarea, and its id among them."
-  [node {:keys [text line-numbers? attrs]} {:keys [on-change] :as callbacks}]
+  [node {:keys [role text line-numbers? attrs]} {:keys [on-change] :as callbacks}]
   (let [ed (createEditor node
                          #js {:language "clojure"
                               :value text
@@ -139,7 +155,7 @@
                          (matchBrackets true)
                          (highlightBracketPairs)
                          (editHistory)
-                         (editorCommands (keymap callbacks) #js ["\"\"" "()" "[]" "{}"]))
+                         (editorCommands (keymap role callbacks) #js ["\"\"" "()" "[]" "{}"]))
         ta (.-textarea ed)]
     (doseq [[k v] attrs] (.setAttribute ta (name k) v))
     ed))

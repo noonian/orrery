@@ -187,8 +187,11 @@
         (is (contains? (set (handlers lesson)) [:repl/dock]))))
     (testing "no fields: the editor is the input"
       (is (empty? (elements h :textarea)) "prism-code-editor makes the editor's textarea")
-      (is (= ["repl-input"] (map #(-> % second :replicant/on-render second :attrs :id) (elements h :div.editor)))
-          "the one place to type")
+      (is (= ["repl-input" "repl-buffer"] (map #(-> % second :replicant/on-render second :attrs :id) (elements h :div.editor)))
+          "the two places to type: the line and the buffer")
+      (is (= ["repl-input"] (map #(-> % second :replicant/on-render second :attrs :id)
+                                 (elements (page-at-the-end lessons/taste) :div.editor)))
+          "closed, the dock has the line alone")
       (is (empty? (texts h :pre.call)))
       (is (not (contains? hs [:run]))))
     (testing "every panel that reads a run, each saying what it is the work of"
@@ -284,6 +287,7 @@
     (is (contains? hs [:adopt 2]))
     (is (not (contains? hs [:adopt 3])) "a printed value has no button")
     (is (contains? hs [:adopt 6]) "a run has one")
+    (is (every? #(contains? hs [:repl/to-buffer %]) (range 9)) "every entry can go to the buffer")
     (is (= ["1\n"] (texts h :pre.out)) "what was printed stands over the value")
     (is (= ["2" "nil" "#function"] (remove #(re-find #"^\{" %) (texts h :pre.result))))
     (is (some #(re-find #"^a run: 1 step, 0 iterations, not run yet; 2 classes, 2 nodes$" %) (texts h :span.summary)))

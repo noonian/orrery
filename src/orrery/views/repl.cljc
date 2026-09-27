@@ -65,7 +65,8 @@
     [:pre.result (or text (printed/printed v))]))
 
 (defn- history-view
-  "Renders the history. It scrolls down to its last entry when it is
+  "Renders the history. Each entry has a button that adds its code to
+  the buffer. The history scrolls down to its last entry when it is
   rendered (`[:repl/scroll]`)."
   [history mode]
   (into [:div.history {:id "repl-history" :replicant/on-render [:repl/scroll]}
@@ -73,7 +74,11 @@
            [:p.empty "Nothing is evaluated yet. The ? button lists the keys and the names in scope."])]
         (for [[i {:keys [in out error] :as entry}] (map-indexed vector history)]
           [:div.entry {:replicant/key i}
-           [:pre.in (str "user=> " in)]
+           [:div.in-row
+            [:pre.in (str "user=> " in)]
+            [:button.to-buffer {:title "add this code to the end of the buffer"
+                                :on {:click [:repl/to-buffer i]}}
+             "to buffer"]]
            (when out [:pre.out out])
            (if (contains? entry :error)
              [:pre.error error]
@@ -130,12 +135,12 @@
 ;; the keys
 
 (def keys-table
-  "The keys of the REPL's editor, each with what it does."
-  [["Enter" "In the closed dock, evaluates the line. In the open dock, starts a new line, indented."]
-   ["Shift-Enter" "Starts a new line, and opens the dock."]
-   ["Ctrl-Enter" "Evaluates the form at the caret. In the closed dock, evaluates the line."]
-   ["Ctrl-Shift-Enter" "Evaluates every form in the editor, in order, and stops at the first error."]
-   ["↑ ↓" "In the closed dock, bring back what you evaluated before."]
+  "The keys of the REPL's line and buffer, each with what it does."
+  [["Enter" "On the line, evaluates it when its brackets are closed, and starts a new line when one is open. In the buffer, starts a new line, indented."]
+   ["Shift-Enter" "Starts a new line."]
+   ["Ctrl-Enter" "In the buffer, evaluates the form at the caret. On the line, evaluates the line."]
+   ["Ctrl-Shift-Enter" "In the buffer, evaluates every form in order, and stops at the first error."]
+   ["↑ ↓" "On the line, bring back what you evaluated before."]
    ["Ctrl-`" "Opens the dock, or closes it. Escape closes it too."]
    ["Tab" "Indents the lines of the selection. Shift-Tab outdents them. Ctrl-M (Ctrl-Shift-M on a Mac) lets Tab leave the editor."]])
 
@@ -159,57 +164,62 @@
 ;; ---------------------------------------------------------------------------
 ;; the dock
 
-(defn- line-count [s] (inc (count (re-seq #"\n" (str s)))))
+(defn- editor
+  "Renders the element that prism-code-editor builds the editor of
+  `role` in, :line or :buffer (`orrery.editor`). Replicant leaves what
+  it builds alone."
+  [role opts attrs]
+  [:div.editor {:replicant/key (name role)
+                :class (name role)
+                :replicant/on-render [:repl/editor (assoc opts :role role :attrs attrs)]}])
 
 (defn dock
   "Renders the dock along the bottom of the page that holds the REPL.
 
-  Closed, the dock is one line: the editor, one line about the last
-  evaluation, and the buttons. The editor shows its first line, and
-  says how many lines it has when it has more than one. Open, the dock
-  is the editor beside the history, under a row of buttons, with a
+  The REPL has two editors, each with its own text. The line is the
+  REPL's input: `input`. The buffer is for longer code, and nothing
+  the REPL does empties it: `buffer`.
+
+  Closed, the dock is the line, one line about the last evaluation,
+  and the buttons. Open, the dock is the buffer on the left, and the
+  history over the line on the right, under a row of buttons, with a
   handle along its top edge that resizes it (`[:repl/resize]`).
 
-  The editor is the first element of the dock's row, closed or open,
-  so Replicant never builds it again. prism-code-editor builds the
-  editor inside that element (`orrery.editor`).
+  The line is the first element of the dock's row, closed or open, so
+  Replicant never builds it again.
 
   `here` is the key of the page on show. `help?` shows the keys and
   the names in scope."
-  [{:keys [open? input history mode line-numbers? help? here]}]
-  (let [n (line-count input)]
-    [:section.dock {:id "repl-dock" :class (if open? "open" "closed") :aria-label "the REPL"}
-     [:div.dock-handle {:id "repl-resize" :title "drag to resize the REPL"
-                        :on {:pointerdown [:repl/resize]}}]
-     [:div.dock-row
-      [:div.dock-editor
-       [:div.editor {:replicant/key "editor"
-                     :replicant/on-render [:repl/editor {:text input
-                                                         :open? (boolean open?)
-                                                         :line-numbers? line-numbers?
-                                                         :attrs {:id "repl-input"
-                                                                 :aria-label "the REPL's editor"
-                                                                 :placeholder "(eg/class-count g)"}}]}]
-       (when (and (not open?) (> n 1))
-         [:button.more {:id "repl-more" :on {:click [:repl/dock]}} (str "+" (dec n) " lines")])]
-      (if open?
-        (history-view history mode)
-        (last-view (peek history)))
-      (into [:div.dock-tools]
-            (concat
-             (when open?
-               [[:button.primary {:id "repl-eval" :title "Ctrl-Enter" :on {:click [:repl/eval :form]}} "eval form"]
-                [:button {:id "repl-eval-all" :title "Ctrl-Shift-Enter" :on {:click [:repl/eval :all]}} "eval all"]
-                [:button {:id "repl-clear" :title "empty the history" :on {:click [:repl/clear]}} "clear"]
-                [:label.check
-                 [:input {:id "repl-line-numbers" :type "checkbox" :checked (boolean line-numbers?)
-                          :on {:change [:repl/line-numbers]}}]
-                 " line numbers"]])
-             [[:button.icon {:id "repl-help-toggle" :aria-expanded (str (boolean help?))
-                             :title "the keys and the names in scope" :on {:click [:repl/help]}} "?"]
-              [:button.icon {:id "repl-toggle" :aria-expanded (str (boolean open?))
-                             :title (if open? "close the REPL (Ctrl-`)" "open the REPL (Ctrl-`)")
-                             :on {:click [:repl/dock]}}
-               (if open? "▾" "▴")]]))]
-     (when help? (help here))]))
-
+  [{:keys [open? input buffer history mode line-numbers? help? here]}]
+  [:section.dock {:id "repl-dock" :class (if open? "open" "closed") :aria-label "the REPL"}
+   [:div.dock-handle {:id "repl-resize" :title "drag to resize the REPL"
+                      :on {:pointerdown [:repl/resize]}}]
+   [:div.dock-row
+    (editor :line {:text input}
+            {:id "repl-input" :aria-label "the REPL's line" :placeholder "(eg/class-count g)"})
+    (when open?
+      (editor :buffer {:text buffer :line-numbers? line-numbers?}
+              {:id "repl-buffer" :aria-label "the REPL's buffer"
+               :placeholder ";; the buffer: Ctrl-Enter evaluates the form at the caret"}))
+    (if open?
+      (history-view history mode)
+      (last-view (peek history)))
+    (into [:div.dock-tools]
+          (concat
+           (when open?
+             [[:label.check
+               [:input {:id "repl-line-numbers" :type "checkbox" :checked (boolean line-numbers?)
+                        :on {:change [:repl/line-numbers]}}]
+               " line numbers"]
+              [:button.primary {:id "repl-eval" :title "Ctrl-Enter in the buffer" :on {:click [:repl/eval :form]}}
+               "eval form"]
+              [:button {:id "repl-eval-all" :title "Ctrl-Shift-Enter in the buffer" :on {:click [:repl/eval :all]}}
+               "eval buffer"]
+              [:button {:id "repl-clear" :title "empty the history" :on {:click [:repl/clear]}} "clear history"]])
+           [[:button.icon {:id "repl-help-toggle" :aria-expanded (str (boolean help?))
+                           :title "the keys and the names in scope" :on {:click [:repl/help]}} "?"]
+            [:button.icon {:id "repl-toggle" :aria-expanded (str (boolean open?))
+                           :title (if open? "close the REPL (Ctrl-`)" "open the REPL (Ctrl-`)")
+                           :on {:click [:repl/dock]}}
+             (if open? "▾" "▴")]]))]
+   (when help? (help here))])

@@ -136,6 +136,15 @@
         (is (= ["(eg/ad" nil] ((juxt :input :recall) (forward (forward (back (back typing)))))))))
     (is (= {:input "x" :history [] :recall nil} (back {:input "x" :history [] :recall nil})) "no history, nothing to recall")))
 
+(deftest an-entry-goes-to-the-buffer
+  (let [r {:input "" :buffer "" :history [{:in "(+ 1 2)" :ok 3} {:in "(let [x 1]\n  x)" :ok 1}] :recall nil}]
+    (is (= "(+ 1 2)" (:buffer (wb/to-buffer r 0))))
+    (is (= "(+ 1 2)\n\n(let [x 1]\n  x)" (:buffer (-> r (wb/to-buffer 0) (wb/to-buffer 1)))))
+    (is (= "(def a 1)\n\n(+ 1 2)" (:buffer (wb/to-buffer (assoc r :buffer "(def a 1)\n\n\n") 0)))
+        "the blank lines at its end become one")
+    (is (= r (wb/to-buffer r 7)) "no such entry")
+    (is (= "" (:input (wb/to-buffer r 0))) "the line is left alone")))
+
 (deftest what-the-atom-refuses
   (let [s (wb/page lessons/taste (run/run-all (lessons/make-run lessons/taste)))
         [g _] (eg/add (eg/egraph) :z)
@@ -156,7 +165,8 @@
     (is (says (assoc s :cost :cheapest) #":cost names no cost: :cheapest"))
     (is (says (assoc-in s [:ui :print] :latex) #":notation or :native"))
     (is (says (assoc-in s [:ui :selected] :a) #"class id"))
-    (is (says (assoc-in s [:repl :input] nil) #"editor's text"))
+    (is (says (assoc-in s [:repl :input] nil) #"line's text"))
+    (is (says (assoc-in s [:repl :buffer] nil) #"buffer's text"))
     (is (says (assoc-in s [:repl :history] ()) #"vector"))
     (is (says (assoc s :input nil) #":input"))
     (testing "what the page's own steps make, it accepts"

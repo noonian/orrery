@@ -260,6 +260,13 @@
 
 (defn set-repl-input! [text] (swap! app-state update :repl assoc :input text :recall nil))
 
+(defn set-repl-buffer! [text] (swap! app-state assoc-in [:repl :buffer] text))
+
+(defn to-buffer!
+  "Adds the code of history entry `i` to the end of the buffer."
+  [i]
+  (swap! app-state update :repl workbench/to-buffer i))
+
 (defn toggle-dock! [] (swap! app-state update-in [:ui :repl-open?] not))
 
 (defn open-dock! [] (swap! app-state assoc-in [:ui :repl-open?] true))
@@ -273,7 +280,7 @@
 (defn toggle-line-numbers! [] (swap! app-state update-in [:ui :line-numbers?] not))
 
 (defn clear-repl!
-  "Empties the history. The editor keeps its text."
+  "Empties the history. The line and the buffer keep their text."
   []
   (swap! app-state update :repl assoc :history [] :recall nil))
 
@@ -303,28 +310,26 @@
           (conj done f)
           (recur more (conj done f)))))))
 
-(defn eval-repl!
-  "Evaluates what is in the editor, as `how` says:
+(defn eval-line!
+  "Evaluates every form on the line, each into its own history entry,
+  and empties the line, as a terminal does."
+  []
+  (let [text (get-in @app-state [:repl :input])]
+    (when (seq (str/trim text))
+      (evaluate-forms! text (forms/top-level text))
+      (swap! app-state update :repl assoc :input "" :recall nil :draft nil))))
 
-    - :line evaluates every form, and empties the editor, as a
-      terminal does. The closed dock evaluates its one line this way.
-    - :form evaluates the top-level form at the position `pos`, and
-      the editor keeps its text.
-    - :all evaluates every form in order, and stops at the first
-      error. The editor keeps its text.
-
-  Returns the forms it evaluated, each with its :start and :end."
-  ([how] (eval-repl! how nil))
-  ([how pos]
-   (let [text (get-in @app-state [:repl :input])]
-     (case how
-       :line (when (seq (str/trim text))
-               (let [done (evaluate-forms! text (forms/top-level text))]
-                 (swap! app-state update :repl assoc :input "" :recall nil :draft nil)
-                 done))
-       :form (when-let [f (forms/form-at text (or pos (count text)))]
-               (evaluate-forms! text [f]))
-       :all (evaluate-forms! text (forms/top-level text))))))
+(defn eval-buffer!
+  "Evaluates the buffer as `how` says. :form evaluates the top-level
+  form at the position `pos`. :all evaluates every form in order, and
+  stops at the first error. The buffer keeps its text. Returns the
+  forms it evaluated, each with its :start and :end."
+  [how pos]
+  (let [text (get-in @app-state [:repl :buffer])]
+    (case how
+      :form (when-let [f (forms/form-at text (or pos (count text)))]
+              (evaluate-forms! text [f]))
+      :all (evaluate-forms! text (forms/top-level text)))))
 
 (defn run-repl!
   "Evaluates `code` from a link in the prose, as if it had been

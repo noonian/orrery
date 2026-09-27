@@ -49,7 +49,7 @@
    :step 0
    :follow? true
    :cost :ast-size
-   :repl {:input "" :history [] :recall nil}
+   :repl {:input "" :buffer "" :history [] :recall nil}
    :ui ui})
 
 (defn lesson [s] (lessons/by-key (:lesson s)))
@@ -224,14 +224,14 @@
        :else (put s g)))))
 
 (defn recall
-  "Returns the REPL `r` with an earlier input in the editor when
-  `dir` is :back, or a later one when `dir` is :forward. The arrow
-  keys of a terminal do the same. `r` is a map that holds the
-  editor's text under :input, and the :history.
+  "Returns the REPL `r` with an earlier input on the line when `dir`
+  is :back, or a later one when `dir` is :forward. The arrow keys of
+  a terminal do the same. `r` is a map that holds the line's text
+  under :input, and the :history.
 
-  :recall is the index of the history entry that is in the editor.
-  It is nil while the editor holds what is being typed. Going
-  forward past the last entry brings back what was being typed."
+  :recall is the index of the history entry that is on the line. It
+  is nil while the line holds what is being typed. Going forward past
+  the last entry brings back what was being typed."
   [{:keys [input history recall draft] :as r} dir]
   (let [n (count history)
         i (case dir
@@ -241,6 +241,16 @@
       (or (zero? n) (nil? i)) r
       (>= i n) (assoc r :input (or draft "") :recall nil :draft nil)
       :else (assoc r :input (:in (nth history i)) :recall i :draft (if recall draft input)))))
+
+(defn to-buffer
+  "Returns the REPL `r` with the code of history entry `i` added to
+  the end of the buffer. A blank line separates it from what the
+  buffer already holds."
+  [{:keys [buffer history] :as r} i]
+  (if-let [code (:in (get history i))]
+    (let [kept (str/trimr buffer)]
+      (assoc r :buffer (if (seq kept) (str kept "\n\n" code) code)))
+    r))
 
 ;; ---------------------------------------------------------------------------
 ;; what a state is
@@ -268,6 +278,7 @@
       (not (contains? #{:notation :native} (print-mode s))) "[:ui :print] is :notation or :native"
       (not (let [id (get-in s [:ui :selected])] (or (nil? id) (and (integer? id) (<= 0 id)))))
       "[:ui :selected] is a class id, or nil"
-      (not (string? (get-in s [:repl :input]))) "[:repl :input] is the editor's text"
+      (not (string? (get-in s [:repl :input]))) "[:repl :input] is the line's text"
+      (not (string? (get-in s [:repl :buffer]))) "[:repl :buffer] is the buffer's text"
       (not (vector? (get-in s [:repl :history]))) "[:repl :history] is a vector"
       :else nil)))
