@@ -125,6 +125,57 @@
       (js/window.addEventListener "pointermove" move)
       (js/window.addEventListener "pointerup" up))))
 
+(defn- pan-graph!
+  "Moves the graph in its frame while the pointer that pressed it is
+  dragged, by scrolling the frame. A press that moves more than a few
+  pixels is a drag, and the click that ends a drag does not open the
+  class under the pointer."
+  [e]
+  (let [ev (dom-event e)
+        frame (.-currentTarget ev)
+        x0 (.-clientX ev)
+        y0 (.-clientY ev)
+        left0 (.-scrollLeft frame)
+        top0 (.-scrollTop frame)
+        dragged? (volatile! false)
+        swallow (fn [^js ev] (.stopPropagation ev) (.preventDefault ev))
+        move (fn [^js ev]
+               (let [dx (- (.-clientX ev) x0)
+                     dy (- (.-clientY ev) y0)]
+                 (when (and (not @dragged?) (< 4 (max (js/Math.abs dx) (js/Math.abs dy))))
+                   (vreset! dragged? true)
+                   (.add (.-classList frame) "panning"))
+                 (when @dragged?
+                   (set! (.-scrollLeft frame) (- left0 dx))
+                   (set! (.-scrollTop frame) (- top0 dy)))))]
+    (when (zero? (.-button ev))
+      (.preventDefault ev)
+      (letfn [(up [_]
+                (js/window.removeEventListener "pointermove" move)
+                (js/window.removeEventListener "pointerup" up)
+                (.remove (.-classList frame) "panning")
+                (when @dragged?
+                  ;; The click follows the pointerup in the same task.
+                  (js/window.addEventListener "click" swallow true)
+                  (js/setTimeout #(js/window.removeEventListener "click" swallow true) 0)))]
+        (js/window.addEventListener "pointermove" move)
+        (js/window.addEventListener "pointerup" up)))))
+
+(defn- zoom-graph!
+  "Zooms the graph, and scrolls its frame so that the point of the
+  picture in the middle of the frame stays there."
+  [dir]
+  (if-let [frame (some-> (js/document.getElementById "graph") (.querySelector ".graph-scroll"))]
+    (let [w0 (.-scrollWidth frame)
+          h0 (.-scrollHeight frame)
+          fx (/ (+ (.-scrollLeft frame) (/ (.-clientWidth frame) 2)) w0)
+          fy (/ (+ (.-scrollTop frame) (/ (.-clientHeight frame) 2)) h0)]
+      (state/zoom-graph! dir)
+      ;; The render is synchronous, so the picture has its new size.
+      (set! (.-scrollLeft frame) (- (* fx (.-scrollWidth frame)) (/ (.-clientWidth frame) 2)))
+      (set! (.-scrollTop frame) (- (* fy (.-scrollHeight frame)) (/ (.-clientHeight frame) 2))))
+    (state/zoom-graph! dir)))
+
 (defn key!
   "Handles a key pressed anywhere on the page. Ctrl-` opens the
   REPL's dock, or closes it."
@@ -176,7 +227,8 @@
     :tree/open (do (.stopPropagation (dom-event e)) (state/select-class! (first args)))
     :graph/toggle (state/toggle-graph!)
     :graph/filter (state/toggle-graph-filter!)
-    :graph/zoom (state/zoom-graph! (first args))
+    :graph/zoom (zoom-graph! (first args))
+    :graph/pan (pan-graph! e)
     :export/copy (copy-export!)
     :export/download (download-export!)
     :cost (state/set-cost! (first args))

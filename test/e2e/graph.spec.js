@@ -66,6 +66,38 @@ test.describe('the graph picture', () => {
     await expect(page.locator('#graph-fit')).toBeDisabled();
   });
 
+  test('the zoomed picture moves when dragged, and a drag that ends on a box does not open it', async ({ page }) => {
+    await openLesson(page, 8);
+    await page.locator('#graph-toggle').click();
+    for (let i = 0; i < 4; i++) await page.locator('#graph-zoom-in').click();
+    const frame = page.locator('#graph .graph-scroll');
+    await frame.scrollIntoViewIfNeeded();
+    // a box with room around it, scrolled to the middle of the frame
+    const [left, top] = await frame.evaluate((el) => {
+      const f = el.getBoundingClientRect();
+      const half = [el.clientWidth / 2, el.clientHeight / 2];
+      for (const r of [...el.querySelectorAll('.eclass .box')].map((b) => b.getBoundingClientRect())) {
+        const cx = r.x - f.x + el.scrollLeft + r.width / 2, cy = r.y - f.y + el.scrollTop + r.height / 2;
+        if (cx > half[0] + 100 && cx < el.scrollWidth - half[0] - 100 && cy > half[1] + 100 && cy < el.scrollHeight - half[1] - 100) {
+          el.scrollLeft = Math.round(cx - half[0]);
+          el.scrollTop = Math.round(cy - half[1]);
+          return [el.scrollLeft, el.scrollTop];
+        }
+      }
+    });
+    const f = await frame.boundingBox();
+    const x = f.x + f.width / 2, y = f.y + f.height / 2;
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    await page.mouse.move(x - 60, y - 40, { steps: 5 });
+    expect(await frame.evaluate((el) => [el.scrollLeft, el.scrollTop])).toEqual([left + 60, top + 40]);
+    // the picture moved with the pointer, so the press and the release are on the same box
+    await page.mouse.up();
+    await expect(page.locator('#graph .eclass.selected')).toHaveCount(0);
+    await page.mouse.click(x - 60, y - 40);
+    await expect(page.locator('#graph .eclass.selected')).toHaveCount(1);
+  });
+
   test('lesson 3: the merged class is marked, its two parents point at it, and the rebuild folds them', async ({ page }) => {
     await openLesson(page, 3);
     await page.locator('#graph-toggle').click();

@@ -11,9 +11,10 @@
   - where a rule matches.
 
   Hovering a box lights its row in the class list, and clicking a
-  box opens the class, as in the tree. The controls zoom in and out,
-  fit the width, and restrict the picture to what the opened class
-  reaches.
+  box opens the class, as in the tree. Dragging the picture moves it
+  in its frame. The controls zoom in and out about the middle of the
+  frame, fit the width, and restrict the picture to what the opened
+  class reaches.
 
   The picture is off by default, because it takes up room. The
   exception is the introduction, where the e-graph is small and the
@@ -102,8 +103,8 @@
       [:span [:span.swatch {:style {:border-color "var(--merged-ink)" :border-width "2px"}}] "class absorbed a merge"]
       [:span [:span.swatch {:style {:border-color "var(--added-ink)" :border-width "2px"}}] "new class"]
       [:span "a coloured id inside a node names a class, not a number"]
-      [:span "a dashed edge closes a cycle; hover a box to light its row, click it to open the class"]]
-     [:div.graph-scroll
+      [:span "a dashed edge closes a cycle; hover a box to light its row, click it to open the class; drag the picture to move it"]]
+     [:div.graph-scroll {:on {:pointerdown [:graph/pan]}}
       [:svg {:viewBox (str "0 0 " width " " height)
              :width (if zoom (* zoom width) width)
              :height (if zoom (* zoom height) height)

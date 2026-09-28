@@ -298,7 +298,8 @@ table.stats td.applied { color: var(--added-ink); font-weight: 600; }
 .graph-tools .status { margin: 0; }
 .graph-tools label.filter { display: inline-flex; align-items: center; gap: 4px; color: var(--ink-2); }
 .graph-tools button { font-size: 14px; padding: 2px 9px; }
-.graph-scroll { overflow: auto; max-height: 60vh; border: 1px solid var(--hairline); border-radius: 8px; background: var(--page); }
+.graph-scroll { overflow: auto; max-height: 60vh; border: 1px solid var(--hairline); border-radius: 8px; background: var(--page); cursor: grab; }
+.graph-scroll.panning, .graph-scroll.panning .eclass { cursor: grabbing; user-select: none; }
 .graph svg { display: block; font-family: var(--mono); font-size: 12px; }
 .graph .eclass { cursor: pointer; }
 .graph .box { fill: var(--surface); stroke: var(--border); stroke-width: 1; }

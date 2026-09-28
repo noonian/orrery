@@ -27,6 +27,7 @@
    :graph/toggle "[:graph/toggle]: draw the graph, or hide it"
    :graph/filter "[:graph/filter]: draw only what the opened class reaches, or everything again"
    :graph/zoom "[:graph/zoom dir]: the graph larger (:in), smaller (:out), or fitted to the width (:fit)"
+   :graph/pan "[:graph/pan]: the graph moved in its frame while the pointer that pressed it drags"
    :export/copy "[:export/copy]: the e-graph on show as egraph-serialize JSON, to the clipboard"
    :export/download "[:export/download]: the same, as a file"
    :cost "[:cost key]: the cost in force"
