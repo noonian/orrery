@@ -31,7 +31,7 @@ test.describe('what this is', () => {
   });
 
   test('only the page the site opens on says it at length; every page says it in a line', async ({ page }) => {
-    for (const n of ['basics', 'intro', 1, 7, 11]) {
+    for (const n of ['basics', 'intro', 1, 7, 12]) {
       await openLesson(page, n);
       await expect(page.locator('#about')).toHaveCount(n === 'basics' ? 1 : 0);
       await expect(page.locator('#colophon')).toContainText(disclosure);

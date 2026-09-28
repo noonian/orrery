@@ -6,7 +6,7 @@ of the planets you turn by hand to see how the system moves: watch
 [bendix](https://github.com/noonian/bendix) work, step by step, in the
 browser. Two pages to start from, the basics for a reader who has met
 none of this and an introduction to what an e-graph is and why it is
-interesting, and eleven lessons from "a term is a tree" to
+interesting, and twelve lessons from "a term is a tree" to
 "differentiation is simplification", each a real execution you can
 scrub forwards and backwards, with a REPL underneath; and a page for
 the REPL itself, its editor beside every panel.
@@ -89,9 +89,10 @@ used; and a link to every lesson.
 6. Extraction is taste
 7. The blowup
 8. The fix
-9. A rule over the polynomial
-10. What if
-11. Differentiation is simplification
+9. Inside the polynomial
+10. A rule over the polynomial
+11. What if
+12. Differentiation is simplification
 
 After them, the REPL's page (`#repl`, see below).
 

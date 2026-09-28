@@ -199,12 +199,15 @@
     typed it. The code itself is the link.
   - `[:cite key …]` cites works of `reading`. It follows the idea it
     credits, and shows as short author-year links.
+  - `[:working op term …]` works one operation of bendix's ring
+    through, monomial by monomial (`orrery.working`). It stands
+    between paragraphs, not inside one.
 
   The prose is written in the explorable voice. Each paragraph says
   what is on the page and gives the reader one of these widgets to
   use. It cites a work; it does not tell the story of the work. It
   is written in plain sentences: subject, verb, object."
-  #{:notation :native :step :select :cost :alternative :print :lesson :eval :cite})
+  #{:notation :native :step :select :cost :alternative :print :lesson :eval :cite :working})
 
 (def reading
   "Maps a key to a work that the prose cites. A work has `:who`,
@@ -376,7 +379,7 @@
     [:p "An e-graph" [:cite :nelson-1981] " does not choose. " [:alternative "(a·2)/2" "Give it (a·2)/2"] ". Each distinct subterm is a node that is stored once, and nodes known to be equal share a class, which is a box in the picture. " [:step 0 "At the input"] " there are four classes of one node each. A rule does not replace what it matches. It adds to the same class. So " [:step 1 "after one iteration"] " the " [:select [:* :a 2] "class of a·2" 1] " holds the shift beside the product, and the product is still there for the next rule."]
     [:p "Running the rules until none of them has anything to add is called equality saturation" [:cite :tate-2009 :willsey-2021] ". " [:step 2 "The twos cancel"] ". Then " [:step 3 "a times one is a"] ", so the class of the input and the class of " [:notation :a] " become one. Finally " [:step 4 "a fourth iteration"] " finds nothing new. Nothing was thrown away, so the order in which the rules fired never mattered. Choosing comes last. A cost function ranks the terms that a class stands for, and extraction reads off the cheapest one, which here is " [:notation :a] "."]
     [:p "That is why e-graphs are interesting. They rewrite without regret, they keep the choice of an answer apart from the search for one, and they hold many terms in few nodes. " [:select [:/ [:* :a 2] 2] "The input's class" 4] " stands for infinitely many terms, because " [:notation :a] " equals " [:notation [:/ [:* :a 2] 2]] ", and the " [:notation :a] " inside that equals " [:notation [:/ [:* :a 2] 2]] " again. E-graphs are used in theorem provers" [:cite :detlefs-nelson-saxe-2005 :de-moura-bjorner-2007] ", optimizing compilers" [:cite :tate-2009] " and tools that make floating-point arithmetic more accurate" [:cite :panchekha-2015] "."]
-    [:p "The lessons take this page apart: " [:lesson :tree "a term as a tree"] ", " [:lesson :sharing "sharing"] ", " [:lesson :congruence "equality"] ", " [:lesson :rule "a rule"] ", " [:lesson :saturation "saturation"] " and " [:lesson :taste "the choice of an answer"] "; then " [:lesson :blowup "what holding everything costs"] ", " [:lesson :fix "the fix"] " and " [:lesson :polynomial-rule "a rule over it"] "; then " [:lesson :what-if "a what-if"] " and " [:lesson :differentiation "differentiation"] ". Everything below is the engine running, not a drawing of it. Scrub the steps, click a box, or change the term or the rules and run them."]]})
+    [:p "The lessons take this page apart: " [:lesson :tree "a term as a tree"] ", " [:lesson :sharing "sharing"] ", " [:lesson :congruence "equality"] ", " [:lesson :rule "a rule"] ", " [:lesson :saturation "saturation"] " and " [:lesson :taste "the choice of an answer"] "; then " [:lesson :blowup "what holding everything costs"] ", " [:lesson :fix "the fix"] ", " [:lesson :normal-form "what is inside it"] " and " [:lesson :polynomial-rule "a rule over it"] "; then " [:lesson :what-if "a what-if"] " and " [:lesson :differentiation "differentiation"] ". Everything below is the engine running, not a drawing of it. Scrub the steps, click a box, or change the term or the rules and run them."]]})
 
 ;; ---------------------------------------------------------------------------
 ;; the lessons
@@ -503,7 +506,7 @@
     [:p "This is the blowup. Commutativity and associativity are the two rules that a computer algebra system cannot do without, and they are the two that an e-graph cannot afford. Deciding equality modulo both is a solved problem" [:cite :bachmair-2000] ", but a rewriting engine has to hold the forms. The usual answer is the backoff of lesson 5" [:cite :willsey-2021] ", which bans the rule that fires too often. " [:alternative "six atoms under a node limit of 500" "Six atoms under a node limit of 500"] " stop at the limit with the sum unfinished. Lesson 8 is the fix."]]})
 
 (def what-if
-  {:key :what-if :n 10 :title "What if" :needs :cromulent :kind :script
+  {:key :what-if :n 11 :title "What if" :needs :cromulent :kind :script
    :operation :what-if
    :script what-if-script
    :inputs [term-input
@@ -549,10 +552,45 @@
    [[:p "This is the sum of lesson 7, " [:notation (sum-of 5)] ", under the same two rules, with one addition: this e-graph carries the polynomial analysis. Every class computes its value as a polynomial over the atoms. The whole sum is worth " [:notation [:+ :a0 :a1 :a2 :a3 :a4]] ", and its first pair is worth " [:notation [:+ :a0 :a1]] ". Two classes with the same polynomial are merged when the node is added, before any rule sees it. The column on the right shows that polynomial."]
     [:p "Run it. " [:step 1 "One iteration"] " runs, and the rules merge nothing. Commutativity proposes " [:notation [:+ :a1 :a0]] " for the class of " [:notation [:+ :a0 :a1]] ", but the analysis has already put it there, and a union of a class with itself is not a merge. Associativity adds three classes, which are the right-nested pairs, and nothing more. The graph has twelve classes and nineteen nodes, where lesson 7 needed thirty-one and a hundred and eighty-five. The runner stops there, because an iteration that merges nothing means saturation."]
     [:p "The arrangement of the sum no longer matters. " [:step 2 "The last step"] " writes every polynomial into the graph as a term, so the best term under " (library :bendix) "'s cost is " [:notation [:+ :a0 :a1 :a2 :a3 :a4]] ", whatever was typed. " [:select [:+ :a0 :a1 :a2 :a3 :a4] "Open the input's class" 2] ": its cheapest term is the five-way sum that the analysis wrote. The whole class stands for thirty-seven terms, where the input's class in lesson 7 stood for 1680. " [:alternative "another arrangement of the same sum" "Type another arrangement"] " and you get the same polynomial and the same best term. At the REPL, " [:native '(second (eg/add g [:+ :a4 [:+ :a3 [:+ :a2 [:+ :a1 :a0]]]]))] " returns the class of the input, because the arrangement was already there."]
-    [:p "This is the fix. Commutativity, associativity, distributivity and cancellation are not rules here. They are a decision procedure inside every class, a polynomial normal form, and the blowup never starts. The class carries it as an e-class analysis" [:cite :willsey-2021] ", which is a decision procedure that cooperates with congruence closure" [:cite :nelson-oppen-1979] ", which makes this an e-graph modulo a theory" [:cite :zucker-2025] ". " [:alternative "six atoms" "Six atoms"] " needed six hundred nodes in lesson 7, and here they take twenty-eight."]]})
+    [:p "This is the fix. Commutativity, associativity, distributivity and cancellation are not rules here. They are a decision procedure inside every class, a polynomial normal form, and the blowup never starts. The class carries it as an e-class analysis" [:cite :willsey-2021] ", which is a decision procedure that cooperates with congruence closure" [:cite :nelson-oppen-1979] ", which makes this an e-graph modulo a theory" [:cite :zucker-2025] ". " [:alternative "six atoms" "Six atoms"] " needed six hundred nodes in lesson 7, and here they take twenty-eight. " [:lesson :normal-form "Lesson 9"] " opens the polynomial up and says what the fix costs."]]})
+
+(def inside-term
+  "The term of lesson 9. Two of its subterms are worth x², and the
+  whole term is worth 0."
+  [:- [:+ [:* [:+ :x 1] [:- :x 1]] 1] [:* :x :x]])
+
+(def normal-form
+  {:key :normal-form :n 9 :title "Inside the polynomial" :needs :bendix :kind :embiggen
+   :operation :simplify
+   :operation-says {:call ["(bx/simplify term"
+                           "  {:rules []"
+                           "   :cost cost"
+                           "   opts})"]}
+   :inputs [term-input]
+   :values {:term inside-term :rules []}
+   :opts bendix-opts
+   :costs [:bendix :ast-size]
+   :alternatives [{:label "sin(x + y) − sin(y + x)" :values {:term [:- [:sin [:+ :x :y]] [:sin [:+ :y :x]]]}}
+                  {:label "(a + b + c + d)²⁰" :values {:term [:expt [:+ :a :b :c :d] 20]}}
+                  {:label "x/x" :values {:term [:/ :x :x]}}
+                  {:label "(x + y)²" :values {:term [:expt [:+ :x :y] 2]}}
+                  {:label "x² + 2·x·y + y²" :values {:term [:+ [:expt :x 2] [:* 2 :x :y] [:expt :y 2]]}}]
+   :panels #{:stats}
+   :surprise {:draw generate/a-ring-term :wants {:shrink 1 :size 0.5}}
+   :prose
+   [[:p "Lesson 8 said that every class carries a polynomial. This lesson opens the polynomial up, over a term and no rules at all: " [:notation inside-term] ". A polynomial is a sum of monomials. A monomial is a number times a product of atoms, each raised to a whole power. So x² − 1 has two monomials: x² with the number 1, and no atoms with the number −1. " (library :bendix) " stores a polynomial as a map from each monomial to its number, and it drops a monomial whose number is 0. Two equal polynomials are therefore the same map, whatever order their terms were written in."]
+    [:p "A class computes its polynomial from the polynomials of its children, from the bottom up" [:cite :willsey-2021] ". The class of x is worth x, and the class of 1 is worth 1. " [:select [:+ :x 1] "The class of x + 1" 0] " adds the two. " [:select [:* [:+ :x 1] [:- :x 1]] "The class of the product" 0] " multiplies x + 1 by x − 1 and gets x² − 1. Distributivity and cancellation happen here, as arithmetic on maps, and no rule fires. Adding 1 then gives x². Below, each monomial of x + 1 meets each monomial of x − 1, and the two that cancel are struck out."]
+    [:working :product [:+ :x 1] [:- :x 1]]
+    [:p "The analysis keeps a table from each polynomial to the class that is worth it. When a new node is worth a polynomial that the table already holds, the analysis merges the node's class with the class in the table. " [:select [:* :x :x] "Open the class of x·x" 0] ": it holds x·x and (x + 1)·(x − 1) + 1, because both are worth x². Under its polynomial, the panel reads each node over the polynomials of its children and shows what the node makes. The merge happened at " [:step 0 "the input"] ", before any rule could run. The difference is then a class minus itself, which is worth 0. " [:step 2 "The last step"] " writes every polynomial in as a term, and the answer is 0."]
+    [:p "Anything that is not a sum, a difference, a product or a whole power is an atom, and the ring knows nothing about it. " [:alternative "sin(x + y) − sin(y + x)" "Try sin(x + y) − sin(y + x)"] ". The two sums are worth x + y, so they merge. The two sines now have the same child, so they are the same node, as in lesson 3. Congruence and the ring feed each other" [:cite :nelson-oppen-1979] ". The class of the sine becomes an unknown of its own, named by its class id, and the difference is that unknown minus itself, which is 0."]
+    [:p "This is why the fix is right. Two polynomials with rational numbers agree for every value of their atoms exactly when they have the same monomials with the same numbers. So the table decides every equation that follows from the laws of a commutative ring: commutativity, associativity, distributivity, the identities and cancellation. The rules of lesson 7 could find those equations only by listing arrangements. The table finds each one at the cost of the arithmetic, which grows with the size of the polynomials and not with the number of arrangements. It merges two classes only when they are equal, so it never asserts something false. At the REPL, " [:eval "(bx/simplify [:- [:* [:+ :a :b] [:+ :a :b]]\n                 [:+ [:* :a :a] [:* 2 :a :b] [:* :b :b]]])"] " returns 0."]
+    [:p "The fix has four costs. The first is size. The normal form is expanded, and an expanded polynomial can be huge. " [:alternative "(a + b + c + d)²⁰" "(a + b + c + d)²⁰"] " has 1771 monomials. " (library :bendix) " gives up on a class whose polynomial passes 200 monomials, and the column says so. That class is left to the rules, as it would be without the analysis."]
+    [:p "The second is division. " [:alternative "x/x" "x/x"] " is not 1 when x is 0, so the ring never divides by an atom. The class of x/x is an atom, and the answer is x/x. The ring divides only by a number other than 0."]
+    [:p "The third is choice. The graph no longer holds every arrangement. It holds the forms that were typed and the expanded form that the last step writes in, and the cost chooses among them. " [:alternative "(x + y)²" "(x + y)²"] " stays as it was typed, because it is cheaper than x² + 2·x·y + y². But " [:alternative "x² + 2·x·y + y²" "x² + 2·x·y + y²"] " never becomes (x + y)², because the analysis expands and never factors, and nobody typed the factored form."]
+    [:p "The fourth is that rules see less. A pattern rule matches nodes, and the arrangements now live only in the polynomial. " [:lesson :polynomial-rule "The next lesson"] " writes a rule that reads the polynomial instead."]]})
 
 (def polynomial-rule
-  {:key :polynomial-rule :n 9 :title "A rule over the polynomial" :needs :bendix :kind :embiggen
+  {:key :polynomial-rule :n 10 :title "A rule over the polynomial" :needs :bendix :kind :embiggen
    :operation :simplify
    :operation-says {:call ["(bx/simplify term"
                            "  {:rules rules/trig"
@@ -570,11 +608,12 @@
    :surprise {:draw generate/a-pythagorean-term :wants {:rule-fired 1 :shrink 0.5}}
    :prose
    [[:p [:notation [:+ s2 c2]] " = 1 is not a ring identity. The ring sees " [:notation [:sin :x]] " and " [:notation [:cos :x]] " as two atoms that it knows nothing about, so the class of " [:notation [:+ [:+ [:+ :a s2] c2] :b]] " is worth sin²x + cos²x + a + b and nothing less. A pattern rule would need the two squares to be side by side, and here they are not."]
-    [:p "The pythagoras rule reads the polynomial instead of the nodes" [:cite :zucker-2025] ". It looks at every class whose polynomial mentions a sine and a cosine of the same argument. It reduces that polynomial modulo sin²x = 1 − cos²x and modulo cos²x = 1 − sin²x. Where the result differs, the rule proposes the result as another form of the class. Here that form is a + b + 1. The runner adds the form as a term and unions it in, the analysis keeps the smaller polynomial, and classes that share a polynomial merge. " [:step 1 "Iteration 1"] " proposes a form for five classes and " [:step 2 "iteration 2"] " for two more. The third iteration finds nothing."]
-    [:p "The arrangement never mattered, because the rule never looked at it. " [:step 4 "The last step"] " writes the polynomials in as terms, and the best term under " (library :bendix) "'s cost is " [:notation [:+ :a :b 1]] ". " [:select [:expt [:sin :x] 2] "Open the class of sin²x" 4] ": it holds a second form, which is 1 plus a class that is both −1·cos²x and sin²x − 1. So the class reaches itself and stands for infinitely many terms, and the panel says so. " [:alternative "1 − cos²x" "Try 1 − cos²x"] ": the sine does not exist in the graph yet, and the proposal of the rule creates it."]]})
+    [:p "The pythagoras rule reads the polynomial instead of the nodes" [:cite :zucker-2025] ". It looks at every class whose polynomial mentions a sine and a cosine of the same argument. It reduces that polynomial modulo sin²x = 1 − cos²x and modulo cos²x = 1 − sin²x. Where the result differs, the rule proposes the result as another form of the class. Here that form is a + b + 1. The runner adds the form as a term and unions it in, the analysis keeps the smaller polynomial, and classes that share a polynomial merge. " [:step 1 "Iteration 1"] " proposes a form for five classes and " [:step 2 "iteration 2"] " for two more. The third iteration finds nothing. Below is the reduction of the input's polynomial."]
+    [:working :reduction [:+ [:+ [:+ :a s2] c2] :b] [:sin :x] [:- 1 c2]]
+    [:p "The arrangement never mattered, because the rule never looked at it. " [:step 4 "The last step"] " writes the polynomials in as terms, and the best term under " (library :bendix) "'s cost is " [:notation [:+ :a :b 1]] ". " [:select [:expt [:sin :x] 2] "Open the class of sin²x" 4] ": it holds a second form, which is 1 plus a class that is both −1·cos²x and sin²x − 1. The two nodes make different polynomials, and the panel shows which one the class keeps and why. So the class reaches itself and stands for infinitely many terms, and the panel says so. " [:alternative "1 − cos²x" "Try 1 − cos²x"] ": the sine does not exist in the graph yet, and the proposal of the rule creates it."]]})
 
 (def differentiation
-  {:key :differentiation :n 11 :title "Differentiation is simplification" :needs :bendix :kind :embiggen
+  {:key :differentiation :n 12 :title "Differentiation is simplification" :needs :bendix :kind :embiggen
    :operation :differentiate
    :inputs [{:key :term :arg "term" :label "the function" :says "the function to differentiate" :type :term}
             {:key :var :arg "x" :label "with respect to" :says "the variable to differentiate by" :type :term}]
@@ -590,7 +629,8 @@
    :panels #{:stats}
    :surprise {:draw generate/a-function :wants {:derivative-free 1 :iterations 0.5 :saturated 0.5}}
    :prose
-   [[:p "A derivative is a term like any other. " [:notation [:D [:sin [:* 2 :x]] :x]] " is a node with two children, and differentiating is saturating under rules" [:cite :willsey-2021] ". The ring part is not a rule at all. When a class is worth a polynomial, its derivative is computed from the polynomial, so linearity, the product rule and the power rule are polynomial calculus. The chain rule is one pattern rule for each operator, such as " [:native '[:D [:sin ?u] ?x]] " → " [:native '[:* [:cos ?u] [:D ?u ?x]]] "."]
+   [[:p "A derivative is a term like any other. " [:notation [:D [:sin [:* 2 :x]] :x]] " is a node with two children, and differentiating is saturating under rules" [:cite :willsey-2021] ". The ring part is not a rule at all. When a class is worth a polynomial, its derivative is computed from the polynomial, so linearity, the product rule and the power rule are polynomial calculus. The chain rule is one pattern rule for each operator, such as " [:native '[:D [:sin ?u] ?x]] " → " [:native '[:* [:cos ?u] [:D ?u ?x]]] ". Below, the polynomial of " [:alternative "(x + 1)³" "(x + 1)³"] " is differentiated one monomial at a time."]
+    [:working :derivative [:expt [:+ :x 1] 3] :x]
     [:p [:step 1 "Iteration 1"] ": d-sin fires, and the class of the derivative gains " [:notation [:* [:cos [:* 2 :x]] [:D [:* 2 :x] :x]]] ". " [:step 2 "Iteration 2"] ": the ring differentiates 2·x to 2, so that product is worth 2·cos(2·x). The third iteration finds nothing, and " [:step 4 "the last step"] " writes the normal forms in. " [:select [:D [:sin [:* 2 :x]] :x] "Open the derivative's class" 4] ": it holds the derivative node and the two products it equals, each with its cost. The derivative node is the most expensive under no-D."]
     [:p "The cost decides which term is the answer. " (library :bendix "Bendix") "'s default cost charges a derivative node no more than a sine. So for " [:alternative "sin(sin(sin x))" "sin(sin(sin x))"] " under " [:cost :bendix "bendix's default"] ", the answer keeps the derivative unevaluated, because the node is cheaper than the product of three cosines. The " [:cost :no-D "no-D cost"] " counts what is still under a derivative before it counts size, so a spelling without a derivative wins whenever one exists. When none exists, as for " [:alternative "x·|x|: no rule for abs" "x·|x|"] ", the D stays and the answer says so."]]})
 
@@ -615,7 +655,7 @@
      [:eval "(let [[g a] (eg/add g :a)\n      [g b] (eg/add g :b)]\n  (push! (first (eg/union g a b)) \"a = b, rebuild pending\"))"]
      " Then evaluate " [:eval "(push! (eg/rebuild g) \"rebuilt\")"] ". The class of " [:notation [:+ :b :b]] " has now joined the class of " [:notation [:+ :a :a]] ", although nobody asserted that. This is the congruence of lesson 3, done by hand."]
     [:p "The page is a value too. It is held in an atom called " [:code "state"] ". " [:eval "(:step @state)"] " is the step on show, and scrubbing is a swap: " [:eval "(swap! state wb/scrub 0)"] ". " [:code "wb"] " holds the steps that the buttons of the page take. " [:code "show!"] " and " [:code "push!"] " are two of those steps with the swap already written in. Anything else is a key in the state: " [:eval "(swap! state assoc :cost :prefer-shift)"] ". The atom refuses a value that the page could not draw, and it says why: " [:eval "(swap! state assoc :step 99)"] "."]
-    [:p "A run is a value as well. Equality saturation" [:cite :tate-2009 :willsey-2021] " is one call: " [:eval "(rw/saturate (first (eg/add (eg/egraph) [:+ :a :b]))\n             (lessons/rules-of lessons/ac-rules)\n             {:timeline? true})"] " The button beside the result puts its timeline on show. The next call hands the page a run that has not run yet, and the page steps it as it steps the run of a lesson: " [:eval "(show! (run/start [:+ [:+ :a :b] :c]\n                  (lessons/rules-of lessons/ac-rules)\n                  {}))"] " " (library :bendix) " is loaded beside " (library :cromulent) ": " [:eval "(bx/simplify [:+ [:* 2 :x] [:* 3 :x]])"] ". An e-graph that carries the analysis of bendix shows the polynomial of each class in the list, as in lesson 9: " [:eval "(show! (bx/saturate [:+ [:expt [:sin :x] 2] [:expt [:cos :x] 2]]\n                     {:rules rules/trig :timeline? true}))"]]
+    [:p "A run is a value as well. Equality saturation" [:cite :tate-2009 :willsey-2021] " is one call: " [:eval "(rw/saturate (first (eg/add (eg/egraph) [:+ :a :b]))\n             (lessons/rules-of lessons/ac-rules)\n             {:timeline? true})"] " The button beside the result puts its timeline on show. The next call hands the page a run that has not run yet, and the page steps it as it steps the run of a lesson: " [:eval "(show! (run/start [:+ [:+ :a :b] :c]\n                  (lessons/rules-of lessons/ac-rules)\n                  {}))"] " " (library :bendix) " is loaded beside " (library :cromulent) ": " [:eval "(bx/simplify [:+ [:* 2 :x] [:* 3 :x]])"] ". An e-graph that carries the analysis of bendix shows the polynomial of each class in the list, as in lesson 10: " [:eval "(show! (bx/saturate [:+ [:expt [:sin :x] 2] [:expt [:cos :x] 2]]\n                     {:rules rules/trig :timeline? true}))"]]
     [:p "Type terms in the native spelling, such as " [:native [:+ [:* 2 :x] :y]] ". " [:eval "(input/read-term \"2·x + y\")"] " reads the notation. The code you type here is interpreted, but every function it calls is the compiled function that the page runs, so the engine is as fast as it is in a lesson. There is no interrupt. An evaluation that never ends takes the tab with it."]]})
 
 (def all
@@ -629,6 +669,7 @@
    taste
    blowup
    fix
+   normal-form
    polynomial-rule
    what-if
    differentiation

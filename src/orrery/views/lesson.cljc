@@ -16,7 +16,8 @@
             [orrery.score :as score]
             [orrery.views.common :as common]
             [orrery.views.panels :as panels]
-))
+            [orrery.views.working :as working-view]
+            [orrery.working :as working]))
 
 (defn- work-link
   "Renders a work of the reading list as a link to the paper, or as
@@ -41,7 +42,8 @@
     if one is named), set a cost, choose an alternative, switch the
     print mode, go to another lesson, or evaluate a line at the
     REPL;
-  - citations, as superscript author-year links to the papers.
+  - citations, as superscript author-year links to the papers;
+  - an operation of bendix's ring, worked through.
 
   A link to a class renders as plain text when the e-graph it would
   open the class in does not hold the term of the link. That e-graph
@@ -63,6 +65,7 @@
         :print (act :print [:print a] b)
         :lesson [:a {:href (str "#" (lessons/address (lessons/by-key a)))} b]
         :eval (act :eval [:repl/run a] [:code {:class (when (str/includes? a "\n") "block")} a])
+        :working (working-view/working-view (working/work a (drop 2 x)) (get-in s [:ui :print]))
         :cite (into [:sup.cite] (interpose ", " (for [k (rest x)] (work-link k (:short (get lessons/reading k))))))))
     (vector? x) (into [(first x)] (map #(prose s %) (rest x)))
     :else x))

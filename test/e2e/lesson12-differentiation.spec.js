@@ -3,9 +3,9 @@ import { openLesson, expectSnapshot, tryAnother, submit } from './orrery.js';
 
 const pick = async (page, cost) => page.locator(`input[type=radio][value=${cost}]`).check();
 
-test.describe('11. Differentiation is simplification', () => {
+test.describe('12. Differentiation is simplification', () => {
   test('d/dx sin 2x under the derivative rules', async ({ page }) => {
-    await openLesson(page, 11);
+    await openLesson(page, 12);
     await expectSnapshot(page, { iterations: 3, stopReason: 'saturated', steps: 5, step: 4, classes: 6, nodes: 9 });
     await expect(page.locator('.cost-picker input[type=radio]')).toHaveCount(3);
     await expect(page.locator('input[type=radio][value=no-D]')).toBeChecked();
@@ -21,7 +21,7 @@ test.describe('11. Differentiation is simplification', () => {
   });
 
   test('the cost decides: bendix\'s default keeps the derivative, no-D pushes it through', async ({ page }) => {
-    await openLesson(page, 11);
+    await openLesson(page, 12);
     await tryAnother(page, 'x·sin x');
     await expectSnapshot(page, { status: 'done', iterations: 4, classes: 7, nodes: 11 });
     await expect(page.locator('#best-term')).toHaveText('[:+ [:* :x [:cos :x]] [:sin :x]]');
@@ -35,12 +35,20 @@ test.describe('11. Differentiation is simplification', () => {
   });
 
   test('an edited function and variable', async ({ page }) => {
-    await openLesson(page, 11);
+    await openLesson(page, 12);
     await submit(page, { term: '[:expt :x 3]' });
     await expectSnapshot(page, { status: 'done' });
     await expect(page.locator('#best-term')).toHaveText('[:* 3 [:expt :x 2]]');
     await submit(page, { var: ':y' });
     await expectSnapshot(page, { status: 'done' });
     await expect(page.locator('#best-term')).toHaveText('0');
+  });
+
+  test('the derivative of a polynomial worked through, one monomial at a time', async ({ page }) => {
+    await openLesson(page, 12);
+    const w = page.locator('.prose .working-out[data-op=derivative]');
+    await expect(w.locator('.step')).toHaveCount(4);
+    await expect(w.locator('.step').first()).toHaveText('x³ → 3·x²');
+    await expect(w.locator('.working-result')).toHaveText('= 3·x² + 6·x + 3');
   });
 });

@@ -9,7 +9,7 @@ import { expect } from '@playwright/test';
 export const keys = {
   basics: 'basics', intro: 'intro', 1: 'tree', 2: 'sharing', 3: 'congruence', 4: 'rule',
   5: 'saturation', 6: 'taste', 7: 'blowup', 8: 'fix',
-  9: 'polynomial-rule', 10: 'what-if', 11: 'differentiation', repl: 'repl',
+  9: 'normal-form', 10: 'polynomial-rule', 11: 'what-if', 12: 'differentiation', repl: 'repl',
 };
 
 // window.orreryPage.snapshot(): {lesson step steps status iterations

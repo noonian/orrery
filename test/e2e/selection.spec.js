@@ -53,8 +53,8 @@ test.describe('the opened class', () => {
     await expect(page.locator('#scrubber-range')).toBeInViewport();
   });
 
-  test('lesson 10: one opened class in the bar over the two panels of the fork', async ({ page }) => {
-    await openLesson(page, 10);
+  test('lesson 11: one opened class in the bar over the two panels of the fork', async ({ page }) => {
+    await openLesson(page, 11);
     const panels = page.locator('.fork > .panel');
     await panels.nth(1).locator('tbody tr.root .class-id').click();
     await expect(page.locator('.class-detail')).toHaveCount(1);
@@ -91,8 +91,8 @@ test.describe('the opened class', () => {
     await expect(detail(page).locator('.history')).toHaveCount(0);
   });
 
-  test('lesson 9: a class that reaches itself stands for infinitely many terms', async ({ page }) => {
-    await openLesson(page, 9);
+  test('lesson 10: a class that reaches itself stands for infinitely many terms', async ({ page }) => {
+    await openLesson(page, 10);
     await act(page, 'select', 'Open the class of sin²x').click();
     await expectSnapshot(page, { step: 4 });
     await expect(detail(page).locator('.terms')).toContainText('infinitely many');

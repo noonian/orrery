@@ -38,8 +38,8 @@ test.describe('surprise me', () => {
     await expectSnapshot(page, { steps: 3, step: 2, dirty: false });
   });
 
-  test('lesson 9: a planted pythagorean pair on bendix, the polynomial rule counted', async ({ page }) => {
-    await openLesson(page, 9);
+  test('lesson 10: a planted pythagorean pair on bendix, the polynomial rule counted', async ({ page }) => {
+    await openLesson(page, 10);
     const line = await surprise(page);
     expect(line).toMatch(why);
     expect(line).toContain('normal-form rule applications');

@@ -90,7 +90,7 @@ test.describe('What is an e-graph?', () => {
   test('the prose links every lesson, and a link goes there', async ({ page }) => {
     await openLesson(page, 'intro');
     const hrefs = await page.locator('.prose a[href^="#"]').evaluateAll(as => as.map(a => a.getAttribute('href')));
-    expect(hrefs).toEqual(['#1', '#2', '#3', '#4', '#5', '#6', '#7', '#8', '#9', '#10', '#11']);
+    expect(hrefs).toEqual(['#1', '#2', '#3', '#4', '#5', '#6', '#7', '#8', '#9', '#10', '#11', '#12']);
     await page.locator('.prose a[href="#8"]').click();
     await expect(page).toHaveURL(/#8$/);
     await expectSnapshot(page, { lesson: 'fix', status: 'done' });

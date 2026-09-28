@@ -106,6 +106,15 @@
                        :best-terms {:bendix [:+ :a0 :a1 :a2 :a3 :a4]}}
     "six atoms" {:iterations 1 :stop-reason :saturated :classes 15 :nodes 28
                  :best-terms {:bendix [:+ :a0 :a1 :a2 :a3 :a4 :a5]}}}
+   :normal-form
+   {nil {:steps 3 :iterations 1 :stop-reason :saturated :classes-per-step [7 7 9] :classes 9 :nodes 14
+         :best-terms {:bendix 0}}
+    "sin(x + y) − sin(y + x)" {:iterations 1 :stop-reason :saturated :classes 5 :nodes 7 :best-terms {:bendix 0}}
+    "(a + b + c + d)²⁰" {:iterations 1 :stop-reason :saturated :classes-per-step [7 7 7]
+                         :best-terms {:bendix [:expt [:+ :a :b :c :d] 20]}}
+    "x/x" {:iterations 1 :stop-reason :saturated :classes 2 :nodes 2 :best-terms {:bendix [:/ :x :x]}}
+    "(x + y)²" {:iterations 1 :stop-reason :saturated :classes 8 :nodes 9 :best-terms {:bendix [:expt [:+ :x :y] 2]}}
+    "x² + 2·x·y + y²" {:iterations 1 :stop-reason :saturated :classes 7 :nodes 8}}
    :polynomial-rule
    {nil {:steps 5 :iterations 3 :stop-reason :saturated :classes 15 :nodes 23
          :nodes-per-iteration [20 22 22]

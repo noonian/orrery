@@ -123,8 +123,8 @@ test.describe('the graph picture', () => {
     await expect(page.locator('#graph .enode text', { hasText: '[:<<' })).toHaveCount(2);
   });
 
-  test('lesson 9: a dashed edge closes the cycle, and the polynomial sits in the box', async ({ page }) => {
-    await openLesson(page, 9);
+  test('lesson 10: a dashed edge closes the cycle, and the polynomial sits in the box', async ({ page }) => {
+    await openLesson(page, 10);
     await page.locator('#graph-toggle').click();
     await expect(page.locator('#graph .edge.back').first()).toBeVisible();
     await expect(page.locator('#graph .eclass .sub', { hasText: 'a + b + 1' })).toHaveCount(1);
@@ -142,8 +142,8 @@ test.describe('the graph picture', () => {
     expect(Number(await page.locator('#graph svg').getAttribute('width'))).toBeGreaterThan(panel.width);
   });
 
-  test('lesson 10: the fork draws the step on show', async ({ page }) => {
-    await openLesson(page, 10);
+  test('lesson 11: the fork draws the step on show', async ({ page }) => {
+    await openLesson(page, 11);
     await page.locator('#graph-toggle').click();
     await expectSnapshot(page, { step: 2 });
     const shown = await page.locator('#graph .eclass').count();

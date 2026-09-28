@@ -1,9 +1,9 @@
 import { test, expect } from '@playwright/test';
 import { openLesson, expectSnapshot, tryAnother } from './orrery.js';
 
-test.describe('10. What if', () => {
+test.describe('11. What if', () => {
   test('the original stays at step 0 beside the copy', async ({ page }) => {
-    await openLesson(page, 10);
+    await openLesson(page, 11);
     await expectSnapshot(page, { steps: 3, step: 2, classes: 3, nodes: 4, dirty: false });
     const panels = page.locator('.fork > .panel');
     await expect(panels).toHaveCount(2);
@@ -24,7 +24,7 @@ test.describe('10. What if', () => {
   });
 
   test('try another: sin x + sin y, what if x = y', async ({ page }) => {
-    await openLesson(page, 10);
+    await openLesson(page, 11);
     await tryAnother(page, 'sin x + sin y, what if x = y');
     await expectSnapshot(page, { status: 'done', steps: 3, classes: 3, nodes: 4 });
     await expect(page.locator('.fork > .panel').nth(0).locator('tbody tr')).toHaveCount(5);

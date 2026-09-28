@@ -46,7 +46,7 @@ test.describe('notation input', () => {
     await submit(page, { wrapper: '(?x + 1)·(?x + 1)' });
     await expectSnapshot(page, { status: 'done', classes: 6, nodes: 7 });
 
-    await openLesson(page, 11);
+    await openLesson(page, 12);
     await expect(page.locator('#input-var')).toHaveValue('x');
     await submit(page, { term: 'x·sin x', var: 'x' });
     await expectSnapshot(page, { status: 'done', stopReason: 'saturated' });

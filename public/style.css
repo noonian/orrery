@@ -401,3 +401,18 @@ table.stats td.applied { color: var(--added-ink); font-weight: 600; }
 .repl-help .snippet-head .to-buffer { margin-left: auto; }
 .repl-help .snippet-list .says { margin: 2px 0 4px; }
 .repl-help pre.code { margin: 0; padding: 6px 8px; border-radius: 6px; background: var(--surface-2); font-family: var(--mono); font-size: 12px; white-space: pre-wrap; word-break: break-word; }
+/* the opened class: how the class got its polynomial */
+.class-detail .workings .working { margin: 2px 0 2px 108px; }
+.class-detail .workings .kept { margin-right: 6px; padding: 0 5px; border-radius: 4px; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--accent); border: 1px solid var(--accent); }
+.class-detail .workings .verdict { margin-left: 108px; color: var(--ink-2); }
+@media (max-width: 600px) { .class-detail .workings .working, .class-detail .workings .verdict { margin-left: 0; } }
+/* an operation of bendix's ring, worked through, between two paragraphs of prose */
+.prose .working-out { margin: 4px 0 14px; padding: 8px 12px; border-left: 3px solid var(--accent); background: var(--surface-2); border-radius: 0 6px 6px 0; font-size: 15px; line-height: 1.8; max-width: 100%; overflow-x: auto; }
+.prose .working-out .working-head { color: var(--ink-2); }
+.prose .working-out table.product { border-collapse: collapse; margin: 6px 0; }
+.prose .working-out table.product th, .prose .working-out table.product td { padding: 2px 12px; border: 1px solid var(--hairline); text-align: center; white-space: nowrap; }
+.prose .working-out table.product th { color: var(--muted); font-weight: normal; }
+.prose .working-out td.cancels { text-decoration: line-through; color: var(--muted); }
+.prose .working-out td.combines { background: var(--surface); box-shadow: inset 0 -2px 0 var(--accent); }
+.prose .working-out .like.cancels { color: var(--muted); }
+.prose .working-out .working-result { font-weight: 600; }

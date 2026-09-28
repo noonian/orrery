@@ -155,9 +155,16 @@
                 (js/window.removeEventListener "pointerup" up)
                 (.remove (.-classList frame) "panning")
                 (when @dragged?
-                  ;; The click follows the pointerup in the same task.
-                  (js/window.addEventListener "click" swallow true)
-                  (js/setTimeout #(js/window.removeEventListener "click" swallow true) 0)))]
+                  ;; The click that ends the drag follows this pointerup with no
+                  ;; press between them. A new press is a new click, so it stops
+                  ;; the swallowing: a browser handles input before timers, and a
+                  ;; busy page would otherwise swallow the next click too.
+                  (letfn [(stop [_]
+                            (js/window.removeEventListener "click" swallow true)
+                            (js/window.removeEventListener "pointerdown" stop true))]
+                    (js/window.addEventListener "click" swallow true)
+                    (js/window.addEventListener "pointerdown" stop true)
+                    (js/setTimeout stop 0))))]
         (js/window.addEventListener "pointermove" move)
         (js/window.addEventListener "pointerup" up)))))
 

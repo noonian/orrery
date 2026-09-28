@@ -3,7 +3,7 @@
   of e-graph values with a label for each, plus the runner's stats
   when the engine ran.
 
-  A script (lessons 1, 2, 3, 10) lists its steps. A saturation
+  A script (lessons 1, 2, 3, 11) lists its steps. A saturation
   (lessons 4 to 7) is stepped one iteration at a time, over
   cromulent's start/step/finish. So a page can repaint between
   iterations and stop between them. The run is exactly the one

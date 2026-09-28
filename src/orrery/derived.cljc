@@ -93,7 +93,9 @@
     - its nodes with their costs
     - its cheapest terms, and how many terms it stands for
     - the classes it points at, and the nodes that point at it
-    - its history along the run"
+    - its history along the run
+    - how it got its polynomial, when the graph carries the
+      polynomial analysis (`orrery.normal/workings`)"
   [s k]
   (let [{:keys [run run-id cost]} s
         id (get-in s [:ui :selected])]
@@ -112,7 +114,8 @@
                       :children (eclass/children g root)
                       :parents (eclass/parents g root)
                       :history (when (> (count (:timeline run)) 1)
-                                 (eclass/history (:timeline run) k root))})))))))
+                                 (eclass/history (:timeline run) k root))
+                      :workings (normal/workings g root (fn [c] (:term (first (nth table (eg/find g c))))))})))))))
 
 (defn root-at
   "Returns the class of the input term in the current e-graph, or

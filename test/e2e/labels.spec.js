@@ -55,8 +55,9 @@ test.describe('what the panels are the work of', () => {
       [3, 'union, then rebuild', 'eg/union · eg/rebuild', ['lhs', 'rhs', 'wrapper']],
       [8, 'simplify', 'bx/simplify', ['term', 'rules']],
       [9, 'simplify', 'bx/simplify', ['term']],
-      [10, 'union, in a copy', 'eg/union · eg/rebuild', ['term', 'lhs', 'rhs']],
-      [11, 'differentiate', 'bx/differentiate', ['term', 'x']],
+      [10, 'simplify', 'bx/simplify', ['term']],
+      [11, 'union, in a copy', 'eg/union · eg/rebuild', ['term', 'lhs', 'rhs']],
+      [12, 'differentiate', 'bx/differentiate', ['term', 'x']],
     ]) {
       await openLesson(page, n);
       await expect(operation(page).locator('h3')).toHaveText(name);
@@ -65,14 +66,14 @@ test.describe('what the panels are the work of', () => {
       await expect(of(page, 'the run')).toHaveText(fn);
     }
     await expect(page.locator('#call')).toContainText('(bx/differentiate term x');
-    // lesson 11 has costs to choose from: the picker is the cost argument
+    // lesson 12 has costs to choose from: the picker is the cost argument
     await expect(page.locator('.cost-picker .arg')).toHaveText('cost');
   });
 
-  test('lesson 1: the tree is the term; lesson 10: the original is the first of the timeline', async ({ page }) => {
+  test('lesson 1: the tree is the term; lesson 11: the original is the first of the timeline', async ({ page }) => {
     await openLesson(page, 1);
     await expect(of(page, 'the tree')).toHaveText('term');
-    await openLesson(page, 10);
+    await openLesson(page, 11);
     await expect(page.locator('.fork .panel-head .of')).toHaveText(['(first timeline)', 'g at this step']);
   });
 

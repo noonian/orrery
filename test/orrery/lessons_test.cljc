@@ -7,7 +7,8 @@
             [orrery.notation :as notation]
             [orrery.lessons :as lessons]
             [orrery.names :as names]
-            [orrery.run :as run]))
+            [orrery.run :as run]
+            [orrery.working]))
 
 (deftest every-live-lesson-meets-its-expectation
   (doseq [c (expect/checks)]
@@ -58,6 +59,11 @@
                 (is (= 2 (count w)) (str (where w) ": the code is the link"))
                 (is (balanced? a) (where w))
                 (is (every? names/aliases (names/qualifiers a)) (str (where w) ": every namespace it names is in scope")))
+      :working (let [working (orrery.working/work a (drop 2 w))]
+                 (is (some? working) (str (where w) ": every term is worth a polynomial"))
+                 (is (not-any? #(and (vector? %) (= :working (first %))) (mapcat rest (filter vector? (:prose l))))
+                     (str (where w) ": it stands between paragraphs"))
+                 (when (= :product a) (is (:grid? working) (str (where w) ": the grid fits"))))
       :cite (do (is (seq (rest w)) (where w))
                 (is (every? #(contains? lessons/reading %) (rest w)) (where w)))))
   (is (seq (lessons/widgets lessons/tree)))
@@ -87,20 +93,20 @@
     (is (= [lessons/repl] after) "and one after them, the REPL's")
     (is (= lessons/basics l))
     (is (lessons/live? l))
-    (is (= (range 1 12) (map :n numbered)) "the lessons are 1 to 11, in order")
+    (is (= (range 1 13) (map :n numbered)) "the lessons are 1 to 12, in order")
     (testing "a page before the lessons goes by its title alone, and by its key in the address"
       (is (= "Many ways to write one thing" (lessons/heading l)))
       (is (= "Start here" (lessons/nav-label l)))
       (is (= "What is an e-graph?" (lessons/heading lessons/intro) (lessons/nav-label lessons/intro)))
       (is (= "7. The blowup" (lessons/heading lessons/blowup) (lessons/nav-label lessons/blowup)))
       (is (= "The REPL" (lessons/heading lessons/repl) (lessons/nav-label lessons/repl)))
-      (is (= ["basics" "intro" "1" "11" "repl"]
+      (is (= ["basics" "intro" "1" "12" "repl"]
              (map lessons/address [l lessons/intro lessons/tree lessons/differentiation lessons/repl]))))
     (testing "every address finds its lesson, and nothing else finds one"
       (doseq [x lessons/all]
         (is (= x (lessons/by-address (lessons/address x)))))
       (is (apply distinct? (map lessons/address lessons/all)))
-      (is (every? nil? (map lessons/by-address ["" "0" "12" "nowhere"]))))
+      (is (every? nil? (map lessons/by-address ["" "0" "13" "nowhere"]))))
     (is (= [:intro] (links l)) "the basics hand the reader to the introduction")
     (is (= (set (map :key numbered)) (set (links lessons/intro))) "whose prose links every lesson")))
 

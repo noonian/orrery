@@ -30,7 +30,7 @@ Two facts make this cheap and honest at once.
   had one architectural insight, the one above: a widget is a scrubber
   over a real execution. It never got past its first example, so orrery keeps the insight and not the
   construction: the engine is compiled, not interpreted, and the page
-  is built to carry eleven lessons, a REPL and forks (section 6).
+  is built to carry twelve lessons, a REPL and forks (section 6).
 
 The thesis of bendix is *simplification is equality saturation plus
 taste*. orrery's job is to make a person see both halves: the graph
@@ -75,12 +75,13 @@ example, and a "try another" that draws from the example bank
 | 6 | Extraction is taste | the same saturated graph under three costs gives three answers | `ex/extract` with `ast-size`, a shift-preferring cost, bendix `default-cost`, `no-D` |
 | 7 | The blowup | a sum of five atoms under commutativity and associativity: 31 classes, 180 compound nodes plus the five atoms, and a counter that climbs as 3ⁿ; six atoms reach 608 nodes, and under a node limit of 500 they stop at it | `embiggen`, `:node-limit` (../design/ac-problem.md section 1) |
 | 8 | The fix | the same sum under the polynomial analysis is one class; the polynomial sits beside it; every arrangement typed lands there | `bendix.core/saturate`, `eg/data g id :poly`, `poly/->term` (experiment 2) |
-| 9 | A rule over the polynomial | `sin²x + cos²x` buried anywhere in a sum collapses to 1, however the sum is arranged | `rules/trig`, `normal-form-rule` (experiment 4) |
-| 10 | What if | assert `x = 2` in a copy of the graph; watch what collapses; the original is untouched | persistence: the fork is a `let` |
-| 11 | Differentiation is simplification | `d/dx sin(2x)` under the derivative rules with a cost that refuses `D` | `differentiate`, `no-D` |
+| 9 | Inside the polynomial | `(x + 1)·(x − 1) + 1 − x·x` under no rules: each class computes its polynomial from its children, two classes worth x² merge when the term is added, the whole is worth 0; then what the fix costs: a polynomial past 200 monomials, division by an atom, a factoring nobody typed, rules that cannot see inside a polynomial | `bendix.analysis`, `bendix.poly` (../design/ac-problem.md section 3 C) |
+| 10 | A rule over the polynomial | `sin²x + cos²x` buried anywhere in a sum collapses to 1, however the sum is arranged | `rules/trig`, `normal-form-rule` (experiment 4) |
+| 11 | What if | assert `x = 2` in a copy of the graph; watch what collapses; the original is untouched | persistence: the fork is a `let` |
+| 12 | Differentiation is simplification | `d/dx sin(2x)` under the derivative rules with a cost that refuses `D` | `differentiate`, `no-D` |
 
-Lessons 1 to 7 and 10 need cromulent only; 8, 9 and 11 need bendix,
-ported in phase 2. All eleven are live.
+Lessons 1 to 7 and 11 need cromulent only; 8, 9, 10 and 12 need
+bendix, ported in phase 2. All twelve are live.
 
 Before them come two pages (2026-09-26; section 12, decisions 10
 and 11), lesson data like the others but without a number, headed by
@@ -938,6 +939,66 @@ the one the page most wants to welcome. The other mode stays
     in ClojureScript, and `diff/egraph?`, `workbench/run?`,
     `runner-result?` and the printer's state check each looked one
     up. They now rule out a sorted map first.
+20. **What the polynomial analysis does, in a lesson of its own.**
+    Decided 2026-09-28. The Captain asked that the site explain what
+    the polynomial analysis does in bendix, why it is the right fix,
+    and what it costs. The choice of place was left to me. Lesson 8
+    keeps its one job, which is to show the blowup stop, and ends
+    with a link. The explanation is lesson 9, *Inside the
+    polynomial* (`lessons/normal-form`), over
+    `(x + 1)·(x − 1) + 1 − x·x` with no rules. It covers what a
+    polynomial is and how bendix stores it, how a class computes its
+    polynomial from its children's, how the index merges two classes
+    that are worth the same polynomial when the node is added, what
+    an atom is, and why the fix is sound and complete for the ring.
+    Four costs follow, each one an alternative. A polynomial past
+    the 200-monomial threshold is given up on. The ring never
+    divides by an atom. The graph holds only the typed forms and the
+    expanded form, so a factoring nobody typed is never found.
+    Pattern rules cannot see inside a polynomial, which leads into
+    lesson 10. The lessons after it moved up by one. The spec files,
+    `openLesson`'s key table and the self-test count (129) follow.
+    The prose runs about 720 words, where the other lessons run 155 to 330.
+21. **Showing what bendix does.** Decided 2026-09-28, at the
+    Captain's ask for widgets that show the analysis at work. There
+    are two parts. Neither changes an engine.
+    The first is in the opened class. When the graph carries the
+    polynomial analysis, `normal/workings` says how the class got
+    its polynomial. It reads each node over the polynomials of its
+    children (`(x² − 1) + 1 = x²`). It calls the analysis's own
+    `:make` on the node, so the page shows what bendix computes and
+    not a copy of it. It then gives a verdict. A class can have one
+    node, or nodes that agree. It can have nodes that make
+    different polynomials, which is an equation the ring cannot
+    prove, and then the view marks the form the class keeps and
+    says why. `normal/why-kept` names the first measure that
+    separates the two forms, in the order of `bendix.analysis`:
+    fewer unknowns, then fewer monomials, lower degree, smaller
+    numbers, and the fixed order. A class can also be an unknown,
+    too big, or a contradiction. The unknowns of the kept form are
+    chips that open their class.
+    The second is a prose widget, `[:working op & terms]`, backed by
+    `orrery.working` over `bendix.poly`. It stands between
+    paragraphs. `:product` shows the grid of monomials, strikes out
+    the cells that cancel, and lists the like terms (lesson 9).
+    `:reduction` replaces each power of a base past the first
+    modulo base² = q, shows the sum before collecting, and then the
+    result (lesson 10). `:derivative` differentiates one monomial at
+    a time (lesson 12). A product past five monomials a side shows
+    only its result.
+    Both parts made the polynomials' spelling visible: bendix writes
+    x² − 1 as x² + −1, and the notation printer must keep its round
+    trip. So `normal/spell` spells a polynomial for display only. A
+    negative monomial is subtracted, a positive one leads, and a sum
+    with no negative monomial is unchanged. It applies wherever a
+    polynomial is shown: the column, the graph's labels, the export,
+    the opened class and the widgets. A best term is a real term in
+    the graph, so it keeps bendix's spelling.
+    Building this exposed a race in the graph's pan handler. After a
+    drag, the page swallowed clicks until a zero timeout ran. The
+    browser handles input first, so on a busy page it also
+    swallowed the next real click. A new press now ends the
+    swallowing.
 ## Status
 
 Phase 1 delivered, 2026-09-25 (the port first and the compiled page

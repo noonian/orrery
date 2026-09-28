@@ -71,7 +71,7 @@
       (is (= 360 (count (:edges l))))
       (is (= 5 (:layers l)))
       (is (empty? (filter :back? (:edges l))))))
-  (testing "lesson 9: the class that reaches itself closes a cycle"
+  (testing "lesson 10: the class that reaches itself closes a cycle"
     (let [g (final lessons/polynomial-rule)
           l (well-formed g nil)]
       (is (pos? (count (filter :back? (:edges l)))))

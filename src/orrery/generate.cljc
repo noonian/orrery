@@ -206,7 +206,7 @@
    :shapes [[:+ :t :t] [:+ :t :t :t] [:+ :t :flip] [:- :t :flip] [:* :t :t] [:- :t :t]
             [:* :t :same] [:expt :t [2 3]] [:* [2 3] :t] [:neg :t] [:/ :t [2 4]]]})
 
-(defn a-ring-term "Draws a term for lesson 8, with eight leaves at most." [s _]
+(defn a-ring-term "Draws a term for lessons 8 and 9, with eight leaves at most." [s _]
   (until (at-most 8) #(hash-map :term (term s ring 3))))
 
 (def contexts
@@ -219,7 +219,7 @@
 (def cofactors [nil nil :y 2 :a])
 
 (defn a-pythagorean-term
-  "Draws a term for lesson 9. Plants sin²u and cos²u at two leaves
+  "Draws a term for lesson 10. Plants sin²u and cos²u at two leaves
   of a random context. Both squares have the same argument u, and
   the same cofactor if they have one."
   [s _]
@@ -235,7 +235,7 @@
   '[[:sin ?v] [:* ?v ?v] [:* 2 ?v] [:expt ?v 2] [:+ ?v 1]])
 
 (defn a-what-if
-  "Draws a term and a what-if for lesson 10. The term is over x and
+  "Draws a term and a what-if for lesson 11. The term is over x and
   y. It has some small term of a variable at one leaf. It has the
   same small term of a number, or of the other variable, at another
   leaf. The what-if drawn is the one that makes those two terms one
@@ -249,7 +249,7 @@
     {:term (planted s t (of lhs) (of rhs)) :lhs lhs :rhs rhs}))
 
 (defn a-function
-  "Draws a term for lesson 11: a function of the variable in force,
+  "Draws a term for lesson 12: a function of the variable in force,
   with six leaves at most."
   [s {:keys [var]}]
   (let [v (or var :x)
