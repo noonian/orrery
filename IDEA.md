@@ -28,8 +28,7 @@ Two facts make this cheap and honest at once.
   a scrubber over those values.
 - **The fleet already knows the shape.** ../../time-and-space/webapp
   had one architectural insight, the one above: a widget is a scrubber
-  over a real execution. It never got past its first example (the
-  Captain, 2026-09-25), so orrery keeps the insight and not the
+  over a real execution. It never got past its first example, so orrery keeps the insight and not the
   construction: the engine is compiled, not interpreted, and the page
   is built to carry eleven lessons, a REPL and forks (section 6).
 
@@ -42,8 +41,8 @@ that holds every form, and the cost that picks one.
 **Learners first.** People who want to understand what an e-graph is
 and how it works, who may not know much mathematics, and who should
 be able to watch interesting behaviour without typing any. The
-Captain's direction: education on what e-graphs are and how they
-work, a REPL, and examples the page offers on its own.
+page teaches what e-graphs are and how they work, and it has a
+REPL and examples that run without typing.
 
 Second, Clojure programmers who will use cromulent or bendix, for
 whom the native format *is* the interface. Third, us, debugging rule
@@ -157,8 +156,8 @@ The panels, each mapped to what exists:
   input's class, the opened and the hovered class, what the step
   added or merged, where a rule matches, and a bendix class's
   polynomial in its head; hovering a box lights its row and clicking
-  it opens the class, as with the tree. Off by default (the Captain,
-  2026-09-26: it takes the room), switched on from the tools row
+  it opens the class, as with the tree. Off by default
+  (2026-09-26: it takes the room), switched on from the tools row
   under the replay bar and kept on across lessons; zoom in and out
   or fit the width, and a filter to what the opened class reaches.
   The two pages before the lessons alone draw it unasked, their
@@ -180,7 +179,7 @@ The panels, each mapped to what exists:
   `#id` inside any node, on a node of the tree, or on a link in the
   prose opens the class in the replay bar, under the transport and
   stuck with it to the top of the viewport (moved there the same
-  day, the Captain: above the list it scrolled out of view as soon
+  day: above the list it scrolled out of view as soon
   as you read down the classes; the list keeps the marks on its row
   and on the rows of its children and parents, and past 45% of the
   viewport the detail scrolls inside the bar), with what the engine
@@ -201,8 +200,8 @@ The panels, each mapped to what exists:
 - **The scrubber.** Iteration k of the timeline, forwards and
   backwards; the diff to k−1 highlighted: nodes added, classes
   merged. The diff is a set difference on `memo-entries`. The
-  transport is a bar directly above the class list (2026-09-26, the
-  Captain: it landed too low on the screen under a tall input area),
+  transport is a bar directly above the class list (2026-09-26:
+  it landed too low on the screen under a tall input area),
   stuck to the top of the viewport while the list scrolls under it,
   with the label of the entry on show and its counts, and the opened
   class under it; the tiles stay in the run panel.
@@ -344,8 +343,8 @@ Decided 2026-09-25, replacing the first draft's scittle route.
   (unchanged: the files the JVM and Jolt suites test, on the classpath
   through a git dep, or `:local/root` under the `:local` alias) and orrery's own namespaces into one bundle
   that `public/index.html` loads. The first draft loaded the source
-  through scittle with no build step; the Captain named the compiled
-  page as the end state, and the port is the same either way, so the
+  through scittle with no build step; the compiled page was named
+  as the end state, and the port is the same either way, so the
   plan went there directly. An interpreter is two orders of magnitude
   off the JVM where the compiler is a small multiple: the self-test's
   29 facts run in about 40 ms in Chromium and 54 ms on node.
@@ -358,7 +357,7 @@ Decided 2026-09-25, replacing the first draft's scittle route.
   one atom (`orrery.state`), rendered on every change. Views are
   functions of values (`orrery.views.*`); only `orrery.views.lesson`
   reads the state, so the same class list serves the fork. **Every
-  handler is data** (2026-09-26, the Captain's find): `{:on {:click
+  handler is data** (2026-09-26): `{:on {:click
   [:select id]}}` over the vocabulary of `orrery.actions`, routed by
   one dispatch function (`orrery.dispatch`, registered with
   `replicant.dom/set-dispatch!`), which is the only place a DOM event
@@ -523,7 +522,7 @@ proves nothing about speed.
 
 ## 11. Naming
 
-**orrery** (decided by the Captain 2026-09-25): a clockwork model of
+**orrery** (decided 2026-09-25): a clockwork model of
 the solar system with a crank; you turn it to watch the mechanism
 run, which is what the page is. The rule applied: the name should say
 what the thing is, be one word, be clear on Clojars and among Clojure
@@ -540,8 +539,8 @@ space. Checked 2026-09-25:
 | vivarium | clear | one, one star | a 426-star C project |
 | loupe | clear | one, zero stars | a 3 200-star JavaScript event-loop *visualizer*, the collision that retired it |
 
-Not chosen: loupe (the first working name; rejected by the Captain,
-and the visualizer collision), zoetrope (frames into an illusion of
+Not chosen: loupe (the first working name, retired by the
+visualizer collision), zoetrope (frames into an illusion of
 motion, where these states are real), diorama (a scene, not a
 mechanism), terrarium (growth, not a mechanism), flipbook (generic),
 vivarium.
@@ -624,12 +623,12 @@ the one the page most wants to welcome. The other mode stays
    persistence to Driscoll et al., Bagwell and Hickey), and the
    lesson's reading line lists the works it cites, linked. The prose
    itself stays on what is happening; it cites, it does not recount
-   (the Captain, 2026-09-26: cite the authors, footnote the papers,
+   (2026-09-26: cite the authors, footnote the papers,
    no history lesson). Links are DOIs where one exists, each checked
    against CrossRef.
 9. **The picture: the egraphs-good visualizer, or the page's own.**
-   Decided 2026-09-26, the page's own (section 3). The Captain asked
-   whether the visualizer still made sense beside the tree panel and
+   Decided 2026-09-26, the page's own (section 3). The question
+   was whether the visualizer still made sense beside the tree panel and
    which of its interactions were worth having. The tree draws a
    term, not the graph, and only lessons 1 and 2 show it; the graph
    itself had no picture, a class with several nodes, a merge and a
@@ -639,7 +638,7 @@ the one the page most wants to welcome. The other mode stays
    that hold across a history, and both fall out of a layout the
    page owns, since the opened class already knows its children and
    the layers and the order are functions of the value. Against
-   embedding it: React in the page, which the Captain has ruled out
+   embedding it: React in the page, which is ruled out
    (section 6); three times the download for a panel the design
    already limits to small graphs; and no way in or out of it, so
    the hover, the opened class, the cost picker and the diff would
@@ -650,7 +649,7 @@ the one the page most wants to welcome. The other mode stays
    was wanted either way and is independent of the picture.
 10. **Where the page opens.** Decided 2026-09-26: on an
     introduction. It opened on lesson 7, the blowup, arbitrarily,
-    and the Captain asked for a page that says succinctly what an
+    and a reader wants a page that says succinctly what an
     e-graph is and why it is interesting, to ground the reader
     before the lessons. The introduction is
     lesson data, not a page of another kind: a static page would have
@@ -671,7 +670,7 @@ the one the page most wants to welcome. The other mode stays
     Its own example is also its first alternative, so the prose can
     bring the reader back from the dead end.
 11. **A page more basic than the introduction, and the page opens
-    there.** Decided 2026-09-26. The Captain, on the introduction:
+    there.** Decided 2026-09-26. The introduction was
     a good start, but it assumes a reader who knows what rewriting
     and simplifying are; there should be another for one who does
     not, who knows no identity off the top of their head, who may
@@ -693,8 +692,8 @@ the one the page most wants to welcome. The other mode stays
     addresses, so a lesson's address is its number or, without one,
     its key (`lessons/address`, `by-address`), and a hash that names
     nothing, `#0` now among them, falls to the basics.
-12. **What the panels are called.** Decided 2026-09-26. The Captain:
-    the panels want better labels, saying which algorithm or
+12. **What the panels are called.** Decided 2026-09-26.
+    The panels want better labels, saying which algorithm or
     function they belong to, simplify as against saturate, so that
     the arguments have a context, where they said only "the term"
     and "the rules". The inputs were never a form; they are the
@@ -714,7 +713,7 @@ the one the page most wants to welcome. The other mode stays
     scheduler, the one default of `rw/saturate` the page does not
     share.
 13. **The site says what it is, and how it was written.** Decided
-    2026-09-26. The Captain: before the prose starts linking into
+    2026-09-26. Before the prose starts linking into
     the running widgets, the site has to say what it is, an
     interactive tool for exploration and education, the author's
     education included, that embeds an immutable persistent e-graph
@@ -726,7 +725,7 @@ the one the page most wants to welcome. The other mode stays
     on `lessons/start` only), and `lessons/colophon` says the same
     in a line under every page, with a link back, because a reader
     who arrives at a lesson by its address would otherwise never be
-    told. The sentence about LLMs is the Captain's, about orrery, and
+    told. The sentence about LLMs is the author's, about orrery, and
     stands alone as its own paragraph; it claims nothing about how
     cromulent and bendix were written. The statement names the two
     libraries without linking them, since neither has a public
@@ -734,7 +733,7 @@ the one the page most wants to welcome. The other mode stays
     words to the basics under it.
 
 14. **A page for the REPL, and the state as a value.** Decided
-    2026-09-26. The Captain: the REPL wants documentation, and
+    2026-09-26. The REPL wants documentation, and
     perhaps a page of its own with every widget that applies to an
     e-graph, some atoms for the state, and the lesson's state behind
     a constructor if that would let it be used again. It would, in
@@ -774,7 +773,7 @@ the one the page most wants to welcome. The other mode stays
     a value already did.
 15. **What the editor is made of.** Decided 2026-09-27:
     `prism-code-editor`, after the survey below (2026-09-26), when
-    the editor was a textarea. The Captain asked what
+    the editor was a textarea. The question was what
     exists that would make it better to type in, light if possible,
     not built from CodeMirror by hand, with a preference for
     Clojure's own ergonomics of evaluation. Anything on React is out
@@ -805,7 +804,7 @@ the one the page most wants to welcome. The other mode stays
     a release leaves out. Dataspex renders with Replicant and can
     follow an atom, but in the page it takes the global dispatch and
     styles `html` and `body`; it is a tool for beside the page, not
-    in it. The Captain chose prism-code-editor, to be built on in
+    in it. The choice was prism-code-editor, to be built on in
     steps: first the swap with the page's behaviour kept, then the
     handling of lines and evaluation at the caret, then the REPL
     page's layout, then its documentation, each settling what the
@@ -814,8 +813,8 @@ the one the page most wants to welcome. The other mode stays
     life-cycle hook on an empty element, which Replicant leaves
     alone, and is given callbacks by `orrery.dispatch`. Ctrl-Enter
     and Cmd-Enter evaluate; the arrows recall in the first and last
-    lines; Tab indents the lines with spaces, not tab characters
-    (the Captain), Ctrl-M letting Tab leave the editor; brackets and
+    lines; Tab indents the lines with spaces, not tab characters,
+    and Ctrl-M lets Tab leave the editor; brackets and
     double quotes close, a single quote does not; the colours are
     the page's variables, so the editor follows the light and dark
     themes; line numbers are a checkbox beside the buttons, off by
@@ -823,7 +822,7 @@ the one the page most wants to welcome. The other mode stays
     some who read an example may want them.
 16. **What the place to type is called.** Decided 2026-09-26: the
     editor. It was the prompt, in the page's prose and in the code.
-    The Captain: to the general public that word now means what is
+    To the general public that word now means what is
     typed to a language model, so the page wants one that is
     distinct. The editor is where a line is typed; what happens
     there happens "at the REPL"; the `user=>` that heads a line of
@@ -831,8 +830,8 @@ the one the page most wants to welcome. The other mode stays
     The textarea says so to a screen reader (`aria-label`), and the
     browser suite checks that the REPL's page does not say "prompt".
 17. **A lesson's layout, and the REPL in a dock.** Decided
-    2026-09-27. The Captain said a lesson did not feel responsive,
-    and wanted the REPL in view wherever the page is scrolled.
+    2026-09-27. A lesson did not feel responsive,
+    and the REPL should stay in view wherever the page is scrolled.
     Screenshots at 390, 800, 1280 and 1600 pixels showed why. On a
     wide screen a link in the prose opened a class in a table below
     the fold. The page stopped at 1100 pixels, and under the short
@@ -848,8 +847,8 @@ the one the page most wants to welcome. The other mode stays
     The fork's two class lists stand side by side when the column
     is 900 pixels wide or more, which a container query decides.
     The REPL is a dock along the bottom of every lesson. A dock at
-    the top would fight the sticky replay bar, and the Captain
-    chose the bottom over a drawer at the side. It starts closed,
+    the top would fight the sticky replay bar, and the bottom
+    won over a drawer at the side. It starts closed,
     as one bar that says what was evaluated last. Open, it holds
     the REPL panel under the bar and resizes from its top edge.
     Ctrl-` opens and closes it. Whether it is open is kept across
@@ -859,12 +858,12 @@ the one the page most wants to welcome. The other mode stays
     page's padding and the e-graph column read, so nothing is hidden
     under it. The panels moved out of `orrery.views.lesson` into
     `orrery.views.panels`, public and reading no lesson, so a page
-    that is not a lesson can arrange them. The Captain wants such a
-    page, for playing with e-graphs rather than learning, once this
+    that is not a lesson can arrange them. A later page will arrange
+    them for playing with e-graphs rather than learning, once this
     layout has settled.
 18. **One dock on every page, an editor of forms.** Decided
     2026-09-27. This is steps two to four of decision 15, done as one
-    piece of work. The Captain wanted an editor that is always there:
+    piece of work. The aim was an editor that is always there:
     one line when the dock is closed, a full editor when it is open,
     the docs in a popover rather than in prose, and no button that
     names the REPL. The dock is on every page now, the REPL's page
@@ -873,12 +872,12 @@ the one the page most wants to welcome. The other mode stays
     the REPL's page is gone, and the page is laid out as a lesson is.
     The REPL has two editors, each with its own text. At first it had
     one text for both, which an evaluation in the closed dock emptied.
-    The Captain then chose two, so the buffer feels like an editor and
+    Now it has two, so the buffer feels like an editor and
     cannot be emptied by accident. The line is the REPL's input.
     Closed, the dock is the line, what was evaluated last, a ? button
     and a button that opens the dock. Open, the dock is the buffer on
     the left, and the history over the line on the right, under a row
-    of buttons. The Captain put the history on the right, where the
+    of buttons. The history is on the right, where the
     page may later show traces of what its links and buttons run.
     Enter evaluates the line when its brackets are complete, as
     rebel-readline does, and empties it. When a bracket is open, Enter
@@ -899,7 +898,7 @@ the one the page most wants to welcome. The other mode stays
     longer opens the dock. The closed dock shows the result in its
     line, and a click on that line opens the dock.
 19. **Traces of the page in the history, and snippets for the
-    buffer.** Decided 2026-09-27. The Captain asked for two things.
+    buffer.** Decided 2026-09-27. It covers two things.
     The first was to show in the history, more quietly than an
     evaluation, what a widget, a link or a lesson does to what the
     REPL sees. The second was to have prewritten code for the buffer.
@@ -921,7 +920,7 @@ the one the page most wants to welcome. The other mode stays
     is not traced. The arrows recall only what was typed, the closed
     dock shows the last evaluation, and `*1` is untouched. Putting a
     history entry on show is traced without code, since no code names
-    that value. The Captain agreed to snippets from three sources: a
+    that value. Snippets come from three sources: a
     trace's code, which goes to the buffer as an entry's code does;
     the code behind three parts of the page, the run's counters, the
     opened class and the export; and a library of code for what no
@@ -941,8 +940,8 @@ the one the page most wants to welcome. The other mode stays
     up. They now rule out a sorted map first.
 ## Status
 
-Phase 1 delivered, 2026-09-25 (the Captain's "make it so", with the
-port first and the compiled page as the end state):
+Phase 1 delivered, 2026-09-25 (the port first and the compiled page
+as the end state):
 
 - cromulent ported (../cromulent/IDEA.md status), its runner split
   into start/step/finish; `npm run smoke` runs its 28 facts on node,
@@ -1097,7 +1096,7 @@ tests and 26953 assertions on the JVM and Jolt, 67 facts on node,
 What the site is, 2026-09-26 (section 12, decision 13):
 `orrery.lessons/about` and `colophon`, `about-view` and
 `colophon-view` in `orrery.views.lesson`. `lessons_test` checks that
-the statement says what the Captain asked it to say, the sentence
+the statement says what it was written to say, the sentence
 about LLMs among it, and that nothing in it links into the widgets;
 `page_test` that it stands over the heading and the heading over the
 first link that does something, on the opening page only, and that
@@ -1165,7 +1164,7 @@ The suites are 85 tests and 27953 assertions on the JVM and Jolt, 68
 facts on node, 117 specs in the browser; the release bundle is 1.49
 MB (370 KB gzipped).
 
-Next: the Captain's judgement of the dock and of the layout at 1100
+Next: a review of the dock and of the layout at 1100
 pixels; the page for playing with e-graphs, routed before the
 lessons; then the later items of section 7, per-rule timings at
 scale and static deployment.

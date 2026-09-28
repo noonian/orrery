@@ -326,7 +326,7 @@
 (def about
   "Says what the site is. It has no widgets. The page shows it above
   the page the site opens on, before any paragraph that links into
-  the running widgets. The wording is the Captain's (IDEA.md section
+  the running widgets. The wording is the author's (IDEA.md section
   12, decision 13)."
   [[:p [:b "orrery"] " is an interactive tool for exploring e-graphs and learning how they work, its author's learning included. It embeds two libraries and runs them live in this page: " [:b (library :cromulent)] ", an e-graph that is an immutable, persistent value, and " [:b (library :bendix)] ", a nascent computer algebra system built on it. The panels are widgets over what those libraries really compute, there to be scrubbed, opened and changed until the behaviour makes sense."]
    [:p "It is largely written using LLMs."]])
