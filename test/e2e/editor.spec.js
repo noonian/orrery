@@ -114,6 +114,18 @@ test.describe('the REPL\'s editors', () => {
     await expect(buffer(page)).toHaveValue('(def b 1)\n(nope)\n(def b 2)');
   });
 
+  test('"clear buffer" empties the buffer and leaves the line and the history alone', async ({ page }) => {
+    await openLesson(page, 'repl');
+    await evalRepl(page, '(+ 1 2)');
+    await buffer(page).fill('(def c 3)');
+    await line(page).fill('(+ 2 2)');
+    await page.locator('#repl-clear-buffer').click();
+    await expect(buffer(page)).toHaveValue('');
+    await expect(buffer(page)).toBeFocused();
+    await expect(entries(page)).toHaveCount(1);
+    await expect(line(page)).toHaveValue('(+ 2 2)');
+  });
+
   test('"to buffer" adds the code of an entry to the end of the buffer, which outlives the dock and the page', async ({ page }) => {
     await openLesson(page, 3);
     await evalRepl(page, '(eg/class-count g)');

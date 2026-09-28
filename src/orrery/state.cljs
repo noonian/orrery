@@ -269,6 +269,11 @@
   []
   (swap! app-state update :repl assoc :history [] :recall nil))
 
+(defn clear-buffer!
+  "Empties the buffer. The line and the history keep their text."
+  []
+  (set-repl-buffer! ""))
+
 (defn- evaluate!
   "Evaluates `text` and returns its history entry. Before it
   evaluates, binds `g` to the e-graph on show and `timeline` to the

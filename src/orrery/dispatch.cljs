@@ -197,6 +197,7 @@
     :repl/snippets (state/toggle-snippets!)
     :repl/run (state/run-repl! (first args))
     :repl/clear (state/clear-repl!)
+    :repl/clear-buffer (do (state/clear-buffer!) (focus! "repl-buffer"))
     :repl/scroll (let [el (:replicant/node e)] (set! (.-scrollTop el) (.-scrollHeight el)))
     :adopt (state/adopt-entry! (first args))
     (js/console.warn "orrery: no such action" (pr-str handler))))

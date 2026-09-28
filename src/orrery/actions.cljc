@@ -46,6 +46,7 @@
    :repl/snippets "[:repl/snippets]: show the snippets of code for the buffer, or hide them"
    :repl/run "[:repl/run code]: evaluate code from a link in the prose, as if it had been typed"
    :repl/clear "[:repl/clear]: empty the history"
+   :repl/clear-buffer "[:repl/clear-buffer]: empty the buffer"
    :repl/scroll "[:repl/scroll]: a life-cycle hook, not an event: the history, rendered, scrolls to its last entry"
    :adopt "[:adopt i]: make the value of REPL history entry i the run on show"})
 

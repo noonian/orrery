@@ -261,7 +261,8 @@
                "eval form"]
               [:button {:id "repl-eval-all" :title "Ctrl-Shift-Enter in the buffer" :on {:click [:repl/eval :all]}}
                "eval buffer"]
-              [:button {:id "repl-clear" :title "empty the history" :on {:click [:repl/clear]}} "clear history"]])
+              [:button {:id "repl-clear" :title "empty the history" :on {:click [:repl/clear]}} "clear history"]
+              [:button {:id "repl-clear-buffer" :title "empty the buffer" :on {:click [:repl/clear-buffer]}} "clear buffer"]])
            [[:button {:id "repl-snippets-toggle" :aria-expanded (str (boolean snippets?))
                       :title "code that does something with g, for the buffer" :on {:click [:repl/snippets]}}
              "snippets"]
