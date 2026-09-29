@@ -12,7 +12,12 @@
   These are pure functions of the state map, so the views build on
   the JVM and on Jolt as well as in the browser. Results are
   memoized per run in a cache, which a new run clears (see
-  orrery.state)."
+  orrery.state).
+
+  The cache trusts the run id. `workbench/show` gives every run it
+  puts on show a new id. A run that is put in the state another way,
+  such as `(swap! state assoc :run r)` at the REPL, keeps the old id,
+  and the page shows values derived from the run before it."
   (:require [cromulent.core :as eg]
             [cromulent.export :as export]
             [cromulent.extract :as ex]
