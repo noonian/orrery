@@ -19,13 +19,15 @@
   Prose is data so that the JVM tests can walk it and the page can
   render it. There is no markdown.
 
-  Three pages are shaped like lessons and have no number. Two come
+  Four pages are shaped like lessons and have no number. Two come
   before the lessons: the basics, where the page opens, which
   assumes nothing, and the introduction, which says what an e-graph
-  is and why it matters. One comes after the lessons: the REPL page.
-  Its prose is the documentation of the REPL, and its widgets are
-  lines of code that the reader evaluates. It opens with the REPL's
-  dock open.
+  is and why it matters. Two come after the lessons. The REPL page's
+  prose is the documentation of the REPL, and its widgets are lines
+  of code that the reader evaluates. It opens with the REPL's dock
+  open. The cheat sheet is for a reader who knows the subject: it
+  has little prose, and it is lists of terms to run and code to
+  evaluate.
 
   `about` says what the site is. It is shown once, above the page
   the site opens on. `colophon` says the same in one line under
@@ -635,7 +637,7 @@
     [:p "The cost decides which term is the answer. " (library :bendix "Bendix") "'s default cost charges a derivative node no more than a sine. So for " [:alternative "sin(sin(sin x))" "sin(sin(sin x))"] " under " [:cost :bendix "bendix's default"] ", the answer keeps the derivative unevaluated, because the node is cheaper than the product of three cosines. The " [:cost :no-D "no-D cost"] " counts what is still under a derivative before it counts size, so a spelling without a derivative wins whenever one exists. When none exists, as for " [:alternative "x·|x|: no rule for abs" "x·|x|"] ", the D stays and the answer says so."]]})
 
 ;; ---------------------------------------------------------------------------
-;; the page after the lessons: the REPL page
+;; the pages after the lessons: the REPL page and the cheat sheet
 
 (def repl
   {:key :repl :nav "The REPL" :title "The REPL" :needs :cromulent :kind :embiggen
@@ -658,6 +660,77 @@
     [:p "A run is a value as well. Equality saturation" [:cite :tate-2009 :willsey-2021] " is one call: " [:eval "(rw/saturate (first (eg/add (eg/egraph) [:+ :a :b]))\n             (lessons/rules-of lessons/ac-rules)\n             {:timeline? true})"] " The button beside the result puts its timeline on show. The next call hands the page a run that has not run yet, and the page steps it as it steps the run of a lesson: " [:eval "(show! (run/start [:+ [:+ :a :b] :c]\n                  (lessons/rules-of lessons/ac-rules)\n                  {}))"] " " (library :bendix) " is loaded beside " (library :cromulent) ": " [:eval "(bx/simplify [:+ [:* 2 :x] [:* 3 :x]])"] ". An e-graph that carries the analysis of bendix shows the polynomial of each class in the list, as in lesson 10: " [:eval "(show! (bx/saturate [:+ [:expt [:sin :x] 2] [:expt [:cos :x] 2]]\n                     {:rules rules/trig :timeline? true}))"]]
     [:p "Type terms in the native spelling, such as " [:native [:+ [:* 2 :x] :y]] ". " [:eval "(input/read-term \"2·x + y\")"] " reads the notation. The code you type here is interpreted, but every function it calls is the compiled function that the page runs, so the engine is as fast as it is in a lesson. There is no interrupt. An evaluation that never ends takes the tab with it."]]})
 
+;; The terms and rules of the cheat sheet. Each link runs one of them,
+;; so each is an alternative.
+
+(def taste-rules
+  '[["double" [:+ ?x ?x] [:* ?x 2]]
+    ["shift" [:* ?x 2] [:<< ?x 1]]])
+
+(def distribute-rules
+  '[["distribute" [:* ?a [:+ ?b ?c]] [:+ [:* ?a ?b] [:* ?a ?c]]]
+    ["factor" [:+ [:* ?a ?b] [:* ?a ?c]] [:* ?a [:+ ?b ?c]]]])
+
+(def cheat-sheet
+  {:key :cheat-sheet :nav "Cheat sheet" :title "Cheat sheet" :needs :cromulent :kind :embiggen
+   :operation :saturate
+   :inputs [term-input rules-input]
+   :values {:term [:/ [:* :a 2] 2] :rules intro-rules}
+   :opts {:scheduler :simple}
+   :costs [:ast-size :prefer-add :prefer-mul :prefer-shift :no-shift :bendix :no-D]
+   :alternatives [{:label "(x + 0)·1" :values {:term [:* [:+ :x 0] 1] :rules basics-rules}}
+                  {:label "(a·2)/2" :values {:term [:/ [:* :a 2] 2] :rules intro-rules}}
+                  {:label "0 + 1·a" :values {:term [:+ 0 [:* 1 :a]] :rules egg-rules}}
+                  {:label "a + a" :values {:term [:+ :a :a] :rules taste-rules}}
+                  {:label "a·b + a·c" :values {:term [:+ [:* :a :b] [:* :a :c]] :rules distribute-rules}}
+                  {:label "a·(b + c) + a·d" :values {:term [:+ [:* :a [:+ :b :c]] [:* :a :d]] :rules distribute-rules}}
+                  {:label "four atoms" :values {:term (sum-of 4) :rules ac-rules}}
+                  {:label "five atoms" :values {:term (sum-of 5) :rules ac-rules}}
+                  {:label "five atoms, node limit 100" :values {:term (sum-of 5) :rules ac-rules} :opts {:node-limit 100}}
+                  {:label "five atoms, backoff" :values {:term (sum-of 5) :rules ac-rules}
+                   :opts {:scheduler :backoff :match-limit 4 :ban-length 2 :iter-limit 30}}]
+   :panels #{:matches :stats}
+   :prose
+   [[:p "Each link below loads a term and its rules and runs " [:code "rw/saturate"] ". The inputs tab holds them for editing. Each line of code runs at the REPL."]
+    [:h3 "Terms and rules"]
+    [:ul.sheet
+     [:li [:alternative "(x + 0)·1" "(x + 0)·1"] ": add-0 and mul-1. " [:lesson :basics "Start here"]]
+     [:li [:alternative "(a·2)/2" "(a·2)/2"] ": the four rules of egg's paper" [:cite :willsey-2021] ". " [:lesson :intro "What is an e-graph?"]]
+     [:li [:alternative "0 + 1·a" "0 + 1·a"] ": the rules of egg's README. " [:lesson :rule "Lesson 4"]]
+     [:li [:alternative "a + a" "a + a"] ": double and shift, which make a tie. " [:lesson :taste "Lesson 6"]]
+     [:li [:alternative "a·b + a·c" "a·b + a·c"] " and " [:alternative "a·(b + c) + a·d" "a·(b + c) + a·d"] ": distribute and factor."]
+     [:li [:alternative "four atoms" "a0 + a1 + a2 + a3"] " and " [:alternative "five atoms" "five atoms"] ": commutativity and associativity. " [:lesson :blowup "Lesson 7"]]
+     [:li "Five atoms " [:alternative "five atoms, node limit 100" "under a node limit of 100"] " and " [:alternative "five atoms, backoff" "under the backoff scheduler"] ". " [:lesson :saturation "Lesson 5"]]]
+    [:h3 "Costs"]
+    [:ul.sheet
+     [:li [:cost :ast-size "AST size"] ", " [:cost :prefer-add "prefer additions"] ", " [:cost :prefer-mul "prefer multiplications"] ", " [:cost :prefer-shift "prefer shifts"] ", " [:cost :no-shift "no shifts"] ". The results tab shows the best term."]
+     [:li "For bendix: " [:cost :bendix "bendix's default"] ", and " [:cost :no-D "no D"] ", which evaluates a derivative whenever a rule can."]
+     [:li "Print terms as " [:print :notation "notation"] " or as " [:print :native "native"] " vectors."]]
+    [:h3 "The e-graph on show"]
+    [:ul.sheet
+     [:li [:eval "(eg/class-count g)"] " and " [:eval "(eg/node-count g)"]]
+     [:li [:eval "(mapv eg/class-count timeline)"]]
+     [:li [:eval "(filter #(> (count (eg/nodes g %)) 1) (eg/roots g))"]]
+     [:li [:eval "(eg/add g [:+ :b :b])"]]
+     [:li [:eval "(swap! state wb/scrub 0)"]]
+     [:li [:eval "(export/json g)"]]]
+    [:h3 "Runs"]
+    [:ul.sheet
+     [:li [:eval "(show! (run/start [:+ [:+ :a :b] :c]\n                  (lessons/rules-of lessons/ac-rules)\n                  {}))"]]
+     [:li [:eval "(let [[g a] (eg/add g :a)\n      [g b] (eg/add g :b)]\n  (push! (eg/rebuild (first (eg/union g a b))) \"a = b\"))"]]]
+    [:h3 "bendix"]
+    [:ul.sheet
+     [:li [:eval "(bx/simplify [:+ [:* 2 :x] [:* 3 :x]])"] " " [:lesson :fix "Lesson 8"]]
+     [:li [:eval "(bx/simplify [:- [:* [:+ :a :b] [:+ :a :b]]\n                 [:+ [:* :a :a] [:* 2 :a :b] [:* :b :b]]])"] " " [:lesson :normal-form "Lesson 9"]]
+     [:li [:eval "(show! (bx/saturate [:+ [:expt [:sin :x] 2] [:expt [:cos :x] 2]]\n                     {:rules rules/trig :timeline? true}))"] " " [:lesson :polynomial-rule "Lesson 10"]]
+     [:li [:eval "(bx/differentiate [:sin [:* 2 :x]] :x)"] " " [:lesson :differentiation "Lesson 12"]]
+     [:li [:eval "(show! (bx/saturate [:D [:* :x [:sin :x]] :x]\n                     {:rules rules/derivative :timeline? true}))"]]]
+    [:h3 "Help"]
+    [:ul.sheet
+     [:li [:eval "(doc rw/saturate)"] " and " [:eval "(doc bx/simplify)"]]
+     [:li [:eval "(input/read-term \"2·x + y\")"]]
+     [:li "The ? button on the dock lists the names in scope and the keys. " [:lesson :repl "The REPL"] " says more."]]]})
+
 (def all
   [basics
    intro
@@ -673,7 +746,8 @@
    polynomial-rule
    what-if
    differentiation
-   repl])
+   repl
+   cheat-sheet])
 
 (defn by-key [k] (some (fn [l] (when (= k (:key l)) l)) all))
 

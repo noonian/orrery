@@ -2,7 +2,7 @@
 // the opened class and the export, and the library in the dock. Every
 // snippet evaluates without an error.
 import { test, expect } from '@playwright/test';
-import { openLesson, openRepl } from './orrery.js';
+import { openLesson, openRepl, showTab } from './orrery.js';
 
 const evalBuffer = async (page) => {
   await page.locator('#repl-buffer').press('Control+Shift+Enter');
@@ -12,9 +12,11 @@ test.describe('snippets', () => {
   test('the panels put their code in the buffer, and it evaluates', async ({ page }) => {
     await openLesson(page, 6);
     await page.locator('tbody tr.root .class-id').click();
+    await showTab(page, 'results');
     await page.locator('.panel-head').filter({ hasText: 'the run' }).getByRole('button', { name: 'to buffer' }).click();
     await expect(page.locator('#repl-dock')).toHaveClass(/\bopen\b/);
     await page.locator('#class-code').click();
+    await showTab(page, 'egraph');
     await page.locator('#export-code').click();
     const buffer = await page.locator('#repl-buffer').inputValue();
     expect(buffer).toContain('(eg/class-count g)');

@@ -1,7 +1,11 @@
 import { test, expect } from '@playwright/test';
-import { openLesson, expectSnapshot, tryAnother, submit } from './orrery.js';
+import { openLesson, expectSnapshot, tryAnother, submit, showTab } from './orrery.js';
 
-const pick = async (page, cost) => page.locator(`input[type=radio][value=${cost}]`).check();
+// the cost picker is in the results tab
+const pick = async (page, cost) => {
+  await showTab(page, 'results');
+  await page.locator(`input[type=radio][value=${cost}]`).check();
+};
 
 test.describe('12. Differentiation is simplification', () => {
   test('d/dx sin 2x under the derivative rules', async ({ page }) => {

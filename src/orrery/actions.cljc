@@ -30,6 +30,7 @@
    :graph/pan "[:graph/pan]: the graph moved in its frame while the pointer that pressed it drags"
    :export/copy "[:export/copy]: the e-graph on show as egraph-serialize JSON, to the clipboard"
    :export/download "[:export/download]: the same, as a file"
+   :tab/show "[:tab/show tab handler?]: show a tab of the e-graph column, :egraph, :inputs or :results; with a handler, act on it first"
    :cost "[:cost key]: the cost in force"
    :alternative "[:alternative label]: run the lesson's alternative with this label"
    :print "[:print mode]: the print mode, :notation or :native"
@@ -53,6 +54,8 @@
 
 (defn known?
   "Returns true when `h` is a handler over this vocabulary: a vector
-  whose first element is a key of `all`."
+  whose first element is a key of `all`. The handler inside a
+  `:tab/show` must be known too."
   [h]
-  (and (vector? h) (contains? all (first h))))
+  (and (vector? h) (contains? all (first h))
+       (or (not= :tab/show (first h)) (nil? (get h 2)) (known? (get h 2)))))

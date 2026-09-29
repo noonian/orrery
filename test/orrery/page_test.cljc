@@ -33,7 +33,9 @@
   [hiccup]
   (for [x (tree-seq coll? seq hiccup)
         :when (map? x)
-        h (concat (vals (:on x)) (keep x hooks))]
+        h (concat (vals (:on x)) (keep x hooks))
+        ;; a tab/show handler acts on the handler inside it
+        h (if (and (= :tab/show (first h)) (get h 2)) [h (get h 2)] [h])]
     h))
 
 (defn- functions

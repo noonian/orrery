@@ -2,7 +2,7 @@
 // the prose, and the replay bar, stuck to the top of the viewport,
 // says what the engine knows about it. Counts and costs, never ids.
 import { test, expect } from '@playwright/test';
-import { openLesson, expectSnapshot } from './orrery.js';
+import { openLesson, expectSnapshot, showTab } from './orrery.js';
 
 const detail = (page) => page.locator('#replay .class-detail');
 const act = (page, kind, text) => page.locator(`.prose a.act[data-act=${kind}]`, { hasText: text });
@@ -20,6 +20,7 @@ test.describe('the opened class', () => {
     await expect(detail(page).locator('.terms .costed')).toHaveCount(3);
     await expect(detail(page).locator('.terms .costed .notation').first()).toHaveText('a + a');
 
+    await showTab(page, 'results');
     await page.locator('input[type=radio][value=ast-size]').check();
     await expect(detail(page).locator('.nodes .dnode .cost')).toHaveText(['3', '3', '3']);
 
@@ -102,6 +103,7 @@ test.describe('the opened class', () => {
   test('a prose link whose term the edited input no longer holds is plain text', async ({ page }) => {
     await openLesson(page, 6);
     await expect(act(page, 'select', 'Open the class')).toHaveCount(1);
+    await showTab(page, 'inputs');
     await page.locator('#input-term').fill('[:+ :b :b]');
     await page.locator('#run').click();
     await expectSnapshot(page, { status: 'done' });

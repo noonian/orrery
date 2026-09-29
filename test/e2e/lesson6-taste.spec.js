@@ -1,7 +1,11 @@
 import { test, expect } from '@playwright/test';
-import { openLesson, expectSnapshot, tryAnother } from './orrery.js';
+import { openLesson, expectSnapshot, tryAnother, showTab } from './orrery.js';
 
-const pick = async (page, cost) => page.locator(`input[type=radio][value=${cost}]`).check();
+// the cost picker is in the results tab
+const pick = async (page, cost) => {
+  await showTab(page, 'results');
+  await page.locator(`input[type=radio][value=${cost}]`).check();
+};
 
 test.describe('6. Extraction is taste', () => {
   test('three costs, three answers from one class', async ({ page }) => {

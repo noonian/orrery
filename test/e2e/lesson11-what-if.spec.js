@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { openLesson, expectSnapshot, tryAnother } from './orrery.js';
+import { openLesson, expectSnapshot, tryAnother , showTab } from './orrery.js';
 
 test.describe('11. What if', () => {
   test('the original stays at step 0 beside the copy', async ({ page }) => {
@@ -16,6 +16,7 @@ test.describe('11. What if', () => {
     await expect(panels.nth(1).locator('h3')).toContainText('x = 2 asserted; rebuild pending');
     await expect(panels.nth(0).locator('tbody tr')).toHaveCount(5);
     await expect(panels.nth(1).locator('tbody tr')).toHaveCount(4);
+    await showTab(page, 'results');
     await expect(page.locator('.badge.dirty')).toBeVisible();
 
     await page.locator('#step-first').click();

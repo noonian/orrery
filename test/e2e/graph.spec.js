@@ -5,7 +5,7 @@
 // copied. Counts, never ids.
 import fs from 'node:fs';
 import { test, expect } from '@playwright/test';
-import { openLesson, expectSnapshot } from './orrery.js';
+import { openLesson, expectSnapshot, showTab } from './orrery.js';
 
 const detail = (page) => page.locator('#replay .class-detail');
 const act = (page, kind, text) => page.locator(`.prose a.act[data-act=${kind}]`, { hasText: text });
@@ -189,7 +189,9 @@ test.describe('the export', () => {
     expect(Object.values(json.class_data).some(d => d.poly === 'a0 + a1 + a2 + a3 + a4')).toBe(true);
     const root = json.nodes[`${json.root_eclasses[0]}.0`];
     expect(root.eclass).toBe(json.root_eclasses[0]);
+    await showTab(page, 'results');
     await page.locator('input[type=radio][value=ast-size]').check();
+    await showTab(page, 'egraph');
     await page.locator('#export-copy').click();
     await expect(page.locator('#export-status')).toContainText('copied');
     const json2 = JSON.parse(await page.evaluate(() => navigator.clipboard.readText()));

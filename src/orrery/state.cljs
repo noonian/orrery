@@ -203,6 +203,11 @@
   []
   (swap! app-state (fn [s] (assoc-in s [:ui :graph?] (not (derived/graph? s))))))
 
+(defn show-tab!
+  "Shows the tab `t` of the e-graph column."
+  [t]
+  (swap! app-state assoc-in [:ui :tab] t))
+
 (defn toggle-graph-filter! [] (swap! app-state update-in [:ui :graph-filter?] not))
 
 (def zoom-levels [0.25 0.35 0.5 0.75 1 1.5 2 3])

@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { openLesson, expectSnapshot, tryAnother, submit } from './orrery.js';
+import { openLesson, expectSnapshot, tryAnother, submit , showTab } from './orrery.js';
 
 test.describe('3. Equality and congruence', () => {
   test('three steps: the terms, the assertion, the rebuild', async ({ page }) => {
@@ -11,6 +11,7 @@ test.describe('3. Equality and congruence', () => {
     await page.locator('#step-prev').click();
     await expectSnapshot(page, { step: 1, classes: 6, dirty: true });
     await expect(page.locator('.scrubber-label')).toContainText('a·2 = a << 1 asserted; rebuild pending');
+    await showTab(page, 'results');
     await expect(page.locator('.badge.dirty')).toBeVisible();
 
     await page.locator('#step-first').click();

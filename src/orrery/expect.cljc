@@ -144,7 +144,21 @@
    :repl
    {nil {:steps 4 :iterations 3 :stop-reason :saturated :classes-per-step [2 3 4 4] :classes 4 :nodes 6
          :nodes-per-iteration [4 6 6]
-         :best-terms {:prefer-add [:+ :a :a] :prefer-mul [:* :a 2] :prefer-shift [:<< :a 1]}}}})
+         :best-terms {:prefer-add [:+ :a :a] :prefer-mul [:* :a 2] :prefer-shift [:<< :a 1]}}}
+   :cheat-sheet
+   {nil {:steps 5 :iterations 4 :stop-reason :saturated :classes 4 :nodes 8 :best-cost 1 :best-terms {:ast-size :a}}
+    "(x + 0)·1" {:iterations 2 :stop-reason :saturated :classes 3 :nodes 5 :best-terms {:ast-size :x}}
+    "(a·2)/2" {:iterations 4 :stop-reason :saturated :classes 4 :nodes 8 :best-terms {:ast-size :a}}
+    "0 + 1·a" {:iterations 3 :stop-reason :saturated :classes 3 :nodes 7 :best-terms {:ast-size :a}}
+    "a + a" {:iterations 3 :stop-reason :saturated :classes 4 :nodes 6
+             :best-terms {:prefer-add [:+ :a :a] :prefer-mul [:* :a 2] :prefer-shift [:<< :a 1]}}
+    "a·b + a·c" {:iterations 2 :stop-reason :saturated :classes 7 :nodes 8 :best-cost 5
+                 :best-terms {:ast-size [:* :a [:+ :b :c]]}}
+    "a·(b + c) + a·d" {:iterations 2 :stop-reason :saturated :classes 11 :nodes 13 :best-cost 7}
+    "four atoms" {:iterations 6 :stop-reason :saturated :classes 15 :nodes 54 :best-cost 7}
+    "five atoms" {:iterations 7 :stop-reason :saturated :classes 31 :nodes 185 :best-cost 9}
+    "five atoms, node limit 100" {:stop-reason :node-limit}
+    "five atoms, backoff" {:iterations 15 :stop-reason :saturated :classes 31 :nodes 185 :best-cost 9}}})
 
 (defn observe
   "Returns everything `runs` may assert about a finished run of

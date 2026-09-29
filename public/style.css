@@ -95,6 +95,10 @@ textarea, input[type=text] {
 .lesson h2 small { color: var(--muted); font-weight: normal; font-size: 15px; margin-left: 8px; }
 .prose { max-width: 720px; }
 .prose p { margin: 0 0 12px; }
+/* the cheat sheet: short headings over lists of links and code */
+.prose h3 { margin: 18px 0 6px; font-size: 14px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600; }
+.prose ul.sheet { margin: 0 0 8px; padding-left: 18px; }
+.prose ul.sheet li { margin: 0 0 6px; }
 .notation { font-style: italic; white-space: nowrap; }
 .native { font-size: 15px; background: var(--surface-2); padding: 1px 5px; border-radius: 4px; white-space: nowrap; }
 a.step, a.act { text-decoration: underline dotted; cursor: pointer; }
@@ -108,20 +112,30 @@ sup.cite a:hover { text-decoration: underline; }
 .prose code { font-size: 15px; background: var(--surface-2); padding: 1px 5px; border-radius: 4px; }
 
 .workbench { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
-.stack, .controls { display: flex; flex-direction: column; gap: 16px; }
+.stack { display: flex; flex-direction: column; gap: 16px; }
 
-/* a lesson: on a narrow screen the text, the e-graph and the controls stack in that order; on a wide one the text and the
-   controls are the left column, and the e-graph is the right column, which stays in view and scrolls inside itself */
-.lesson-grid { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-areas: "text" "egraph" "controls"; gap: 16px; }
+/* a lesson: on a narrow screen the text, then the e-graph column; on a wide one the text is the left column, and the
+   e-graph column is the right, which stays in view and scrolls inside itself. The column's tabs hold the controls. */
+.lesson-grid { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-areas: "text" "egraph" "foot"; gap: 16px; }
 .lesson-grid > .text { grid-area: text; }
 .lesson-grid > .egraph { grid-area: egraph; }
-.lesson-grid > .controls { grid-area: controls; }
+.lesson-grid > .colophon { grid-area: foot; }
 .egraph { container-type: inline-size; }
-.egraph > .tree-panel { margin-bottom: 16px; }
 @media (min-width: 1100px) {
-  .lesson-grid { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); grid-template-rows: auto 1fr; grid-template-areas: "text egraph" "controls egraph"; }
-  .lesson-grid > .egraph { position: sticky; top: 0; align-self: start; max-height: calc(100vh - var(--dock-h)); overflow-y: auto; }
+  /* The colophon is under the text, so only the page's bottom padding follows the grid. The column fits above that
+     padding, and the grid is at least as tall as the column, so the column stays pinned at every scroll. */
+  .lesson-grid { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); grid-template-rows: 1fr auto; grid-template-areas: "text egraph" "foot egraph";
+                 min-height: calc(100vh - var(--dock-h) - 16px); }
+  .lesson-grid > .egraph { position: sticky; top: 0; align-self: start; max-height: calc(100vh - var(--dock-h) - 16px); overflow-y: auto; }
 }
+/* the replay bar and the tabs under it stick to the top of the column; a pane is a stack of panels */
+.egraph-head { position: sticky; top: 0; z-index: 3; background: var(--page); padding: 6px 0 0; margin-bottom: 12px; border-bottom: 1px solid var(--hairline); }
+.tabs { display: flex; gap: 4px; margin-top: 8px; }
+.tabs button { border-bottom-left-radius: 0; border-bottom-right-radius: 0; border-bottom-color: transparent; margin-bottom: -1px; }
+.tabs button.current { background: var(--surface); border-color: var(--hairline); border-bottom-color: var(--surface); color: var(--ink); font-weight: 600; }
+.pane { display: flex; flex-direction: column; gap: 16px; }
+.pane[hidden] { display: none; }
+.pane > .tools, .pane > .panel.graph { margin: 0; }
 .panel { background: var(--surface); border: 1px solid var(--hairline); border-radius: 10px; padding: 12px 14px; overflow-x: auto; } /* the background always holds its content: what is wider than the panel scrolls inside it */
 .panel h3 { margin: 0 0 8px; font-size: 14px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600; }
 
@@ -154,7 +168,7 @@ pre.call { font-family: var(--mono); font-size: 13px; line-height: 1.5; backgrou
 .tile-note { font-size: 13px; color: var(--ink-2); }
 .tile.running .tile-value { color: var(--accent); }
 
-.replay { position: sticky; top: 0; z-index: 3; background: var(--page); padding: 6px 0 8px; margin-bottom: 8px; border-bottom: 1px solid var(--hairline); }
+.replay { padding: 0 0 2px; }
 .scrubber { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
 .scrubber input[type=range] { flex: 1; min-width: 160px; }
 .scrubber-label { font-size: 14px; color: var(--ink-2); }

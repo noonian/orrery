@@ -21,12 +21,45 @@ test.describe('a lesson\'s layout', () => {
     await expect(page.locator('#scrubber-range')).toBeInViewport();
   });
 
-  test('narrow: the text, then the e-graph, then the controls', async ({ page }) => {
+  test('narrow: the text, then the e-graph column', async ({ page }) => {
     await page.setViewportSize({ width: 800, height: 1000 });
     await openLesson(page, 3);
     const y = async (sel) => (await page.locator(sel).boundingBox()).y;
     expect(await y('.lesson-grid > .text')).toBeLessThan(await y('.lesson-grid > .egraph'));
-    expect(await y('.lesson-grid > .egraph')).toBeLessThan(await y('.lesson-grid > .controls'));
+  });
+
+  test('wide: the controls are tabs under the replay bar, in view at the foot of the page', async ({ page }) => {
+    await page.setViewportSize({ width: 1600, height: 900 });
+    await openLesson(page, 6);
+    await expect(page.locator('#tab-egraph')).toHaveAttribute('aria-selected', 'true');
+    await expect(page.locator('#pane-inputs')).toBeHidden();
+    await page.locator('#colophon').scrollIntoViewIfNeeded();
+    await page.locator('#tab-inputs').click();
+    await expect(page.locator('#run')).toBeInViewport();
+    await expect(page.locator('#pane-egraph')).toBeHidden();
+    // a run shows the e-graph again
+    await page.locator('#run').click();
+    await expect(page.locator('#tab-egraph')).toHaveAttribute('aria-selected', 'true');
+    await expectSnapshot(page, { lesson: 'taste', status: 'done' });
+    // a cost in the prose shows the results
+    await page.locator('.prose a.act[data-act=cost]').first().click();
+    await expect(page.locator('#pane-results')).toBeVisible();
+    await expect(page.locator('#best-notation')).toBeInViewport();
+  });
+
+  test('a run that cannot read its input stays on the inputs, with the problem', async ({ page }) => {
+    await openLesson(page, 6);
+    await page.locator('#tab-inputs').click();
+    await page.locator('#input-term').fill('(a +');
+    await page.locator('#run').click();
+    await expect(page.locator('.input-area .error')).toBeVisible();
+    await expect(page.locator('#tab-inputs')).toHaveAttribute('aria-selected', 'true');
+  });
+
+  test('the REPL\'s page has no inputs tab', async ({ page }) => {
+    await openLesson(page, 'repl');
+    await expect(page.locator('#tab-inputs')).toHaveCount(0);
+    await expect(page.locator('#tab-results')).toHaveCount(1);
   });
 
   test('the dock starts closed, as the REPL\'s line; it opens with the button or Ctrl-`, and stays open across lessons', async ({ page }) => {

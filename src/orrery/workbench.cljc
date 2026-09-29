@@ -43,11 +43,18 @@
    ;; lesson decides (see derived/graph?).
    :graph? nil :graph-filter? false :graph-zoom nil :export-status nil
    :line-numbers? false
+   ;; the tab on show in the e-graph column: the e-graph, the inputs
+   ;; or the results
+   :tab :egraph
    ;; The REPL's dock along the bottom of the page: open or closed,
    ;; its height in pixels, nil for the height it opens at, whether
    ;; it shows its keys and the names in scope, and whether it shows
    ;; the snippets.
    :repl-open? false :dock-height nil :repl-help? false :repl-snippets? false})
+
+(def tabs
+  "The tabs of the e-graph column."
+  #{:egraph :inputs :results})
 
 (defn initial
   "Returns the page before it has opened anything."
@@ -443,6 +450,7 @@
       (not (contains? #{:notation :native} (print-mode s))) "[:ui :print] is :notation or :native"
       (not (let [id (get-in s [:ui :selected])] (or (nil? id) (and (integer? id) (<= 0 id)))))
       "[:ui :selected] is a class id, or nil"
+      (not (contains? tabs (get-in s [:ui :tab]))) "[:ui :tab] is :egraph, :inputs or :results"
       (not (string? (get-in s [:repl :input]))) "[:repl :input] is the line's text"
       (not (string? (get-in s [:repl :buffer]))) "[:repl :buffer] is the buffer's text"
       (not (vector? (get-in s [:repl :history]))) "[:repl :history] is a vector"

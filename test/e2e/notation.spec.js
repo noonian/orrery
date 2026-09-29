@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { openLesson, expectSnapshot, submit } from './orrery.js';
+import { openLesson, expectSnapshot, submit, showTab } from './orrery.js';
 
 // Phase 3: the inputs read the notation, and show it in notation mode.
 test.describe('notation input', () => {
@@ -76,6 +76,7 @@ test.describe('notation input', () => {
     await expect(page.locator('#input-help')).toContainText('native format');
     await toggle('notation');
     await expect(page.locator('#input-term')).toHaveValue('2·x + y');
+    await showTab(page, 'inputs');
     await page.locator('#input-term').fill('x + 1');
     await toggle('native');
     await expect(page.locator('#input-term')).toHaveValue('x + 1');

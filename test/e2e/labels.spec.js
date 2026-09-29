@@ -3,7 +3,7 @@
 // function beside each panel's heading, as the REPL under the page
 // names it.
 import { test, expect } from '@playwright/test';
-import { openLesson, expectSnapshot, tryAnother, evalRepl } from './orrery.js';
+import { openLesson, expectSnapshot, tryAnother, evalRepl, showTab } from './orrery.js';
 
 const operation = (page) => page.locator('#operation');
 const args = (page) => page.locator('.input-area .field h3 .arg');
@@ -31,6 +31,7 @@ test.describe('what the panels are the work of', () => {
     await expect(says).toHaveText('what may be written as what, one per line as name: pattern → replacement');
     await page.locator('.print-toggle button', { hasText: 'native' }).click();
     await expect(says).toHaveText('what may be written as what, as [name pattern replacement]');
+    await showTab(page, 'inputs');
     await page.locator('#input-rules').fill('[["comm" [:+ ?a ?b] [:+ ?b ?c]]]');
     await page.locator('#run').click();
     await expect(page.locator('.input-area .error')).toContainText('the rules: ');

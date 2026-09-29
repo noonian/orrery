@@ -4,11 +4,12 @@
 // assertions are about the mechanism: the run finishes, the inputs
 // changed, the line names the bank and the lesson's wants.
 import { test, expect } from '@playwright/test';
-import { openLesson, expectSnapshot, snapshot } from './orrery.js';
+import { openLesson, expectSnapshot, snapshot, showTab } from './orrery.js';
 
 const why = /^drawn from \d+ candidates, \d+ shapes of result; score \d\.\d\d: /;
 
 async function surprise(page) {
+  await showTab(page, 'inputs');
   await page.locator('#surprise').click();
   await expect(page.locator('#drawn')).toBeVisible();
   await expectSnapshot(page, { status: 'done' });
@@ -50,11 +51,13 @@ test.describe('surprise me', () => {
   test('editing and running clears the line; try another too', async ({ page }) => {
     await openLesson(page, 6);
     await surprise(page);
+    await showTab(page, 'inputs');
     await page.locator('#input-term').fill('[:+ :a :a]');
     await page.locator('#run').click();
     await expectSnapshot(page, { status: 'done', classes: 4, nodes: 6 });
     await expect(page.locator('#drawn')).toHaveCount(0);
     await surprise(page);
+    await showTab(page, 'inputs');
     await page.locator('.alternatives').getByRole('button', { name: 'with commutativity', exact: true }).click();
     await expectSnapshot(page, { status: 'done' });
     await expect(page.locator('#drawn')).toHaveCount(0);

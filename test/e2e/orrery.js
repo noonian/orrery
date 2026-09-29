@@ -9,7 +9,7 @@ import { expect } from '@playwright/test';
 export const keys = {
   basics: 'basics', intro: 'intro', 1: 'tree', 2: 'sharing', 3: 'congruence', 4: 'rule',
   5: 'saturation', 6: 'taste', 7: 'blowup', 8: 'fix',
-  9: 'normal-form', 10: 'polynomial-rule', 11: 'what-if', 12: 'differentiation', repl: 'repl',
+  9: 'normal-form', 10: 'polynomial-rule', 11: 'what-if', 12: 'differentiation', repl: 'repl', 'cheat-sheet': 'cheat-sheet',
 };
 
 // window.orreryPage.snapshot(): {lesson step steps status iterations
@@ -29,13 +29,23 @@ export async function openLesson(page, n) {
   await expectSnapshot(page, { lesson: keys[n], status: 'done' });
 }
 
-// "try another": the alternative with exactly this label.
+// Show a tab of the e-graph column: 'egraph', 'inputs' or 'results'.
+// A hidden pane's controls cannot be clicked or filled.
+export async function showTab(page, tab) {
+  await page.locator(`#tab-${tab}`).click();
+  await expect(page.locator(`#pane-${tab}`)).toBeVisible();
+}
+
+// "try another": the alternative with exactly this label, from the
+// inputs tab. It runs, and the e-graph tab comes back.
 export async function tryAnother(page, label) {
+  await showTab(page, 'inputs');
   await page.locator('.alternatives').getByRole('button', { name: label, exact: true }).click();
 }
 
-// Type into the field of each input key, then run.
+// Type into the field of each input key on the inputs tab, then run.
 export async function submit(page, fields) {
+  await showTab(page, 'inputs');
   for (const [key, text] of Object.entries(fields)) {
     await page.locator(`#input-${key}`).fill(text);
   }

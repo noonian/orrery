@@ -90,7 +90,7 @@
         [before others] (split-with (comp nil? :n) lessons/all)
         [numbered after] (split-with :n others)]
     (is (= [lessons/basics lessons/intro] before) "two pages before the lessons, the basics first")
-    (is (= [lessons/repl] after) "and one after them, the REPL's")
+    (is (= [lessons/repl lessons/cheat-sheet] after) "and two after them, the REPL's and the cheat sheet")
     (is (= lessons/basics l))
     (is (lessons/live? l))
     (is (= (range 1 13) (map :n numbered)) "the lessons are 1 to 12, in order")
@@ -100,8 +100,9 @@
       (is (= "What is an e-graph?" (lessons/heading lessons/intro) (lessons/nav-label lessons/intro)))
       (is (= "7. The blowup" (lessons/heading lessons/blowup) (lessons/nav-label lessons/blowup)))
       (is (= "The REPL" (lessons/heading lessons/repl) (lessons/nav-label lessons/repl)))
-      (is (= ["basics" "intro" "1" "12" "repl"]
-             (map lessons/address [l lessons/intro lessons/tree lessons/differentiation lessons/repl]))))
+      (is (= "Cheat sheet" (lessons/heading lessons/cheat-sheet) (lessons/nav-label lessons/cheat-sheet)))
+      (is (= ["basics" "intro" "1" "12" "repl" "cheat-sheet"]
+             (map lessons/address [l lessons/intro lessons/tree lessons/differentiation lessons/repl lessons/cheat-sheet]))))
     (testing "every address finds its lesson, and nothing else finds one"
       (doseq [x lessons/all]
         (is (= x (lessons/by-address (lessons/address x)))))

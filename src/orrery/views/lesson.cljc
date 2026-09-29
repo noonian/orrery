@@ -48,7 +48,10 @@
   A link to a class renders as plain text when the e-graph it would
   open the class in does not hold the term of the link. That e-graph
   is the one at the step the link names, or the one on show when
-  the link names no step. This happens when the input was edited."
+  the link names no step. This happens when the input was edited.
+
+  A link that changes what the e-graph column shows also shows the
+  tab it changes: the e-graph, or the results for a cost."
   [s x]
   (cond
     (and (vector? x) (contains? lessons/widget-kinds (first x)))
@@ -56,12 +59,12 @@
       (case kind
         :notation (common/term-view a :notation)
         :native (common/term-view a :native)
-        :step (act :step [:step a] b)
+        :step (act :step [:tab/show :egraph [:step a]] b)
         :select (if (some-> (if c (derived/egraph-at s c) (derived/current-egraph s)) (eclass/class-of a))
-                  (act :select [:select-term a c] b)
+                  (act :select [:tab/show :egraph [:select-term a c]] b)
                   b)
-        :cost (act :cost [:cost a] b)
-        :alternative (act :alternative [:alternative a] b)
+        :cost (act :cost [:tab/show :results [:cost a]] b)
+        :alternative (act :alternative [:tab/show :egraph [:alternative a]] b)
         :print (act :print [:print a] b)
         :lesson [:a {:href (str "#" (lessons/address (lessons/by-key a)))} b]
         :eval (act :eval [:repl/run a] [:code {:class (when (str/includes? a "\n") "block")} a])
@@ -133,7 +136,7 @@
                     :value (get fields key "")
                     :on {:input [:field key]}}]])
      [:div.row
-      [:button.primary {:id "run" :on {:click [:run]}} "run"]
+      [:button.primary {:id "run" :on {:click [:tab/show :egraph [:run]]}} "run"]
       [:span.status {:id "input-help"}
        (if (= :notation mode)
          "Type notation as the page prints it: 2·x + y, x^2 or x², sin x, 1/2 for an exact half, ?x in a pattern. The native format, [:+ [:* 2 :x] :y], is read too."
@@ -146,7 +149,7 @@
               (for [alt (:alternatives l)]
                 [:button {:replicant/key (:label alt)
                           :class (when (= alternative (:label alt)) "current")
-                          :on {:click [:alternative (:label alt)]}}
+                          :on {:click [:tab/show :egraph [:alternative (:label alt)]]}}
                  (:label alt)]))])
      (when (:surprise l)
        [:div
@@ -166,39 +169,82 @@
         (into [:div.prose] (map #(prose s %) (:prose l)))
         (reading-view l)))
 
-(defn- lesson-layout
-  "Renders a lesson in three parts. The text comes first. The
-  controls are the operation, its arguments and what it made. The
-  e-graph is the replay bar, the tools, the graph and the classes.
+(def ^:private tabs
+  "The tabs of the e-graph column, in order, with their labels."
+  [[:egraph "e-graph"] [:inputs "inputs"] [:results "results"]])
 
-  On a wide screen the text and the controls make the left column,
-  which scrolls with the page. The e-graph is the right column, which
-  stays in view and scrolls inside itself, so a link in the prose
-  changes what is in view. On a narrow screen the three stack, with
-  the e-graph after the text. The style sheet does both."
+(defn- tab-on-show
+  "Returns the tab that the e-graph column shows. A page with no
+  inputs has no inputs tab, so it shows the e-graph instead."
+  [s l]
+  (let [t (get-in s [:ui :tab] :egraph)]
+    (if (and (= :inputs t) (empty? (:inputs l))) :egraph t)))
+
+(defn- tab-bar
+  "Renders the row of tabs under the replay bar. `on` is the tab on
+  show and `ks` are the tabs the page has."
+  [on ks]
+  (into [:div.tabs {:role "tablist"}]
+        (for [[k label] tabs :when (contains? ks k)]
+          [:button {:replicant/key k :id (str "tab-" (name k)) :role "tab"
+                    :aria-selected (str (= on k)) :aria-controls (str "pane-" (name k))
+                    :class (when (= on k) "current")
+                    :on {:click [:tab/show k]}}
+           label])))
+
+(defn- pane
+  "Renders the pane of tab `k`, hidden unless it is on show. Every
+  pane is rendered, so what a hidden pane holds keeps its place."
+  [on k & children]
+  (into [:div.pane {:id (str "pane-" (name k)) :role "tabpanel" :hidden (not= on k)}]
+        children))
+
+(defn- lesson-layout
+  "Renders a lesson in two parts. The text is the prose. The e-graph
+  column holds the replay bar and, under it, three tabs: the e-graph
+  (the tree, the tools, the graph and the classes), the inputs (the
+  operation and its arguments) and the results (the run, the best
+  term, the matches and the iterations). The inputs tab is left out
+  when the page has no inputs.
+
+  The colophon goes in the grid too: under the text on a wide
+  screen, and last on a narrow one.
+
+  On a wide screen the text is the left column, which scrolls with
+  the page. The e-graph column is on the right. It stays in view and
+  scrolls inside itself, so a link in the prose changes what is in
+  view, and every control is a tab away. On a narrow screen the text
+  comes first and the e-graph column after it. The style sheet does
+  both."
   [s l r g panels matches]
-  [:div.lesson-grid
-   [:div.text (text s l)]
-   (when (and r g)
-     [:div.egraph
-      ;; the term of the run, or of the input when the run knows none;
-      ;; a run from the REPL that knows no term has no tree
-      (when-let [t (and (contains? panels :tree)
-                        (or (:term r) (when-not (= :repl (:from r)) (get-in s [:input :values :term]))))]
-        (panels/tree-panel s g t))
-      (panels/replay-bar s r g)
-      (panels/tools s)
-      (panels/graph-panel s matches)
-      (if (contains? panels :fork)
-        (panels/fork-panels s r g)
-        (panels/classes-panel s g matches))])
-   (when (and r g)
-     [:div.controls
-      (when (seq (:inputs l)) (input-area s l))
-      (panels/run-panel s r g (:fn (lessons/operation l)))
-      (when (derived/root-at s) (panels/best-panel s (:costs l)))
-      (when (and (contains? panels :matches) matches) (panels/matches-panel matches))
-      (when (and (contains? panels :stats) (seq (:stats r))) (panels/stats-panel s r))])])
+  (let [on (tab-on-show s l)
+        ks (cond-> #{:egraph :results} (seq (:inputs l)) (conj :inputs))]
+    [:div.lesson-grid
+     [:div.text (text s l)]
+     (colophon-view s)
+     (when (and r g)
+       [:div.egraph
+        [:div.egraph-head
+         (panels/replay-bar s r g)
+         (tab-bar on ks)]
+        (pane on :egraph
+              ;; the term of the run, or of the input when the run knows none;
+              ;; a run from the REPL that knows no term has no tree
+              (when-let [t (and (contains? panels :tree)
+                                (or (:term r) (when-not (= :repl (:from r)) (get-in s [:input :values :term]))))]
+                (panels/tree-panel s g t))
+              (panels/tools s)
+              (panels/graph-panel s matches)
+              (if (contains? panels :fork)
+                (panels/fork-panels s r g)
+                (panels/classes-panel s g matches)))
+        (when (contains? ks :inputs)
+          (pane on :inputs (input-area s l)))
+        (pane on :results
+              (panels/run-panel s r g (:fn (lessons/operation l)))
+              (when (derived/root-at s) (panels/best-panel s (:costs l)))
+              (when (and (contains? panels :matches) matches) (panels/matches-panel matches))
+              (when (and (contains? panels :stats) (seq (:stats r))) (panels/stats-panel s r)))])]))
 
 (defn page
   "Renders the page. Every page has the REPL in a dock along the
@@ -222,7 +268,7 @@
       [:span.spacer]
       (common/print-toggle mode)]
      (nav (:key l))
-     (when l
-       [:section.lesson (lesson-layout s l r g panels matches)])
-     (colophon-view s)
+     (if l
+       [:section.lesson (lesson-layout s l r g panels matches)]
+       (colophon-view s))
      (panels/repl-dock s)]))

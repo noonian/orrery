@@ -238,6 +238,14 @@
     :graph/pan (pan-graph! e)
     :export/copy (copy-export!)
     :export/download (download-export!)
+    ;; act first, and stay on the inputs when the run could not read them;
+    ;; a new tab starts at the top of the column
+    :tab/show (let [[t h] args]
+                (when h (dispatch e h))
+                (when-not (or (= t (get-in @state/app-state [:ui :tab]))
+                              (and (= :run (first h)) (get-in @state/app-state [:input :error])))
+                  (some-> (js/document.querySelector ".lesson-grid > .egraph") (.scrollTo 0 0))
+                  (state/show-tab! t)))
     :cost (state/set-cost! (first args))
     :alternative (state/choose-alternative-by-label! (first args))
     :print (state/set-print! (first args))
