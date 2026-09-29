@@ -143,19 +143,26 @@
 ;; the names in scope
 
 (defn names-view
-  "Renders every name in scope. Lists what is bound first and then
-  the namespaces, each under its alias."
+  "Renders every name in scope in two sections. The first lists the
+  vars bound in the `user` namespace. The second lists the
+  namespaces, each under its alias, below a divider."
   []
   [:div.names {:id "names"}
    [:h3 "names in scope"]
-   (into [:dl]
-         (concat
+   [:section.names-vars {:id "names-vars"}
+    [:h4 "vars"]
+    [:p.note "These are bound in the user namespace, so you use them by name."]
+    (into [:dl]
           (for [{:keys [name says]} names/bound]
             (list [:dt {:replicant/key (str name)} [:code (str name)]]
-                  [:dd {:replicant/key (str name " says")} says]))
+                  [:dd {:replicant/key (str name " says")} says])))]
+   [:section.names-namespaces {:id "names-namespaces"}
+    [:h4 "namespaces"]
+    [:p.note "Each namespace is loaded under a short name. You call a function in it through that name, as in " [:code "(eg/union g a b)"] "."]
+    (into [:dl]
           (for [{:keys [alias ns says]} names/namespaces]
             (list [:dt {:replicant/key (str alias)} [:code (str alias)]]
-                  [:dd {:replicant/key (str alias " says")} [:code.ns (str ns)] " " says]))))])
+                  [:dd {:replicant/key (str alias " says")} [:code.ns (str ns)] " " says])))]])
 
 ;; ---------------------------------------------------------------------------
 ;; the keys

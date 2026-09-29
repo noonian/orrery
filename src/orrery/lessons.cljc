@@ -127,8 +127,8 @@
            "(eg/union g lhs rhs)"
            "(eg/rebuild g)"]}
    :what-if
-   {:name "union, in a copy" :fn "eg/union · eg/rebuild"
-    :says "Add the term. Then, in a copy of the e-graph, say that lhs equals rhs, and rebuild. The original is a value and does not change."
+   {:name "union, keeping the original" :fn "eg/union · eg/rebuild"
+    :says "Add the term. Then say that lhs equals rhs. The union returns a new e-graph, and the rebuild runs on the new one. The original is a value and does not change."
     :call ["(eg/add (eg/egraph) term)"
            "(eg/union g lhs rhs)"
            "(eg/rebuild g)"]}
@@ -312,8 +312,9 @@
 
 (defn what-if-script
   "Returns a run of three steps. The first adds the term. The second
-  asserts an equation in a copy. The third rebuilds the copy. The
-  original is step 0 and does not change."
+  asserts an equation, which returns a new e-graph. The third
+  rebuilds the new e-graph. The original is step 0 and does not
+  change."
   [{:keys [term lhs rhs]}]
   (let [[g id] (eg/add (eg/egraph) term)
         [g' a] (eg/add g lhs)
@@ -321,8 +322,8 @@
         [g1 _] (eg/union g' a b)
         g2 (eg/rebuild g1)]
     (run/script [["the original" g]
-                 [(str "a copy, with " (notation/term->str lhs) " = " (notation/term->str rhs) " asserted; rebuild pending") g1]
-                 ["the copy, after rebuild" g2]]
+                 [(str "a new e-graph, with " (notation/term->str lhs) " = " (notation/term->str rhs) " asserted; rebuild pending") g1]
+                 ["the new e-graph, after rebuild" g2]]
                 id)))
 
 ;; ---------------------------------------------------------------------------
@@ -520,8 +521,9 @@
    :panels #{:fork}
    :surprise {:draw generate/a-what-if :wants {:congruence 1 :size 0.3}}
    :prose
-   [[:p "The e-graph is a value. Asserting something in it does not change it. It makes a new e-graph, and the old one is still there. Take " [:notation [:+ [:* :x :x] [:* 2 :x]]] " and ask what would follow if " [:notation :x] " were 2. Union the classes of " [:notation :x] " and 2 in a copy, which leaves a " [:step 1 "rebuild pending"] ". " [:select :x "Open the class of x" 1] ": it holds x and 2. Two products point at it. They now read the same, as that class times itself, but they are in two classes. " [:step 2 "Rebuild"] " merges them by congruence, and the sum becomes the sum of a class with itself. Now " [:select [:+ [:* :x :x] [:* 2 :x]] "the input's class" 2] " stands for sixteen terms, from " [:notation [:+ [:* :x :x] [:* 2 :x]]] " to " [:notation [:+ [:* 2 2] [:* 2 2]]] ". They are all the same size, so AST size cannot choose between them."]
-    [:p "The original has not moved. It is step 0, beside the copy. A mutable e-graph needs an undo log or a deep copy to do this. Here a fork is a " [:native 'let] ". The e-graph is persistent" [:cite :driscoll-1989] " because it is made of Clojure's collections, and they are persistent" [:cite :bagwell-2001 :hickey-2020] ". " [:alternative "x·y + y·x, what if y = x" "What if y were x"] ": the two products become one node, and the sum becomes a class added to itself."]]})
+   [[:p "Sometimes you want to know what would follow from an equation without committing to it. Take " [:notation [:+ [:* :x :x] [:* 2 :x]]] " and ask what would follow if " [:notation :x] " were 2. The run unions the classes of " [:notation :x] " and 2. The union does not change the e-graph it is given. It returns a new e-graph with the union applied, and the new e-graph has a " [:step 1 "rebuild pending"] ". " [:select :x "Open the class of x" 1] ": it holds x and 2, and two products point at it. Both products now read as that class times itself, but they are still in two classes. " [:step 2 "Rebuild"] " merges them by congruence, as in lesson 3, and the sum becomes that class added to itself. Now " [:select [:+ [:* :x :x] [:* 2 :x]] "the input's class" 2] " stands for sixteen terms, from " [:notation [:+ [:* :x :x] [:* 2 :x]]] " to " [:notation [:+ [:* 2 2] [:* 2 2]]] ". They are all the same size, so AST size cannot choose between them."]
+    [:p "Meanwhile the original has not changed. It is step 0, and the page shows it beside the new e-graph. This is a property of " (library :cromulent) ", the e-graph that orrery runs, and not of e-graphs in general. Most e-graphs are mutable, and egg's is one of them" [:cite :willsey-2021] ". A union changes a mutable e-graph in place, so to ask what if, you first make a deep copy or keep an undo log to take the union back. In cromulent the e-graph is an immutable value. A union returns a new e-graph and leaves the old one as it was, so a fork is only a " [:native 'let] " that gives the new e-graph a name. The two e-graphs share every part that the union did not touch. Such a structure is called persistent" [:cite :driscoll-1989] ". Cromulent gets persistence from the collections of Clojure, which are persistent themselves" [:cite :bagwell-2001 :hickey-2020] "."]
+    [:p "Change the term or the equation. " [:alternative "x·y + y·x, what if y = x" "What if y were x"] ": the two products become one node, and the sum becomes a class added to itself. " [:alternative "sin x + sin y, what if x = y" "What if x were y, under sines"] ": the two sines merge in the same way."]]})
 
 ;; ---------------------------------------------------------------------------
 ;; bendix: the polynomial analysis, a rule over it, differentiation

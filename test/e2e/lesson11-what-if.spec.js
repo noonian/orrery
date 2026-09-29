@@ -2,12 +2,12 @@ import { test, expect } from '@playwright/test';
 import { openLesson, expectSnapshot, tryAnother , showTab } from './orrery.js';
 
 test.describe('11. What if', () => {
-  test('the original stays at step 0 beside the copy', async ({ page }) => {
+  test('the original stays at step 0 beside the new e-graph', async ({ page }) => {
     await openLesson(page, 11);
     await expectSnapshot(page, { steps: 3, step: 2, classes: 3, nodes: 4, dirty: false });
     const panels = page.locator('.fork > .panel');
     await expect(panels).toHaveCount(2);
-    await expect(panels.locator('h3')).toHaveText(['the original, step 0', 'this step: the copy, after rebuild']);
+    await expect(panels.locator('h3')).toHaveText(['the original, step 0', 'this step: the new e-graph, after rebuild']);
     await expect(panels.nth(0).locator('tbody tr')).toHaveCount(5);
     await expect(panels.nth(1).locator('tbody tr')).toHaveCount(3);
 

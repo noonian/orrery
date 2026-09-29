@@ -34,6 +34,13 @@ test.describe('the REPL\'s page', () => {
     for (const name of ['g', 'timeline', 'state', 'show!', 'push!', 'eg', 'rw', 'ex', 'bx', 'wb']) {
       await expect(page.locator('#names dt', { hasText: new RegExp(`^${name.replace('!', '\\!')}$`) })).toHaveCount(1);
     }
+    await expect(page.locator('#names h4')).toHaveText(['vars', 'namespaces']);
+    for (const name of ['g', 'timeline', 'state', 'show!', 'push!']) {
+      await expect(page.locator('#names-vars dt', { hasText: new RegExp(`^${name.replace('!', '\\!')}$`) })).toHaveCount(1);
+    }
+    for (const name of ['eg', 'rw', 'ex', 'bx', 'wb']) {
+      await expect(page.locator('#names-namespaces dt', { hasText: new RegExp(`^${name}$`) })).toHaveCount(1);
+    }
   });
 
   test('every line of the documentation evaluates, in reading order', async ({ page }) => {

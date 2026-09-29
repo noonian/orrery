@@ -57,7 +57,7 @@ test.describe('what the panels are the work of', () => {
       [8, 'simplify', 'bx/simplify', ['term', 'rules']],
       [9, 'simplify', 'bx/simplify', ['term']],
       [10, 'simplify', 'bx/simplify', ['term']],
-      [11, 'union, in a copy', 'eg/union · eg/rebuild', ['term', 'lhs', 'rhs']],
+      [11, 'union, keeping the original', 'eg/union · eg/rebuild', ['term', 'lhs', 'rhs']],
       [12, 'differentiate', 'bx/differentiate', ['term', 'x']],
     ]) {
       await openLesson(page, n);
