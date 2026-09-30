@@ -163,15 +163,11 @@
       nil)))
 
 (defn graph?
-  "Returns true when the picture is drawn. Once the learner has
-  touched the switch, the learner's choice decides. Until then the
-  lesson decides: the picture is off unless the lesson's panels ask
-  for `:graph`, as the introduction's panels do."
+  "Returns true when the picture is drawn. It is drawn by default,
+  and the switch hides it on every page until the switch is pressed
+  again."
   [s]
-  (let [choice (get-in s [:ui :graph?])]
-    (if (some? choice)
-      choice
-      (contains? (:panels (lesson s)) :graph))))
+  (boolean (get-in s [:ui :graph?])))
 
 (defn graph-at
   "Returns the picture of the e-graph at the current step. See

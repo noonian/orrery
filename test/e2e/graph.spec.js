@@ -1,4 +1,4 @@
-// The graph picture and the export: off by default, drawn on request
+// The graph picture and the export: drawn by default, hidden on request
 // as SVG with a box per class, following the hover, the opened class
 // and the step; the filter to what the opened class reaches; zoom;
 // and the e-graph on show as egraph-serialize JSON, downloaded or
@@ -11,11 +11,10 @@ const detail = (page) => page.locator('#replay .class-detail');
 const act = (page, kind, text) => page.locator(`.prose a.act[data-act=${kind}]`, { hasText: text });
 
 test.describe('the graph picture', () => {
-  test('lesson 2: off by default; four boxes, four nodes, four edges; a box opens its class and lights its row', async ({ page }) => {
+  test('lesson 2: drawn by default; four boxes, four nodes, four edges; a box opens its class and lights its row', async ({ page }) => {
     await openLesson(page, 2);
-    await expect(page.locator('#graph')).toHaveCount(0);
-    await page.locator('#graph-toggle').click();
     await expect(page.locator('#graph svg')).toBeVisible();
+    await expect(page.locator('#graph-toggle')).toHaveText('hide the graph');
     await expect(page.locator('#graph .eclass')).toHaveCount(4);
     await expect(page.locator('#graph .enode')).toHaveCount(4);
     await expect(page.locator('#graph .edge')).toHaveCount(4);
@@ -40,7 +39,6 @@ test.describe('the graph picture', () => {
 
   test('lesson 2: the filter draws what the opened class reaches; zoom changes the size', async ({ page }) => {
     await openLesson(page, 2);
-    await page.locator('#graph-toggle').click();
     await expect(page.locator('#graph-filter')).toBeDisabled();
     await act(page, 'select', 'Open that class').click();
     await expect(page.locator('#graph-filter')).toBeEnabled();
@@ -68,7 +66,6 @@ test.describe('the graph picture', () => {
 
   test('the zoomed picture moves when dragged, and a drag that ends on a box does not open it', async ({ page }) => {
     await openLesson(page, 8);
-    await page.locator('#graph-toggle').click();
     for (let i = 0; i < 4; i++) await page.locator('#graph-zoom-in').click();
     const frame = page.locator('#graph .graph-scroll');
     await frame.scrollIntoViewIfNeeded();
@@ -100,7 +97,6 @@ test.describe('the graph picture', () => {
 
   test('lesson 3: the merged class is marked, its two parents point at it, and the rebuild folds them', async ({ page }) => {
     await openLesson(page, 3);
-    await page.locator('#graph-toggle').click();
     await expect(page.locator('#graph .eclass')).toHaveCount(5);
     await page.locator('#step-prev').click();
     await expectSnapshot(page, { step: 1 });
@@ -115,7 +111,6 @@ test.describe('the graph picture', () => {
 
   test('lesson 4: the nodes an iteration adds are marked, and the print mode changes the labels', async ({ page }) => {
     await openLesson(page, 4);
-    await page.locator('#graph-toggle').click();
     await expectSnapshot(page, { step: 1 });
     await expect(page.locator('#graph .enode.added')).toHaveCount(3);
     await expect(page.locator('#graph .enode text', { hasText: '<<' })).toHaveCount(2);
@@ -125,14 +120,12 @@ test.describe('the graph picture', () => {
 
   test('lesson 10: a dashed edge closes the cycle, and the polynomial sits in the box', async ({ page }) => {
     await openLesson(page, 10);
-    await page.locator('#graph-toggle').click();
     await expect(page.locator('#graph .edge.back').first()).toBeVisible();
     await expect(page.locator('#graph .eclass .sub', { hasText: 'a + b + 1' })).toHaveCount(1);
   });
 
   test('lesson 7: the blowup is wide, fitted to the panel by default', async ({ page }) => {
     await openLesson(page, 7);
-    await page.locator('#graph-toggle').click();
     await expect(page.locator('#graph .eclass')).toHaveCount(31);
     await expect(page.locator('#graph .enode')).toHaveCount(185);
     await expect(page.locator('#graph .edge')).toHaveCount(360);
@@ -144,7 +137,6 @@ test.describe('the graph picture', () => {
 
   test('lesson 11: the fork draws the step on show', async ({ page }) => {
     await openLesson(page, 11);
-    await page.locator('#graph-toggle').click();
     await expectSnapshot(page, { step: 2 });
     const shown = await page.locator('#graph .eclass').count();
     await page.locator('#step-first').click();

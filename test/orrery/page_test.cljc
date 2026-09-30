@@ -69,17 +69,15 @@
     (when graph?
       (is (some #(= [:tree/open (derived/root-at s)] %) hs) (str where ": the graph draws the input's class")))))
 
-(deftest the-picture-is-the-lessons-until-the-switch-is-touched
+(deftest the-picture-is-drawn-until-the-switch-hides-it
   (let [zoom? (fn [l choice]
                 (let [run (run/run-all (lessons/make-run l))
                       _ (derived/clear-cache!)
                       s (assoc-in (state-for l run (run/last-step run)) [:ui :graph?] choice)]
                   (boolean (some #(= [:graph/zoom :fit] %) (handlers (page/page s))))))]
-    (is (zoom? lessons/basics nil) "the basics draw their picture unasked")
-    (is (zoom? lessons/intro nil) "and the introduction")
-    (is (not (zoom? lessons/intro false)) "and hides it when told to")
-    (is (not (zoom? lessons/sharing nil)) "a lesson does not")
-    (is (zoom? lessons/sharing true) "until it is asked")))
+    (is (zoom? lessons/basics true) "the basics draw their picture")
+    (is (zoom? lessons/sharing true) "and so does a lesson")
+    (is (not (zoom? lessons/intro false)) "until the switch hides it")))
 
 (deftest the-prose-links-the-lessons
   (let [l lessons/intro
@@ -200,7 +198,7 @@
       (is (= ["the tree" "the classes" "the run" "best so far" "matches in this step" "the iterations"]
              (texts h :h3)))
       (is (some #{"rw/saturate"} (texts h :code.of)))
-      (is (contains? hs [:graph/zoom :fit]) "and the picture, unasked")
+      (is (contains? hs [:graph/zoom :fit]) "and the picture")
       (is (= 7 (count (filter #(and (vector? %) (= :cost (first %))) hs))) "every cost in the picker"))
     (testing "the prose's lines are the REPL's to evaluate, and the names in scope are listed"
       (let [lines (map second (filter #(= :eval (first %)) (lessons/widgets l)))]

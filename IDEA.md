@@ -86,7 +86,7 @@ bendix, ported in phase 2. All twelve are live.
 Before them come two pages (2026-09-26; section 12, decisions 10
 and 11), lesson data like the others but without a number, headed by
 their titles alone and addressed by their keys, `#basics` and
-`#intro`, each with the picture drawn unasked and no "surprise me".
+`#intro`, each with no "surprise me".
 
 **The basics**, *Many ways to write one thing*, "Start here" in the
 navigation, is where the page opens. It is for a reader who does not
@@ -157,14 +157,12 @@ The panels, each mapped to what exists:
   input's class, the opened and the hovered class, what the step
   added or merged, where a rule matches, and a bendix class's
   polynomial in its head; hovering a box lights its row and clicking
-  it opens the class, as with the tree. Off by default
-  (2026-09-26: it takes the room), switched on from the tools row
-  under the replay bar and kept on across lessons; zoom in and out
-  or fit the width, and a filter to what the opened class reaches.
-  The two pages before the lessons alone draw it unasked, their
-  e-graphs being three to six boxes and their prose pointing at
-  them; the switch is the learner's from the first touch, there as
-  anywhere.
+  it opens the class, as with the tree. Drawn by default on every
+  page (2026-09-30: the prose is best read with the picture beside
+  the class list; it was off by default from 2026-09-26, when it
+  took the room), hidden from the tools row under the replay bar and
+  kept hidden across lessons; zoom in and out or fit the width, and
+  a filter to what the opened class reaches.
   Past a few dozen classes the picture is a wall, lesson 7's blowup
   on purpose, and the class list is primary. Why not the
   egraphs-good visualizer: section 9 and section 12, decision 9.

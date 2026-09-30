@@ -122,11 +122,12 @@ sup.cite a:hover { text-decoration: underline; }
 .lesson-grid > .colophon { grid-area: foot; }
 .egraph { container-type: inline-size; }
 @media (min-width: 1100px) {
-  /* The colophon is under the text, so only the page's bottom padding follows the grid. The column fits above that
-     padding, and the grid is at least as tall as the column, so the column stays pinned at every scroll. */
-  .lesson-grid { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); grid-template-rows: 1fr auto; grid-template-areas: "text egraph" "foot egraph";
-                 min-height: calc(100vh - var(--dock-h) - 16px); }
-  .lesson-grid > .egraph { position: sticky; top: 0; align-self: start; max-height: calc(100vh - var(--dock-h) - 16px); overflow-y: auto; }
+  /* The colophon is under the text, so only the page's bottom padding and the self-test line follow the grid
+     (--below-grid: .selftest's 8px margin, one 21px line and 24px margin). The column fits above them, and the grid
+     is at least as tall as the column, so the column stays pinned at every scroll, even when it is full. */
+  .lesson-grid { --below-grid: 53px; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); grid-template-rows: 1fr auto; grid-template-areas: "text egraph" "foot egraph";
+                 min-height: calc(100vh - var(--dock-h) - 16px - var(--below-grid)); }
+  .lesson-grid > .egraph { position: sticky; top: 0; align-self: start; max-height: calc(100vh - var(--dock-h) - 16px - var(--below-grid)); overflow-y: auto; }
 }
 /* the replay bar and the tabs under it stick to the top of the column; a pane is a stack of panels */
 .egraph-head { position: sticky; top: 0; z-index: 3; background: var(--page); padding: 6px 0 0; margin-bottom: 12px; border-bottom: 1px solid var(--hairline); }
@@ -151,7 +152,10 @@ pre.call { font-family: var(--mono); font-size: 13px; line-height: 1.5; backgrou
 .arg { font-family: var(--mono); font-size: 14px; font-weight: 600; color: var(--ink); }
 .field h3 { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; text-transform: none; letter-spacing: 0; }
 .field h3 .says { margin: 0; font-size: 13px; font-weight: normal; color: var(--muted); }
-.best .says { margin: 6px 0; font-size: 13px; color: var(--muted); }
+.best-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 14px; }
+.best-line #best-term { font-size: 13px; }
+.best-meta { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 14px; margin: 2px 0 4px; }
+.best .says { margin: 0; font-size: 13px; color: var(--muted); }
 .best .cost-picker .arg { margin-right: 2px; }
 
 .input-area .row { display: flex; gap: 8px; align-items: center; margin-top: 8px; flex-wrap: wrap; }
@@ -161,10 +165,10 @@ pre.call { font-family: var(--mono); font-size: 13px; line-height: 1.5; backgrou
 .alternatives button.current { border-color: var(--accent); }
 .input-area .drawn { font-size: 14px; color: var(--ink-2); margin-top: 6px; }
 
-.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; }
-.tile { background: var(--surface-2); border-radius: 8px; padding: 8px 10px; }
+/* the run's counters: one line that wraps, a value beside its label */
+.tiles { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 20px; }
 .tile-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
-.tile-value { font-size: 24px; line-height: 1.2; }
+.tile-value { font-size: 16px; }
 .tile-note { font-size: 13px; color: var(--ink-2); }
 .tile.running .tile-value { color: var(--accent); }
 
@@ -213,11 +217,12 @@ table.classes td.poly .notation, table.classes td.best .notation, table.classes 
 .class-detail .dnode.best { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
 .class-detail .cost { color: var(--muted); font-family: var(--mono); font-size: 12px; margin-left: 5px; }
 .class-detail .costed { white-space: nowrap; }
+.class-detail .nodes .note { font-size: 13px; color: var(--muted); }
 .class-detail .terms .notation, .class-detail .terms .native { white-space: nowrap; }
 
-.best .term { font-size: 20px; margin: 4px 0; }
+.best .term { font-size: 18px; }
 .best .cost-picker { display: flex; gap: 10px; flex-wrap: wrap; font-size: 14px; }
-.best .changed { font-size: 14px; color: var(--ink-2); }
+.best .changed { font-size: 13px; color: var(--ink-2); }
 
 .selftest { max-width: 1500px; margin: 8px auto 24px; padding: 0 16px; font-size: 14px; color: var(--muted); }
 .selftest .ok { color: var(--good); }

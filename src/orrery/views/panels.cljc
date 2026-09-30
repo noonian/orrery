@@ -102,12 +102,13 @@
         picker (filter (comp (set cost-keys) :key) costs/all)]
     [:div.panel.best
      (common/title "best so far" "ex/extract")
-     [:div.term {:id "best-notation"} (common/term-view term :notation)]
-     [:div {:id "best-term"} (common/term-view term :native)]
-     [:div.changed (str "cost " (costs/cost-str cost) " under " (costs/label (:cost s)))]
-     [:p.says {:id "extract-says"}
-      [:code "(ex/extract g root cost)"] " returns the cheapest term of " [:code "root"] " in " [:code "g"] ". "
-      [:code "root"] " is the class of the input, and " [:code "g"] " is the e-graph at this step."]
+     [:div.best-line
+      [:span.term {:id "best-notation"} (common/term-view term :notation)]
+      [:span {:id "best-term"} (common/term-view term :native)]]
+     [:div.best-meta
+      [:span.changed (str "cost " (costs/cost-str cost) " under " (costs/label (:cost s)))]
+      [:span.says {:id "extract-says"}
+       [:code "(ex/extract g root cost)"] " returns the cheapest term of the input's class at this step."]]
      (when (> (count picker) 1)
        (into [:div.cost-picker [:code.arg "cost"]]
              (for [c picker]

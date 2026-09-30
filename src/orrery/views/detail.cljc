@@ -123,7 +123,8 @@
     (for [{:keys [node cost best?]} nodes]
       [:span.dnode {:class (when best? "best") :title (when best? (str "the cheapest under " cost-label))}
        (common/enode-view node mode)
-       [:span.cost (costs/cost-str cost)]])]
+       [:span.cost (costs/cost-str cost)]])
+    [:span.note {:id "detail-cost-note"} (str "costs under " cost-label ", cheapest outlined")]]
    (when workings (workings-view workings mode))
    [:div.detail-row.terms
     [:span.label "stands for"]

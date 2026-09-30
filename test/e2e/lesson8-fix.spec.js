@@ -41,4 +41,12 @@ test.describe('8. The fix', () => {
     await expectSnapshot(page, { status: 'done', iterations: 1, classes: 15, nodes: 28 });
     await expect(page.locator('#best-notation')).toHaveText('a0 + a1 + a2 + a3 + a4 + a5');
   });
+
+  test('the line in the prose evaluates at the REPL and returns the input class', async ({ page }) => {
+    await openLesson(page, 8);
+    await page.locator('.prose a.act[data-act=select]', { hasText: "Open the input's class" }).click();
+    const id = (await page.locator('#replay .class-detail .detail-title .class-id').textContent()).replace('#', '');
+    await page.locator('.prose a.act[data-act=eval]', { hasText: '(second (eg/add g' }).click();
+    await expect(page.locator('#repl-last')).toHaveText(new RegExp(`⇒\\s+${id}$`));
+  });
 });

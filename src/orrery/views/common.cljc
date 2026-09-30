@@ -69,22 +69,22 @@
     (name reason)))
 
 (defn tiles
-  "Renders the counters: the classes, the nodes, the step of the
-  timeline with how the run ended, and the time the engine took. The
-  last entry of the timeline may come after the last iteration."
+  "Renders the counters on one line: the classes, the nodes, the step
+  of the timeline with how the run ended, and the time the engine
+  took. The last entry of the timeline may come after the last
+  iteration."
   [{:keys [classes nodes step n status stop-reason ms]}]
   (let [running? (= :running status)]
     [:div.tiles
-     [:div.tile {:id "tile-classes" :class (when running? "running")}
-      [:div.tile-label "classes"] [:div.tile-value (str classes)]]
-     [:div.tile {:id "tile-nodes" :class (when running? "running")}
-      [:div.tile-label "nodes"] [:div.tile-value (str nodes)]]
-     [:div.tile {:id "tile-iteration"}
-      [:div.tile-label "step"]
-      [:div.tile-value (str step " / " n)]
-      [:div.tile-note (if running? "running…" (stop-reason-text stop-reason))]]
-     [:div.tile {:id "tile-ms"}
-      [:div.tile-label "engine time"] [:div.tile-value (str (round ms) " ms")]]]))
+     [:span.tile {:id "tile-classes" :class (when running? "running")}
+      [:span.tile-value (str classes)] " " [:span.tile-label "classes"]]
+     [:span.tile {:id "tile-nodes" :class (when running? "running")}
+      [:span.tile-value (str nodes)] " " [:span.tile-label "nodes"]]
+     [:span.tile {:id "tile-iteration"}
+      [:span.tile-label "step"] " " [:span.tile-value (str step " / " n)] " "
+      [:span.tile-note (if running? "running…" (stop-reason-text stop-reason))]]
+     [:span.tile {:id "tile-ms"}
+      [:span.tile-label "engine time"] " " [:span.tile-value (str (round ms) " ms")]]]))
 
 (defn print-toggle [mode]
   [:span.print-toggle

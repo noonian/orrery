@@ -28,6 +28,16 @@ test.describe('6. Extraction is taste', () => {
     await expect(page.locator('.best .changed')).toHaveText('cost 3 under prefer shifts');
   });
 
+  test('the opened class labels its costs under the cost in force', async ({ page }) => {
+    await openLesson(page, 6);
+    await page.locator('.prose a.act[data-act=select]', { hasText: 'Open the class' }).click();
+    const note = page.locator('#replay .class-detail #detail-cost-note');
+    await expect(note).toHaveText('costs under prefer additions, cheapest outlined');
+    await page.locator('.prose a.act[data-act=cost]', { hasText: 'Charge additions and shifts' }).click();
+    await expect(note).toHaveText('costs under prefer multiplications, cheapest outlined');
+    await expect(page.locator('#replay .class-detail .nodes .dnode.best')).toContainText('#2');
+  });
+
   test('try another: (b·2) + (b·2) nests the answer', async ({ page }) => {
     await openLesson(page, 6);
     await tryAnother(page, '(b·2) + (b·2)');

@@ -39,9 +39,8 @@
 (def ui
   "The flags a page starts with."
   {:print :notation :playing nil :selected nil :hover nil :drawing? false
-   ;; :graph? is nil until the switch is touched. While it is nil the
-   ;; lesson decides (see derived/graph?).
-   :graph? nil :graph-filter? false :graph-zoom nil :export-status nil
+   ;; the picture is drawn until the switch hides it
+   :graph? true :graph-filter? false :graph-zoom nil :export-status nil
    :line-numbers? false
    ;; the tab on show in the e-graph column: the e-graph, the inputs
    ;; or the results

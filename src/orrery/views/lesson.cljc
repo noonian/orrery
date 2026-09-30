@@ -59,6 +59,7 @@
       (case kind
         :notation (common/term-view a :notation)
         :native (common/term-view a :native)
+        :math [:span.notation.math a]
         :step (act :step [:tab/show :egraph [:step a]] b)
         :select (if (some-> (if c (derived/egraph-at s c) (derived/current-egraph s)) (eclass/class-of a))
                   (act :select [:tab/show :egraph [:select-term a c]] b)
@@ -66,6 +67,7 @@
         :cost (act :cost [:tab/show :results [:cost a]] b)
         :alternative (act :alternative [:tab/show :egraph [:alternative a]] b)
         :print (act :print [:print a] b)
+        :tab (act :tab [:tab/show a] b)
         :lesson [:a {:href (str "#" (lessons/address (lessons/by-key a)))} b]
         :eval (act :eval [:repl/run a] [:code {:class (when (str/includes? a "\n") "block")} a])
         :working (working-view/working-view (working/work a (drop 2 x)) (get-in s [:ui :print]))

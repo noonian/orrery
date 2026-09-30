@@ -45,6 +45,7 @@
     (case kind
       :notation (is (string? (notation/term->str a)) (where w))
       :native (is (string? (pr-str a)) (where w))
+      :math (is (and (string? a) (seq a) (= 2 (count w))) (where w))
       :step (is (<= 0 a last) (where w))
       :select (do (is (string? b) (where w))
                   (is (or (nil? c) (<= 0 c last)) (where w))
@@ -52,6 +53,8 @@
       :cost (is (contains? costs a) (where w))
       :alternative (is (contains? labels a) (where w))
       :print (is (contains? #{:native :notation} a) (where w))
+      :tab (do (is (contains? (cond-> #{:egraph :results} (seq (:inputs l)) (conj :inputs)) a) (where w))
+               (is (string? b) (where w)))
       :lesson (do (is (string? b) (where w))
                   (is (some-> (lessons/by-key a) lessons/live?) (where w))
                   (is (not= a (:key l)) (where w)))

@@ -14,6 +14,14 @@ test.describe('5. Saturation', () => {
     await expect(stats.locator('tbody tr').last().locator('td.applied')).toHaveCount(0);
   });
 
+  test('the prose opens the results tab, where the iterations table is', async ({ page }) => {
+    await openLesson(page, 5);
+    await expect(page.locator('table.stats')).toBeHidden();
+    await page.locator('.prose a.act[data-act=tab]', { hasText: 'The iterations table' }).click();
+    await expect(page.locator('#tab-results')).toHaveAttribute('aria-selected', 'true');
+    await expect(page.locator('table.stats')).toBeVisible();
+  });
+
   test('try another: the same, every match every time', async ({ page }) => {
     await openLesson(page, 5);
     await tryAnother(page, 'the same, every match every time');

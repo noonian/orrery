@@ -1,5 +1,5 @@
 // The introduction, the second of the two pages before the lessons:
-// what an e-graph is over one small run, the picture drawn unasked,
+// what an e-graph is over one small run, the picture drawn by default,
 // and the prose linking every lesson. Counts and costs, never ids.
 import { test, expect } from '@playwright/test';
 import { openLesson, expectSnapshot, tryAnother } from './orrery.js';
@@ -56,7 +56,7 @@ test.describe('What is an e-graph?', () => {
     await expect(page.locator('#best-notation')).toHaveText('a');
   });
 
-  test('the picture is drawn unasked here and nowhere else, until the switch is touched', async ({ page }) => {
+  test('the picture is drawn by default, and once hidden it stays hidden on every page', async ({ page }) => {
     await openLesson(page, 'intro');
     await expect(page.locator('#graph svg')).toBeVisible();
     await expect(page.locator('#graph-toggle')).toHaveText('hide the graph');
@@ -68,13 +68,12 @@ test.describe('What is an e-graph?', () => {
     await expect(page.locator('#graph .enode')).toHaveCount(4);
     await expect(page.locator('#graph .edge.back')).toHaveCount(0);
 
-    // a lesson leaves it off
+    // a lesson draws it too
     await page.locator('.lesson-nav a', { hasText: '2. Sharing' }).click();
     await expectSnapshot(page, { lesson: 'sharing', status: 'done' });
-    await expect(page.locator('#graph')).toHaveCount(0);
-    await expect(page.locator('#graph-toggle')).toHaveText('draw the graph');
+    await expect(page.locator('#graph svg')).toBeVisible();
 
-    // hidden here by the learner, it stays hidden here
+    // hidden by the learner, it stays hidden on every page
     await page.locator('.lesson-nav a', { hasText: 'What is an e-graph?' }).click();
     await expectSnapshot(page, { lesson: 'intro', status: 'done' });
     await expect(page.locator('#graph svg')).toBeVisible();
@@ -82,6 +81,8 @@ test.describe('What is an e-graph?', () => {
     await expect(page.locator('#graph')).toHaveCount(0);
     await page.locator('.lesson-nav a', { hasText: '2. Sharing' }).click();
     await expectSnapshot(page, { lesson: 'sharing', status: 'done' });
+    await expect(page.locator('#graph')).toHaveCount(0);
+    await expect(page.locator('#graph-toggle')).toHaveText('draw the graph');
     await page.locator('.lesson-nav a', { hasText: 'What is an e-graph?' }).click();
     await expectSnapshot(page, { lesson: 'intro', status: 'done' });
     await expect(page.locator('#graph')).toHaveCount(0);

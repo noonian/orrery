@@ -15,7 +15,7 @@
     (is (nil? (:run s)))
     (is (= [0 0] [(:step s) (:run-id s)]))
     (is (= :notation (wb/print-mode s)))
-    (is (nil? (get-in s [:ui :graph?])) "the lesson decides until the switch is touched")))
+    (is (true? (get-in s [:ui :graph?])) "the picture is drawn until the switch hides it")))
 
 (deftest a-page-for-every-lesson
   (doseq [l lessons/all
