@@ -1,7 +1,7 @@
 {:paths ["src"]
  :deps {org.clojure/clojure {:mvn/version "1.12.0"}
-        io.github.noonian/cromulent {:git/sha "7512173f21645c33d2910483ec08e7d6b785b0c6"}
-        io.github.noonian/bendix {:git/sha "cb9df229692e62a7ec423d845cb0c5c89ea13111"}}
+        io.github.noonian/cromulent {:git/sha "e5fcdfdf8e019ab6b5015c9d22beb3fc2001c9cc"}
+        io.github.noonian/bendix {:git/sha "e294becd4b0fdbc22cefcc8b1501914b5a222a10"}}
  :aliases
  {;; the cromulent and bendix checkouts beside this one in place of the
   ;; pinned shas: clojure -M:local:test, npx shadow-cljs -A:local watch app
