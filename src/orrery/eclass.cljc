@@ -45,8 +45,8 @@
   sit in two classes. That breaks the invariant that congruence
   restores."
   [g id]
-  (->> (:parents (eg/eclass g id))
-       (map (fn [[node c]] {:node (eg/canonicalize g node) :class (eg/find g c)}))
+  (->> (eg/parents g id)
+       (map (fn [[node c]] {:node node :class c}))
        distinct
        (sort (fn [a b]
                (let [c (compare (:class a) (:class b))]
@@ -145,7 +145,7 @@
         pass (fn [best]
                (reduce (fn [best i]
                          (if-let [cls (nth classes i)]
-                           (let [terms (->> (:nodes cls)
+                           (let [terms (->> (vals (:nodes cls))
                                             (map #(eg/canonicalize g %))
                                             distinct
                                             (mapcat #(node-terms cost-fn best k %))

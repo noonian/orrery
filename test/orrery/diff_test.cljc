@@ -31,14 +31,16 @@
 (deftest the-first-iteration-of-the-blowup
   (let [r (run/step (lessons/make-run lessons/blowup))
         d (diff/between (run/egraph-at r 0) (run/egraph-at r 1))]
-    ;; nine nodes become nineteen. Commutativity joins each of the four
-    ;; sums with its commuted form (the fresh root absorbs the old class:
-    ;; merged, not new); associativity bears three classes, the
-    ;; right-nested pairs. Five untouched roots, four absorbing, three
+    ;; nine nodes become nineteen. Commutativity gives each of the four
+    ;; sums its commuted form: the class of the sum takes the new node
+    ;; in and keeps its root, so it grew, and no class of step 0 went
+    ;; away or met another. Associativity bears three classes, the
+    ;; right-nested pairs. Five untouched roots, four that grew, three
     ;; new: twelve
     (is (= 10 (:added-count d)))
     (is (= 3 (count (:new-classes d))))
-    (is (= 4 (count (:merged d))))
-    (is (= 4 (count (:absorbing d))))
+    (is (= 7 (count (:added d))) "the four sums that grew and the three new classes")
+    (is (empty? (:merged d)))
+    (is (empty? (:absorbing d)))
     (is (= 12 (eg/class-count (run/egraph-at r 1))))
     (is (= 0 (:collapsed d)))))

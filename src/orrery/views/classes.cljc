@@ -64,7 +64,7 @@
                   (cond (contains? child-set id) [:span.rel "child"]
                         (contains? parent-set id) [:span.rel "parent"]))]
                (into [:td]
-                     (for [node (sort-by pr-str (:nodes c))]
+                     (for [node (sort-by pr-str (vals (:nodes c)))]
                        [:span.node {:class (when (contains? added-here node) "added")}
                         (common/enode-view node mode)]))
                (when normal? [:td.poly (form-view g id mode best)])

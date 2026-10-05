@@ -21,13 +21,15 @@
   the same run. The result is a map:
 
     :new-classes #{root}
-      The roots of `g1` that hold nothing of `g0`. Such a root is
-      neither an old root nor a class an old root merged into.
+      The roots of `g1` that hold nothing of `g0`: no class of `g0`
+      is in them.
     :merged {old new}
       The roots of `g0` that are no longer roots, and where they
       went.
     :absorbing #{root}
-      The roots of `g1` that received a merge.
+      The roots of `g1` that received a merge: two or more classes
+      of `g0` are in them. A class that only gained nodes is not
+      one, whichever root the union kept; its nodes are in :added.
     :added {root #{node}}
       The nodes of `g1` that `g0` did not have, by class.
     :added-count n
@@ -39,9 +41,10 @@
   (let [roots0 (eg/roots g0)
         roots1 (eg/roots g1)
         merged (into {} (keep (fn [r] (when-not (eg/root? g1 r) [r (eg/find g1 r)]))) roots0)
-        absorbing (set (vals merged))
-        next0 (:next-id g0)
-        new-classes (into #{} (filter #(and (>= % next0) (not (absorbing %)))) roots1)
+        ;; root of g1 -> how many classes of g0 are in it
+        held (frequencies (map #(eg/find g1 %) roots0))
+        absorbing (into #{} (keep (fn [[r n]] (when (< 1 n) r))) held)
+        new-classes (into #{} (remove #(contains? held %)) roots1)
         nodes0 (into [] (mapcat #(eg/nodes g0 %)) roots0)
         nodes0-in-1 (into #{} (map #(eg/canonicalize g1 %)) nodes0)
         added (into {} (keep (fn [r]
