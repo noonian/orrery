@@ -462,7 +462,8 @@ over it; the page's copy and download of the step on show; and the
 graph drawn by the page, off by default (section 3; section 12,
 decision 9).
 
-**Later.** Per-rule timings at scale; static deployment.
+**Later.** Per-rule timings at scale. Static deployment is done:
+the page is live at https://egraphs.irregardless.sh.
 
 ## 8. Portability ledger
 
@@ -999,231 +1000,43 @@ the one the page most wants to welcome. The other mode stays
     swallowing.
 ## Status
 
-Phase 1 delivered, 2026-09-25 (the port first and the compiled page
-as the end state):
+What exists now. How each piece was built is in the git history; the
+decisions behind them are in section 12.
 
-- cromulent ported (../cromulent/IDEA.md status), its runner split
-  into start/step/finish; `npm run smoke` runs its 28 facts on node,
-  all green, zero compiler warnings.
-- orrery: `deps.edn`, `shadow-cljs.edn`, `package.json` (shadow-cljs
-  only; no React); `orrery.notation`, `orrery.diff`, `orrery.costs`,
-  `orrery.input`, `orrery.run`, `orrery.lessons`, `orrery.expect` and
-  their tests, green on the JVM and Jolt (12 tests, 151 assertions:
-  every live lesson and every alternative against the expectation
-  table); `orrery.state`, `orrery.repl` (SCI as a library),
-  `orrery.views.{common,scrubber,classes,tree,matches,stats,repl,lesson}`,
-  `orrery.selftest`, `orrery.app`, `public/index.html`,
-  `public/style.css` (light and dark).
-- All eleven lessons live, each with a curated example, alternatives,
-  editable inputs (terms, a pattern, rules as `[name lhs rhs]` data,
-  exact numbers) and prose with inline widgets. bendix is `.cljc`
-  behind `bendix.num`; `orrery.normal` renders each class's polynomial
-  beside it; `orrery.run` takes the e-graph to start from and steps to
-  append once the engine stops, which is how a bendix run ends with
-  every normal form written in. The self-test tile runs cromulent's
-  28 and bendix's 25 engine facts and every lesson's expectation in
-  the browser on load, in about 150 ms;
-  the Playwright suite (`npm run e2e`, 43 specs) drives every lesson,
-  its alternatives and inputs, the transport, the cost picker and the
-  REPL through the DOM. Writing it found one misreport: a class whose fresh
-  root absorbed an old class was shown as new; `orrery.diff` now calls
-  a class new only when it holds nothing of the earlier graph.
+Live at https://egraphs.irregardless.sh. Phases 1 to 4 of section 7
+are delivered:
 
-The generator and scorer, 2026-09-26 (section 4): `orrery.generate`,
-`orrery.score`, a `:surprise` entry per lesson naming its draw and
-its wants, and the "surprise me" button with the line that says what
-was picked and why. Tests: the stream and a seed's terms pinned on
-the JVM and Jolt, every lesson's draw a term the page takes over
-thirty seeds, the features read off the curated runs (the blowup's
-growth, the fix's seven proposals the analysis had already made,
-pythagoras fired seven times, three answers under three costs), a
-bank for every lesson, the pick's lean on the score; four Playwright
-specs drive the button on lessons 3, 5, 6 and 9. The suites are 28
-tests and 1435 assertions on the JVM and Jolt, 47 specs in the
-browser.
+- **Pages**: the basics and the introduction (section 2), twelve
+  lessons, the REPL's page and the cheat sheet, plus the statement of
+  what the site is and the line under every page (section 12,
+  decision 13).
+- **Every lesson is live**: a curated example, alternatives, "surprise
+  me" (`orrery.generate`, `orrery.score`), and inputs in either
+  spelling (`orrery.parse`, `orrery.notation`). The prose is in the
+  explorable voice, with widgets as its figures and citations
+  gathered into a reading line.
+- **Panels**: the scrubbed replay bar, the class list with each
+  class's polynomial on the bendix lessons, the opened class
+  (`orrery.eclass`), the stats, the matches, the cost picker, the
+  drawn graph (`orrery.graph`; click, drag, zoom, filter), and the
+  egraph-serialize copy and download.
+- **The REPL**: SCI over the compiled engine, in a dock on every page
+  and on a page of its own (section 12, decisions 14 to 18). The page
+  state is a value (`orrery.workbench`) in a validated atom; the
+  editor is prism-code-editor; page actions are traced into the
+  history; buffer snippets.
+- **Architecture**: Replicant views as `.cljc`, every event handler
+  data routed through `orrery.dispatch` (section 6), so the JVM suite
+  builds every page at every step.
 
-Notation input, 2026-09-26 (phase 3, the first of its two
-deliverables): `orrery.parse` and its test (the precedence table, the
-numerals, functions and derivatives, the typed spellings, patterns,
-the problems said in words, rules by line, and the round trip over the
-printer's corpus, every lesson's values and alternatives, and thirty
-seeds of every draw); `orrery.input` reading either spelling; the
-fields showing the print mode in force and following the toggle while
-unedited; the printer's faithfulness fixes (section 12, decision 7);
-`notation.spec.js` driving the fields, the toggle and the problems in
-the browser; `expect/notation-checks`, a round-trip fact per lesson
-in the self-test tile and the node smoke, because a regex that
-JavaScript's `re-matches` read differently from Java's slipped past
-the JVM and Jolt suites and was caught only in the browser. The
-suites are 41 tests and 2223 assertions on the JVM and Jolt, 64 facts
-on node, 107 in the tile, 53 specs in the browser.
+Checks: `clojure -M:test` and `jolt -M:test` over the pure
+namespaces and the page; `npm run smoke` runs cromulent's and
+bendix's cross-runtime facts and every lesson's expectations on node;
+the self-test tile runs the same facts in the browser on load;
+`npm run e2e` is the Playwright suite, a spec per live lesson plus
+the REPL, the layout, the graph and the editor.
 
-The prose pass and the opened class, 2026-09-26 (phase 3's second
-deliverable, section 12 decision 8): every lesson's prose rewritten
-in the explorable voice with the widgets as figures, four new widget
-kinds (`:select`, `:cost`, `:alternative`, `:print`) beside `:step`,
-citations as author-year links (`:cite`) and a reading line per
-lesson derived from them;
-`orrery.eclass` and the opened class above the list (section 3), a
-`#id` inside any node and a node of the tree opening its class, the
-selected class lighting the tree; `lessons_test` checking every
-widget against the curated run and every credit against the reading
-list, `eclass_test` pinning the counts (1680, 120, 37, 16, the
-infinite class), the costs under each of lesson 6's costs, the
-parents across lesson 3's steps and the histories; `selection.spec.js`
-driving the panel and the prose links in the browser; lesson 5's
-backoff run pinned at fourteen iterations; the transport moved into
-a sticky replay bar above the class list (section 3). Then every
-handler made data and the views made `.cljc` (section 6), with
-`orrery.page-test` building the page for every lesson at every step
-on the JVM and Jolt: 50 tests and 3073 assertions there. The suites are 47 tests
-and 2416 assertions on the JVM and Jolt, 64 facts on node, 107 in
-the tile, 59 specs in the browser.
-
-The opened class moved into the replay bar, 2026-09-26 (section 3):
-`orrery.views.detail` renders it under the transport, so it stays in
-view while the list scrolls; `orrery.views.classes` keeps only the
-rows and their marks. `selection.spec.js` now finds the detail in
-`#replay`, checks it and the range are in the viewport at the foot
-of lesson 7's list, and one opened class over lesson 10's two
-panels: 60 specs in the browser.
-
-The picture and the exporter, 2026-09-26 (phase 4, section 7):
-`cromulent.export` (section 12, decision 2) with `export_test` and a
-smoke fact, the JSON text of `2·x + y`, the same on the three
-runtimes; `bendix.core/class-data` and `serialize`; `orrery.graph`,
-the layered layout (section 3), and `orrery.views.graph`, the SVG,
-with the tools row under the replay bar (`orrery.views.lesson/tools`)
-holding the switch and the export's copy and download, the graph's
-state (`:graph?`, `:graph-filter?`, `:graph-zoom`, `:export-status`)
-in the atom, the layout memoized per step, filter, mode and cost in
-`orrery.derived/graph-at`, and the clipboard and the download link
-in `orrery.dispatch`, the only place the DOM is touched.
-`graph_test` checks every lesson at every step, a box per class with
-every node in it, an edge per child slot, every edge downward but
-the ones that close a cycle, no overlap, all inside the picture, and
-pins lesson 2 (four boxes, four edges, the product's two edges into
-one class), lesson 7 (31 boxes, 185 nodes, 360 edges, five layers),
-lesson 9's cycle and lesson 3's merged class with its two parents;
-`export_test` reads the page's JSON for lessons 2, 8 and 9;
-`page_test` builds every lesson at every step with the graph on,
-filtered and zoomed, as well as off; `graph.spec.js` drives the
-switch, the marks, the filter, the zoom, the print mode, the fork
-and both exports in the browser, the download read back and parsed.
-The suites are 55 tests and 25676 assertions on the JVM and Jolt, 65
-facts on node, 108 in the tile, 69 specs in the browser; the release
-bundle is 1.28 MB (319 KB gzipped), the picture and the export adding fifteen kilobytes.
-
-The introduction, 2026-09-26 (section 2; section 12, decision 10):
-`orrery.lessons/intro` with `intro-rules`, `start` and `heading`,
-first in `all`; the `:lesson` widget; Panchekha et al. 2015 in the
-reading list, for the sentence on where e-graphs are at work;
-`orrery.derived/graph?`, with `:graph?` in the atom nil until the
-switch is touched; its expectations in `orrery.expect`, the curated
-run and four alternatives. `lessons_test` checks that the page opens
-on it and that its prose links every lesson, `page_test` that the
-picture is the lesson's until the switch is touched; the three tests
-that draw skip a page with no "surprise me"; `intro.spec.js` drives
-it in the browser, the dead end and back, the steps, the classes,
-the picture here and not on a lesson, the links. Its prose is 341
-words, the longest page by a little, the lessons running 155 to 280.
-The suites are 58 tests and 26287 assertions on the JVM and Jolt, 66
-facts on node, 114 in the tile, 76 specs in the browser; the release
-bundle is 1.35 MB (328 KB gzipped), and the commit before it builds
-to the same 328 KB.
-
-The basics and the labels, 2026-09-26 (section 2; section 3;
-section 12, decisions 11 and 12): `orrery.lessons/basics` with
-`basics-rules`, first in `all` and the page's `start`; the
-introduction without its number; `nav-label`, `address` and
-`by-address`, with `orrery.app` reading the hash through them;
-`operations`, `operation` and `call`, an `:operation` on every
-lesson, and every input with its `:arg`, its `:label` for a problem
-and its `:says`; `orrery.views.common/title`, the operation over the
-fields in `orrery.views.lesson`, and a run adopted from the REPL
-marked `:from :repl`. `lessons_test` checks the two pages and the
-addresses, that every lesson names what it runs, that every field's
-argument is in the call and that a line of the call fits the panel;
-`page_test` that every page in either print mode heads its inputs
-with the operation, its fields with their arguments and its panels
-with what they show; `basics.spec.js` and `labels.spec.js` drive
-both in the browser. The basics are 316 words. The suites are 60
-tests and 26953 assertions on the JVM and Jolt, 67 facts on node,
-120 in the tile, 86 specs in the browser; the release bundle is
-1.36 MB (332 KB gzipped).
-
-What the site is, 2026-09-26 (section 12, decision 13):
-`orrery.lessons/about` and `colophon`, `about-view` and
-`colophon-view` in `orrery.views.lesson`. `lessons_test` checks that
-the statement says what it was written to say, the sentence
-about LLMs among it, and that nothing in it links into the widgets;
-`page_test` that it stands over the heading and the heading over the
-first link that does something, on the opening page only, and that
-every page carries the line; `about.spec.js` checks the same in the
-browser by where the elements are. The suites are 62 tests and 27009
-assertions on the JVM and Jolt, 67 facts on node, 120 in the tile,
-88 specs in the browser.
-
-The REPL's page and the state as a value, 2026-09-26 (section 2;
-section 3; section 6; section 12, decision 14): `orrery.workbench`,
-with `orrery.state` swapping its steps in, a validator on the atom
-and the run loop behind `state/changed!`; `orrery.names`, the table
-of what is in scope; `orrery.printed`; `orrery.repl` printing what
-an evaluation prints, keeping `*1` to `*3` and `*e`, referring
-`clojure.repl`, and holding the page's atom with `show!` and `push!`
-over it; `orrery.lessons/repl`, last in `all`, and the `:eval`
-widget; the `beside` layout in `orrery.views.lesson`, the names and
-a run's summary in `orrery.views.repl`, the stats table naming its
-columns from the iterations when the run names no rules; the
-editor's recall and the history's scroll in `orrery.dispatch`.
-`workbench_test` checks the constructor over every lesson, the
-steps, the values of the REPL as runs, a run made by hand, the
-recall and everything the atom refuses; `names_test` that every row
-is a namespace that loads and names something in it; `page_test`
-builds the REPL's page, and the page over each kind of value the
-REPL can put on show, and reads what a value prints as;
-`lessons_test` checks the lines the prose evaluates;
-`repl-page.spec.js` drives the page in the browser, every line of
-the documentation among it. The suites are 78 tests and 27864
-assertions on the JVM and Jolt, 68 facts on node, 122 in the tile,
-97 specs in the browser; the release bundle is 1.41 MB (342 KB
-gzipped), ten kilobytes of it this.
-
-The editor, 2026-09-27 (section 12, decision 15, its first step):
-prism-code-editor 5.4.0, pinned in `package.json`, its `layout.css`
-copied into `public/prism-layout.css`; `orrery.editor`; the hook
-`[:repl/editor opts]` and `[:repl/line-numbers]` in
-`orrery.actions`; `editor.spec.js` checks the colours, the closing
-of brackets, Enter and Tab, undo, the caret after a recall, the
-prose leaving the editor's text alone, and the line numbers. The
-suites are 78 tests and 27865 assertions on the JVM and Jolt, 68
-facts on node, 104 specs in the browser; the release bundle is 1.47
-MB (360 KB gzipped), 16 KB gzipped of it the editor.
-
-A lesson's layout and the REPL's dock, 2026-09-27 (section 12,
-decision 17): `orrery.views.panels`; the grid of `.lesson-grid` and
-the dock in `public/style.css`; `[:repl/dock]` and `[:repl/resize]`
-in `orrery.actions`, and Ctrl-` in `orrery.dispatch`;
-`layout.spec.js` checks the columns at both widths, the dock's
-shortcut and its memory across lessons, its last line, its resizing,
-and that nothing hides under it. The suites are 79 tests and 27890
-assertions on the JVM and Jolt, 68 facts on node, 110 specs in the
-browser.
-
-One dock on every page, 2026-09-27 (section 12, decision 18):
-`orrery.forms` and `forms_test.cljc`; the dock in
-`orrery.views.repl`, its styles in `public/style.css`; the keys of
-the line and the buffer in `orrery.editor`; `state/eval-line!` and
-`state/eval-buffer!`; `[:repl :buffer]` and `workbench/to-buffer`;
-`[:repl/help]` and `[:repl/to-buffer]` in `orrery.actions`.
-`editor.spec.js` checks the keys of the line and the buffer and the
-copy into the buffer, `layout.spec.js` the dock and
-its popover, and `repl-page.spec.js` the page under the open dock.
-The suites are 85 tests and 27953 assertions on the JVM and Jolt, 68
-facts on node, 117 specs in the browser; the release bundle is 1.49
-MB (370 KB gzipped).
-
-Next: a review of the dock and of the layout at 1100
-pixels; the page for playing with e-graphs, routed before the
-lessons; then the later items of section 7, per-rule timings at
-scale and static deployment.
+Next: a review of the dock and of the layout at 1100 pixels; the
+page for playing with e-graphs, routed before the lessons; per-rule
+timings at scale. When cromulent has explanations, a lesson on why
+two terms are equal.

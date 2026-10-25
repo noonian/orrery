@@ -1,6 +1,6 @@
 {:paths ["src"]
  :deps {org.clojure/clojure {:mvn/version "1.12.0"}
-        io.github.noonian/cromulent {:git/sha "4c7ec5f3feb57e51a016b79c1c794dde21ecc7a4"}
+        io.github.noonian/cromulent {:git/sha "0993a858d81af8b07988d0d31bb0760cfbe5b463"}
         io.github.noonian/bendix {:git/sha "4d0e689cf23de8cadd187bf27ff995f374561181"}}
  :aliases
  {;; the cromulent and bendix checkouts beside this one in place of the
