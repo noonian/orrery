@@ -19,6 +19,8 @@
             [bendix.term]
             [cromulent.check]
             [cromulent.core]
+            [cromulent.derivation]
+            [cromulent.explain]
             [cromulent.export]
             [cromulent.extract]
             [cromulent.pattern]
@@ -44,6 +46,8 @@
    'cromulent.term    (sci/copy-ns cromulent.term (sci/create-ns 'cromulent.term))
    'cromulent.check   (sci/copy-ns cromulent.check (sci/create-ns 'cromulent.check))
    'cromulent.export  (sci/copy-ns cromulent.export (sci/create-ns 'cromulent.export))
+   'cromulent.explain (sci/copy-ns cromulent.explain (sci/create-ns 'cromulent.explain))
+   'cromulent.derivation (sci/copy-ns cromulent.derivation (sci/create-ns 'cromulent.derivation))
    'orrery.workbench  (sci/copy-ns orrery.workbench (sci/create-ns 'orrery.workbench))
    'orrery.notation   (sci/copy-ns orrery.notation (sci/create-ns 'orrery.notation))
    'orrery.input      (sci/copy-ns orrery.input (sci/create-ns 'orrery.input))

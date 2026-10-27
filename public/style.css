@@ -305,6 +305,27 @@ table.stats td.applied { color: var(--added-ink); font-weight: 600; }
 .matches .count { color: var(--muted); }
 .matches ul { margin: 4px 0 0; padding-left: 18px; font-family: var(--mono); font-size: 13px; }
 
+/* why they are equal: the derivation as a calculation, = at the left,
+   the rule and the place it rewrote at the right */
+.explanation .derivation { list-style: none; margin: 4px 0 8px; padding: 0; }
+.explanation .derivation li { display: grid; grid-template-columns: 1.4em minmax(0, auto) 1fr;
+  gap: 0 10px; align-items: baseline; padding: 3px 0; border-bottom: 1px solid var(--hairline); }
+.explanation .derivation li:last-child { border-bottom: none; }
+.explanation .derivation .eq { color: var(--muted); text-align: center; }
+.explanation .derivation .term { font-size: 16px; overflow-wrap: anywhere; }
+.explanation .derivation .by { font-size: 13px; color: var(--ink-2); }
+.explanation .rule-name { font-family: var(--mono); }
+.explanation .backwards, .explanation .trusted { color: var(--merged-ink); }
+.explanation .local { color: var(--muted); }
+.explanation .verdict { font-size: 14px; margin: 4px 0; }
+.explanation .verdict .ok { color: var(--good); }
+.explanation .verdict .bad { color: var(--bad); }
+.explanation .says { font-size: 13px; color: var(--muted); }
+@media (max-width: 560px) {
+  .explanation .derivation li { grid-template-columns: 1.4em 1fr; }
+  .explanation .derivation .by { grid-column: 2; }
+}
+
 .fork { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
 @container (min-width: 900px) { .fork { grid-template-columns: 1fr 1fr; } }
 

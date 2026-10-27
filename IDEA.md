@@ -30,7 +30,7 @@ Two facts make this cheap and honest at once.
   had one architectural insight, the one above: a widget is a scrubber
   over a real execution. It never got past its first example, so orrery keeps the insight and not the
   construction: the engine is compiled, not interpreted, and the page
-  is built to carry twelve lessons, a REPL and forks (section 6).
+  is built to carry thirteen lessons, a REPL and forks (section 6).
 
 The thesis of bendix is *simplification is equality saturation plus
 taste*. orrery's job is to make a person see both halves: the graph
@@ -79,9 +79,10 @@ example, and a "try another" that draws from the example bank
 | 10 | A rule over the polynomial | `sin²x + cos²x` buried anywhere in a sum collapses to 1, however the sum is arranged | `rules/trig`, `normal-form-rule` (experiment 4) |
 | 11 | What if | assert `x = 2` in a copy of the graph; watch what collapses; the original is untouched | persistence: the fork is a `let` |
 | 12 | Differentiation is simplification | `d/dx sin(2x)` under the derivative rules with a cost that refuses `D` | `differentiate`, `no-D` |
+| 13 | Why are they equal? | `(a·2)/2 = a` as a derivation that grows a step per iteration: regroup, cancel inside the product, mul-1, each checked; a wrong rule the checker accepts anyway; a derivation that takes the long way round | an e-graph with `:explain? true`, `explain/explain-terms`, `derivation/check` (2026-10-26) |
 
-Lessons 1 to 7 and 11 need cromulent only; 8, 9, 10 and 12 need
-bendix, ported in phase 2. All twelve are live.
+Lessons 1 to 7, 11 and 13 need cromulent only; 8, 9, 10 and 12 need
+bendix, ported in phase 2. All thirteen are live.
 
 Before them come two pages (2026-09-26; section 12, decisions 10
 and 11), lesson data like the others but without a number, headed by
@@ -1006,7 +1007,7 @@ decisions behind them are in section 12.
 Live at https://egraphs.irregardless.sh. Phases 1 to 4 of section 7
 are delivered:
 
-- **Pages**: the basics and the introduction (section 2), twelve
+- **Pages**: the basics and the introduction (section 2), thirteen
   lessons, the REPL's page and the cheat sheet, plus the statement of
   what the site is and the line under every page (section 12,
   decision 13).
@@ -1018,8 +1019,10 @@ are delivered:
 - **Panels**: the scrubbed replay bar, the class list with each
   class's polynomial on the bendix lessons, the opened class
   (`orrery.eclass`), the stats, the matches, the cost picker, the
-  drawn graph (`orrery.graph`; click, drag, zoom, filter), and the
-  egraph-serialize copy and download.
+  drawn graph (`orrery.graph`; click, drag, zoom, filter), the
+  egraph-serialize copy and download, and on lesson 13 the
+  explanation (`orrery.explanation`): why the input equals the best
+  term, as a chain of rewrites with the checker's verdict.
 - **The REPL**: SCI over the compiled engine, in a dock on every page
   and on a page of its own (section 12, decisions 14 to 18). The page
   state is a value (`orrery.workbench`) in a validated atom; the
@@ -1038,5 +1041,5 @@ the REPL, the layout, the graph and the editor.
 
 Next: a review of the dock and of the layout at 1100 pixels; the
 page for playing with e-graphs, routed before the lessons; per-rule
-timings at scale. When cromulent has explanations, a lesson on why
-two terms are equal.
+timings at scale. Explanations for the bendix lessons, once bendix
+gives reasons for its analysis's merges.

@@ -14,6 +14,7 @@
   (:require [cromulent.core :as eg]
             [cromulent.extract :as ex]
             [orrery.costs :as costs]
+            [orrery.explanation :as explanation]
             [orrery.input :as input]
             [orrery.notation :as notation]
             [orrery.parse :as parse]
@@ -141,6 +142,18 @@
     "x·|x|: no rule for abs" {:iterations 2 :stop-reason :saturated :classes 6 :nodes 7
                               :best-terms {:no-D [:+ [:* :x [:D [:abs :x] :x]] [:abs :x]]
                                            :bendix [:D [:* :x [:abs :x]] :x]}}}
+   :why
+   {nil {:steps 5 :iterations 4 :stop-reason :saturated :classes 4 :nodes 8 :best-terms {:ast-size :a}
+         :derivation-rules ["regroup" "cancel" "mul-1"] :derivation-verdict [true 0]
+         :derivation-steps-per-step [0 1 2 3 3]}
+    "(a·2)/2" {:best-terms {:ast-size :a} :derivation-rules ["regroup" "cancel" "mul-1"] :derivation-verdict [true 0]}
+    "egg's rules on 0 + 1·a" {:best-terms {:ast-size :a}
+                              :derivation-rules ["commute-add" "add-0" "commute-mul" "mul-1"] :derivation-verdict [true 0]}
+    "c + b + a, in order" {:best-terms {:ast-size [:+ :a [:+ :b :c]]}
+                           :derivation-rules ["comm" "comm"] :derivation-verdict [true 0]}
+    "a wrong rule: ?x·2 → ?x" {:best-terms {:ast-size [:+ :a :b]}
+                               :derivation-rules ["wrong"] :derivation-verdict [true 0]}
+    "twice over: ((a·2)/2·2)/2" {:best-terms {:ast-size :a} :derivation-steps 16 :derivation-verdict [true 0]}}
    :repl
    {nil {:steps 4 :iterations 3 :stop-reason :saturated :classes-per-step [2 3 4 4] :classes 4 :nodes 6
          :nodes-per-iteration [4 6 6]
@@ -160,13 +173,24 @@
     "five atoms, node limit 100" {:stop-reason :node-limit}
     "five atoms, backoff" {:iterations 15 :stop-reason :saturated :classes 31 :nodes 185 :best-cost 9}}})
 
+(defn- explained
+  "Why the input equals the best term under the lesson's first cost,
+  in e-graph g: `orrery.explanation/between`. nil unless the lesson
+  shows the explanation."
+  [lesson run g]
+  (when (and (contains? (:panels lesson) :explanation) (:root run))
+    (let [cost (costs/cost-fn (first (:costs lesson)) g)
+          best (:term (ex/extract g (eg/find g (:root run)) cost))]
+      (explanation/between g (:rules run) (:term run) best))))
+
 (defn observe
   "Returns everything `runs` may assert about a finished run of
   `lesson`."
   [lesson values run]
   (let [g (peek (:timeline run))
         root (when-let [r (:root run)] (eg/find g r))
-        stats (:stats run)]
+        stats (:stats run)
+        e (explained lesson run g)]
     {:steps (count (:timeline run))
      :iterations (:iterations run)
      :stop-reason (:stop-reason run)
@@ -182,7 +206,12 @@
      :best-cost (when root (:cost (ex/extract g root)))
      :best-terms (when root
                    (into {} (for [c (:costs lesson)]
-                              [c (:term (ex/extract g root (costs/cost-fn c g)))])))}))
+                              [c (:term (ex/extract g root (costs/cost-fn c g)))])))
+     :derivation-rules (when e (mapv (fn [st] (let [{:keys [rule computed]} (:by st)] (or rule computed :asserted)))
+                                     (:steps e)))
+     :derivation-steps (when e (count (:steps e)))
+     :derivation-verdict (when e [(:ok? (:check e)) (count (:trusted (:check e)))])
+     :derivation-steps-per-step (when e (mapv #(count (:steps (explained lesson run %))) (:timeline run)))}))
 
 (defn- narrow
   "Returns `observed` cut down to what `expected` mentions."

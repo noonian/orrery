@@ -145,6 +145,15 @@
            "  {:rules rules"
            "   :cost cost"
            "   opts})"]}
+   :explain
+   {:name "saturate, then explain" :fn "rw/saturate · explain/explain-terms"
+    :says "Add the term to an empty e-graph that keeps a journal, saturate it under the rules, and read from the journal why the term equals the best term at the step on show."
+    :call ["(eg/add (eg/egraph"
+           "         {:explain? true}) term)"
+           "(rw/saturate g rules"
+           "  {opts})"
+           "(explain/explain-terms"
+           "  g term best)"]}
    :differentiate
    {:name "differentiate" :fn "bx/differentiate"
     :says "Simplify D(term, x), the derivative of term by x, under the derivative rules and under the cost that charges for what is still under a D."
@@ -220,7 +229,8 @@
   "Maps a key to a work that the prose cites. A work has `:who`,
   `:what`, `:where` and `:year`, the `:short` author-year form that
   a citation shows, and a `:url` when the paper has one. The link is
-  a DOI where one exists. The links were verified on 2026-09-26."
+  a DOI where one exists. The links were verified on 2026-09-26,
+  and the two on explanations on 2026-10-26."
   {:nelson-1981 {:who "Greg Nelson" :what "Techniques for Program Verification" :where "Xerox PARC report CSL-81-10" :year 1981
                  :short "Nelson 1981" :url "https://people.eecs.berkeley.edu/~necula/Papers/nelson-thesis.pdf"}
    :nelson-oppen-1980 {:who "Greg Nelson and Derek Oppen" :what "Fast Decision Procedures Based on Congruence Closure" :where "Journal of the ACM" :year 1980
@@ -251,6 +261,10 @@
                    :short "Driscoll et al. 1989" :url "https://doi.org/10.1016/0022-0000(89)90034-2"}
    :bagwell-2001 {:who "Phil Bagwell" :what "Ideal Hash Trees" :where "EPFL" :year 2001
                   :short "Bagwell 2001" :url "https://lampwww.epfl.ch/papers/idealhashtrees.pdf"}
+   :nieuwenhuis-oliveras-2005 {:who "Robert Nieuwenhuis and Albert Oliveras" :what "Proof-Producing Congruence Closure" :where "RTA, LNCS 3467" :year 2005
+                               :short "Nieuwenhuis & Oliveras 2005" :url "https://www.cs.upc.edu/~roberto/papers/rta05.pdf"}
+   :flatt-2022 {:who "Oliver Flatt, Samuel Coward, Max Willsey, Zachary Tatlock and Pavel Panchekha" :what "Small Proofs from Congruence Closure" :where "FMCAD" :year 2022
+                :short "Flatt et al. 2022" :url "https://arxiv.org/abs/2209.03398"}
    :hickey-2020 {:who "Rich Hickey" :what "A History of Clojure" :where "PACMPL, HOPL IV" :year 2020
                  :short "Hickey 2020" :url "https://doi.org/10.1145/3386321"}})
 
@@ -386,7 +400,7 @@
     [:p "An e-graph" [:cite :nelson-1981] " avoids the choice. " [:alternative "(a·2)/2" "Give it (a·2)/2"] ". " [:step 0 "At the input"] " there are four e-classes of one e-node each, because the two 2s share an e-node. A rule adds its result to the e-class it matched and removes nothing, so " [:step 1 "after one iteration"] " the " [:select [:* :a 2] "class of a·2" 1] " holds the shift beside the product, and the product is still there for the next rule."]
     [:p "Saturation" [:cite :tate-2009 :willsey-2021] " continues from there. " [:step 2 "The twos cancel"] ", then " [:step 3 "a times one is a"] ", which merges the input's e-class with the e-class of " [:notation :a] ". " [:step 4 "The fourth iteration"] " adds nothing. Since nothing was discarded, the order in which rules fired never mattered. A cost function ranks the terms each e-class represents, and extraction picks the cheapest, " [:notation :a] "."]
     [:p "So an e-graph rewrites without regret, separates searching for an answer from choosing one, and packs many terms into few e-nodes. " [:select [:/ [:* :a 2] 2] "The input's class" 4] " represents infinitely many terms: " [:notation :a] " equals " [:notation [:/ [:* :a 2] 2]] ", and the " [:notation :a] " inside that equals " [:notation [:/ [:* :a 2] 2]] " again. E-graphs are used in theorem provers" [:cite :detlefs-nelson-saxe-2005 :de-moura-bjorner-2007] ", optimizing compilers" [:cite :tate-2009] " and tools that make floating-point arithmetic more accurate" [:cite :panchekha-2015] "."]
-    [:p "The lessons take this page apart: " [:lesson :tree "a term as a tree"] ", " [:lesson :sharing "sharing"] ", " [:lesson :congruence "equality"] ", " [:lesson :rule "a rule"] ", " [:lesson :saturation "saturation"] " and " [:lesson :taste "the choice of an answer"] "; then " [:lesson :blowup "what holding everything costs"] ", " [:lesson :fix "the fix"] ", " [:lesson :normal-form "what is inside it"] " and " [:lesson :polynomial-rule "a rule over it"] "; then " [:lesson :what-if "a what-if"] " and " [:lesson :differentiation "differentiation"] ". Every panel is the engine running, not a drawing of it. Scrub the steps, click a box, or edit the term and the rules."]]})
+    [:p "The lessons take this page apart: " [:lesson :tree "a term as a tree"] ", " [:lesson :sharing "sharing"] ", " [:lesson :congruence "equality"] ", " [:lesson :rule "a rule"] ", " [:lesson :saturation "saturation"] " and " [:lesson :taste "the choice of an answer"] "; then " [:lesson :blowup "what holding everything costs"] ", " [:lesson :fix "the fix"] ", " [:lesson :normal-form "what is inside it"] " and " [:lesson :polynomial-rule "a rule over it"] "; then " [:lesson :what-if "a what-if"] ", " [:lesson :differentiation "differentiation"] " and " [:lesson :why "why two terms are equal"] ". Every panel is the engine running, not a drawing of it. Scrub the steps, click a box, or edit the term and the rules."]]})
 
 ;; ---------------------------------------------------------------------------
 ;; the lessons
@@ -640,6 +654,37 @@
     [:p "The cost decides which term is the answer. " (library :bendix "Bendix") "'s default cost charges a derivative e-node no more than a sine. So for " [:alternative "sin(sin(sin x))" "sin(sin(sin x))"] " under " [:cost :bendix "bendix's default"] " the answer keeps the derivative unevaluated, because the e-node is cheaper than the product of three cosines. The " [:cost :no-D "no-D cost"] " counts what is still under a derivative before it counts size, so a form without a derivative wins whenever one exists. When none exists, as for " [:alternative "x·|x|: no rule for abs" "x·|x|"] ", the D stays and the answer says so."]]})
 
 ;; ---------------------------------------------------------------------------
+;; explanations
+
+(def why
+  {:key :why :n 13 :title "Why are they equal?" :needs :cromulent :kind :embiggen
+   :operation :explain
+   :inputs [term-input rules-input]
+   :values {:term [:/ [:* :a 2] 2] :rules intro-rules}
+   :opts {:scheduler :simple :egraph (eg/egraph {:explain? true})}
+   :costs [:ast-size]
+   :alternatives [{:label "(a·2)/2" :values {:term [:/ [:* :a 2] 2] :rules intro-rules}}
+                  {:label "egg's rules on 0 + 1·a" :values {:term [:+ 0 [:* 1 :a]] :rules egg-rules}}
+                  {:label "c + b + a, in order" :values {:term [:+ [:+ :c :b] :a] :rules ac-rules}}
+                  {:label "a wrong rule: ?x·2 → ?x" :values {:term [:+ [:* :a 2] :b] :rules '[["wrong" [:* ?x 2] ?x]]}}
+                  {:label "twice over: ((a·2)/2·2)/2" :values {:term [:/ [:* [:/ [:* :a 2] 2] 2] 2] :rules intro-rules}}]
+   :panels #{:explanation}
+   :prose
+   [[:p "Saturation takes " [:notation [:/ [:* :a 2] 2]] " to " [:notation :a] ", as on " [:lesson :intro "the introduction"] ". The e-graph holds the two in one e-class, but it does not say why. This e-graph keeps a " [:i "journal"] ". It records every e-node it adds, and every union that merges two e-classes with the reason for it. A rule's union records the rule, its bindings and the e-nodes it matched. A union that rebuild makes records congruence. From the journal, " (library :cromulent) " reads a " [:i "derivation"] [:cite :nieuwenhuis-oliveras-2005] ": a chain of rewrites from one term to the other, each by one rule at one place. The panel above the classes shows it."]
+    [:p [:step 0 "At the input"] " the best term is the input itself, so there is nothing to explain. " [:step 1 "After one iteration"] " the derivation has one step: regroup turns " [:notation [:/ [:* :a 2] 2]] " into " [:notation [:* :a [:/ 2 2]]] ". " [:step 2 "After two"] " it has two, and " [:step 3 "after three"] " it has three. Cancel turns " [:notation [:/ 2 2]] " into 1 inside the product, and mul-1 leaves " [:notation :a] ". The middle step is congruence: a rule rewrites a subterm, and the term around it follows. The shift is in the e-graph, " [:select [:* :a 2] "beside a·2" 3] ", but the derivation leaves it out, because it is not on the way from one term to the other."]
+    [:p "Each step is checked. " [:code "derivation/check"] " puts each rule's bindings into its two sides and confirms that every step starts where the last one ended. It shares no code with the e-graph, so a derivation it accepts follows from the rules whatever the e-graph got wrong. That is all it promises. " [:alternative "a wrong rule: ?x·2 → ?x" "Give it a wrong rule"] ", " [:native '[:* ?x 2]] " → " [:native '?x] ", and the checker accepts a derivation that " [:notation [:+ [:* :a 2] :b]] " equals " [:notation [:+ :a :b]] ". The equation follows from the rule, and the rule is false. That is why " (library :cromulent) " calls it a derivation and not a proof."]
+    [:p "A union that a person asserts has no rule behind it, and the checker takes it on trust and lists it. At the REPL, "
+     [:eval "(let [g (eg/egraph {:explain? true})
+      [g a] (eg/add g :a)
+      [g b] (eg/add g :b)
+      [g sa] (eg/add g [:sin :a])
+      [g sb] (eg/add g [:sin :b])
+      g (eg/rebuild (first (eg/union g a b \"I say so\")))]
+  (explain/explain g sa sb))"]
+     " returns a congruence over one asserted step, and " [:code "derivation/check"] " lists that step under " [:code ":trusted"] ". A union made by an analysis, such as the polynomial of " [:lesson :fix "lesson 8"] ", is asserted the same way."]
+    [:p "The journal is part of the e-graph, so every step of the run has its own, and scrubbing back shows the derivation as it stood then. A derivation is not the shortest one. It follows the unions in the order they happened. " [:alternative "twice over: ((a·2)/2·2)/2" "Twice over"] " takes sixteen steps and goes through the shift and back, where six would do. Finding short derivations is a problem of its own" [:cite :flatt-2022] ". " [:alternative "egg's rules on 0 + 1·a" "Egg's rules on 0 + 1·a"] " and " [:alternative "c + b + a, in order" "a sum put in order"] " show two more."]]})
+
+;; ---------------------------------------------------------------------------
 ;; the pages after the lessons: the REPL page and the cheat sheet
 
 (def repl
@@ -749,6 +794,7 @@
    polynomial-rule
    what-if
    differentiation
+   why
    repl
    cheat-sheet])
 

@@ -1,7 +1,8 @@
 (ns orrery.views.panels
   "Renders the panels that read the run on show: the replay bar, the
   tools row, the graph, the classes, the run's counters, the best
-  term, the matches, the iterations, the tree and the REPL. A page
+  term, the matches, the iterations, the tree, the explanation and
+  the REPL. A page
   arranges them. orrery.views.lesson arranges them for a lesson and
   for the REPL's page.
 
@@ -16,6 +17,7 @@
             [orrery.views.classes :as classes]
             [orrery.views.common :as common]
             [orrery.views.detail :as detail]
+            [orrery.views.explanation :as explanation]
             [orrery.views.graph :as graph]
             [orrery.views.matches :as matches]
             [orrery.views.repl :as repl]
@@ -163,6 +165,12 @@
    (common/title "the tree" "term")
    (tree/tree-view {:g g :term term
                     :hovered (or (get-in s [:ui :hover]) (get-in s [:ui :selected]))})])
+
+(defn explanation-panel
+  "Renders why the input equals the best term at the step on show."
+  [s]
+  (explanation/explanation-panel (derived/explanation-at s) (get-in s [:ui :print])
+                                 (:explanation snippets/panels)))
 
 (defn repl-dock
   "Renders the REPL in a dock along the bottom of the viewport. Closed,

@@ -27,6 +27,10 @@
     :says "the invariants: violations, what an e-graph breaks, if anything"}
    {:alias 'export :ns 'cromulent.export :of "cromulent"
     :says "an e-graph as egraph-serialize data (serialize) or text (json)"}
+   {:alias 'explain :ns 'cromulent.explain :of "cromulent"
+    :says "why two terms are equal, read from the journal of an e-graph made with {:explain? true}: explain-terms, explain, term"}
+   {:alias 'derivation :ns 'cromulent.derivation :of "cromulent"
+    :says "the checker, which shares no code with the e-graph: check, derives?"}
    {:alias 'bx :ns 'bendix.core :of "bendix"
     :says "the algebra system: egraph, one carrying the polynomial analysis, saturate, simplify, differentiate, materialize-all, default-cost, no-D"}
    {:alias 'rules :ns 'bendix.rules :of "bendix"

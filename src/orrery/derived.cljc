@@ -7,6 +7,7 @@
     - the extractor and the cheapest terms under the cost in force
     - the opened class
     - a rule's matches
+    - why the input equals the best term
     - the snapshot the browser suite reads
 
   These are pure functions of the state map, so the views build on
@@ -25,6 +26,7 @@
             [orrery.costs :as costs]
             [orrery.diff :as diff]
             [orrery.eclass :as eclass]
+            [orrery.explanation :as explanation]
             [orrery.graph :as graph]
             [orrery.lessons :as lessons]
             [orrery.normal :as normal]
@@ -142,6 +144,21 @@
               #(let [g (run/egraph-at run step)]
                  (vec (for [r (:rules run) :when (not (fn? (:lhs r)))]
                         {:name (:name r) :lhs (:lhs r) :matches (pat/ematch g (:lhs r))})))))))
+
+(defn explanation-at
+  "Returns why the input term equals the best term at the current
+  step under the cost in force: the chain of rewrites and the
+  checker's verdict (`orrery.explanation/between`). Returns nil
+  unless the lesson shows the explanation and the run knows its
+  term and rules."
+  [s]
+  (let [{:keys [run run-id step cost]} s
+        l (lesson s)]
+    (when (and run (:term run) (seq (:rules run)) (contains? (:panels l) :explanation))
+      (when-let [root (root-at s)]
+        (cached [run-id step cost :explanation]
+                #(explanation/between (run/egraph-at run step) (:rules run)
+                                      (:term run) (:term ((best-at s) root))))))))
 
 (defn matched-classes [matches]
   (into #{} (mapcat (fn [m] (map :class (:matches m)))) matches))

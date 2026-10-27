@@ -96,7 +96,7 @@
     (is (= [lessons/repl lessons/cheat-sheet] after) "and two after them, the REPL's and the cheat sheet")
     (is (= lessons/basics l))
     (is (lessons/live? l))
-    (is (= (range 1 13) (map :n numbered)) "the lessons are 1 to 12, in order")
+    (is (= (range 1 14) (map :n numbered)) "the lessons are 1 to 13, in order")
     (testing "a page before the lessons goes by its title alone, and by its key in the address"
       (is (= "Many ways to write one thing" (lessons/heading l)))
       (is (= "Start here" (lessons/nav-label l)))
@@ -104,13 +104,13 @@
       (is (= "7. The blowup" (lessons/heading lessons/blowup) (lessons/nav-label lessons/blowup)))
       (is (= "The REPL" (lessons/heading lessons/repl) (lessons/nav-label lessons/repl)))
       (is (= "Cheat sheet" (lessons/heading lessons/cheat-sheet) (lessons/nav-label lessons/cheat-sheet)))
-      (is (= ["basics" "intro" "1" "12" "repl" "cheat-sheet"]
-             (map lessons/address [l lessons/intro lessons/tree lessons/differentiation lessons/repl lessons/cheat-sheet]))))
+      (is (= ["basics" "intro" "1" "12" "13" "repl" "cheat-sheet"]
+             (map lessons/address [l lessons/intro lessons/tree lessons/differentiation lessons/why lessons/repl lessons/cheat-sheet]))))
     (testing "every address finds its lesson, and nothing else finds one"
       (doseq [x lessons/all]
         (is (= x (lessons/by-address (lessons/address x)))))
       (is (apply distinct? (map lessons/address lessons/all)))
-      (is (every? nil? (map lessons/by-address ["" "0" "13" "nowhere"]))))
+      (is (every? nil? (map lessons/by-address ["" "0" "14" "nowhere"]))))
     (is (= [:intro] (links l)) "the basics hand the reader to the introduction")
     (is (= (set (map :key numbered)) (set (links lessons/intro))) "whose prose links every lesson")))
 

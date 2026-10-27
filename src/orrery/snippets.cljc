@@ -4,8 +4,8 @@
   snippet at the end of the buffer, where the learner can read it,
   change it and evaluate it.
 
-  `panels` holds the code behind three parts of the page: the run's
-  counters, the opened class and the export. `library` holds code
+  `panels` holds the code behind four parts of the page: the run's
+  counters, the opened class, the export and the explanation. `library` holds code
   for what no panel shows. The dock lists the library.
 
   Every snippet uses only the names in scope (orrery.names). The
@@ -36,7 +36,17 @@
 
    :export
    ";; g as egraph-serialize JSON, each node costed under the cost in force
-(export/json g {:cost (costs/cost-fn (:cost @state) g)})"})
+(export/json g {:cost (costs/cost-fn (:cost @state) g)})"
+
+   :explanation
+   ";; why the input equals the best term, and the checker's verdict;
+;; g must keep a journal: (eg/egraph {:explain? true})
+(let [{:keys [term rules root]} (:run @state)
+      cost (costs/cost-fn (:cost @state) g)
+      best (:term (ex/extract g (eg/find g root) cost))
+      d (explain/explain-terms g term best)]
+  {:derivation d
+   :check (derivation/check d rules)})"})
 
 (def library
   "Code for what no panel shows. Each row holds a label, one line

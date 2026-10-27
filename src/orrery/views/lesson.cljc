@@ -204,7 +204,7 @@
 (defn- lesson-layout
   "Renders a lesson in two parts. The text is the prose. The e-graph
   column holds the replay bar and, under it, three tabs: the e-graph
-  (the tree, the tools, the graph and the classes), the inputs (the
+  (the tree or the explanation, the tools, the graph and the classes), the inputs (the
   operation and its arguments) and the results (the run, the best
   term, the matches and the iterations). The inputs tab is left out
   when the page has no inputs.
@@ -235,6 +235,8 @@
               (when-let [t (and (contains? panels :tree)
                                 (or (:term r) (when-not (= :repl (:from r)) (get-in s [:input :values :term]))))]
                 (panels/tree-panel s g t))
+              (when (and (contains? panels :explanation) (:term r) (seq (:rules r)))
+                (panels/explanation-panel s))
               (panels/tools s)
               (panels/graph-panel s matches)
               (if (contains? panels :fork)
